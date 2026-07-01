@@ -1,16 +1,31 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const db = require('./db');
 const { authenticate, adminOnly } = require('./middleware/auth');
 
 const app = express();
+
+function findStaticDir() {
+  const candidates = [
+    path.join(__dirname, '..', 'src'),
+    path.join(__dirname, 'src'),
+    path.join(process.cwd(), 'src'),
+    path.join(__dirname, 'public'),
+  ];
+  for (const dir of candidates) {
+    if (fs.existsSync(dir)) return dir;
+  }
+  return path.join(__dirname, '..', 'src');
+}
+const STATIC_DIR = findStaticDir();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, '..', 'src')));
+app.use(express.static(STATIC_DIR));
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/employees', authenticate, adminOnly, require('./routes/employees'));
@@ -34,7 +49,7 @@ app.get('/api/export', (req, res) => {
 });
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'src', 'index.html'));
+  res.sendFile(path.join(STATIC_DIR, 'index.html'));
 });
 
 app.listen(PORT, () => {

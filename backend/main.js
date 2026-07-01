@@ -1,8 +1,19 @@
 const { app, BrowserWindow, Menu, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 let mainWindow;
 let server;
+
+function findStaticDir() {
+  const dirs = [
+    path.join(__dirname, '..', 'src'),
+    path.join(__dirname, 'src'),
+    path.join(process.cwd(), 'src'),
+  ];
+  for (const d of dirs) if (fs.existsSync(d)) return d;
+  return path.join(__dirname, '..', 'src');
+}
 
 function startServer() {
   const express = require('express');
@@ -12,10 +23,11 @@ function startServer() {
 
   const srv = express();
   const PORT = 3456;
+  const STATIC_DIR = findStaticDir();
 
   srv.use(cors());
   srv.use(express.json());
-  srv.use(express.static(path.join(__dirname, '..', 'src')));
+  srv.use(express.static(STATIC_DIR));
 
   srv.use('/api/auth', require('./routes/auth'));
   srv.use('/api/employees', authenticate, adminOnly, require('./routes/employees'));
@@ -37,7 +49,7 @@ function startServer() {
   });
 
   srv.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'src', 'index.html'));
+    res.sendFile(path.join(STATIC_DIR, 'index.html'));
   });
 
   server = srv.listen(PORT, () => console.log(`Server on ${PORT}`));
