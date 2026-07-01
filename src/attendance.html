@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Attendance | Laguna Cafe</title>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/attendance.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Sidebar -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+
+            <div class="logo-circle">
+                <i class="fa-solid fa-mug-hot"></i>
+            </div>
+
+            <h2>Laguna Cafe</h2>
+            <p>Cafe & Restaurant</p>
+
+        </div>
+
+        <nav>
+
+            <a href="index.html"><i class="fa-solid fa-chart-line"></i><span>لوحة التحكم</span></a>
+            <a href="menu.html"><i class="fa-solid fa-utensils"></i><span>المنيو</span></a>
+            <a href="invoices.html"><i class="fa-solid fa-file-invoice"></i><span>الفواتير</span></a>
+            <a href="returns.html"><i class="fa-solid fa-arrow-rotate-left"></i><span>المرتجعات</span></a>
+            <a href="attendance.html" class="active"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
+            <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
+            <a href="inventory.html" class="admin-only"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
+            <a href="expenses.html" class="admin-only"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
+            <a href="customers.html" class="admin-only"><i class="fa-solid fa-user-group"></i><span>العملاء</span></a>
+            <a href="reports.html" class="admin-only"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
+            <a href="qr.html"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
+            <a href="settings.html" class="admin-only"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
+            <a href="auth.html" onclick="sessionStorage.removeItem('laguna_user')" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.1)"><i class="fa-solid fa-right-from-bracket"></i><span>تسجيل الخروج</span></a>
+
+        </nav>
+
+    </aside>
+
+    <!-- Main -->
+
+    <main class="main">
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>
+                    <i class="fa-solid fa-calendar-check"></i>
+                    الحضور والانصراف
+                </h1>
+
+                <p>إدارة حضور وانصراف موظفي Laguna Cafe</p>
+
+            </div>
+
+        </div>
+        <!-- Statistics -->
+
+        <section class="attendance-stats">
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-users"></i>
+
+                <div>
+                    <h2 id="employeesCount">4</h2>
+                    <span>إجمالي الموظفين</span>
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-user-check"></i>
+
+                <div>
+                    <h2 id="presentCount">2</h2>
+                    <span>حاضر</span>
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-user-clock"></i>
+
+                <div>
+                    <h2 id="lateCount">1</h2>
+                    <span>متأخر</span>
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-user-xmark"></i>
+
+                <div>
+                    <h2 id="absentCount">1</h2>
+                    <span>غائب</span>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Add Employee -->
+
+        <div class="attendance-tools">
+
+            <button class="add-employee-btn">
+
+                <i class="fa-solid fa-user-plus"></i>
+
+                إضافة موظف
+
+            </button>
+
+        </div>
+
+        <!-- Attendance Table -->
+
+        <section class="attendance-table">
+
+            <div class="table-header">
+
+                <span>الموظف</span>
+                <span>الوظيفة</span>
+                <span>وقت الحضور</span>
+                <span>وقت الانصراف</span>
+                <span>الحالة</span>
+                <span>الإجراءات</span>
+
+            </div>
+
+            <!-- Employee 1 -->
+
+            <div class="attendance-row">
+
+                <span>أحمد محمد</span>
+
+                <span>كاشير</span>
+
+                <span class="in-time">09:00</span>
+
+                <span class="out-time">—</span>
+
+                <span class="status present">حاضر</span>
+
+                <div class="actions">
+
+                    <button class="check-btn">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                    </button>
+
+                    <button class="leave-btn">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+
+                    <button class="edit-btn">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+
+                    <button class="delete-btn">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- Employee 2 -->
+
+            <div class="attendance-row">
+
+                <span>محمد علي</span>
+
+                <span>باريستا</span>
+
+                <span class="in-time">09:20</span>
+
+                <span class="out-time">—</span>
+
+                <span class="status late">متأخر</span>
+
+                <div class="actions">
+
+                    <button class="check-btn">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                    </button>
+
+                    <button class="leave-btn">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+
+                    <button class="edit-btn">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+
+                    <button class="delete-btn">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- Employee 3 -->
+
+            <div class="attendance-row">
+
+                <span>سارة أحمد</span>
+
+                <span>ويتر</span>
+
+                <span class="in-time">—</span>
+
+                <span class="out-time">—</span>
+
+                <span class="status absent">غائب</span>
+
+                <div class="actions">
+
+                    <button class="check-btn">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                    </button>
+
+                    <button class="leave-btn">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+
+                    <button class="edit-btn">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+
+                    <button class="delete-btn">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- Employee 4 -->
+
+            <div class="attendance-row">
+
+                <span>علي حسن</span>
+
+                <span>مدير</span>
+
+                <span class="in-time">08:45</span>
+
+                <span class="out-time">05:30</span>
+
+                <span class="status present">حاضر</span>
+
+                <div class="actions">
+
+                    <button class="check-btn">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                    </button>
+
+                    <button class="leave-btn">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+
+                    <button class="edit-btn">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+
+                    <button class="delete-btn">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+<!-- Employee Modal -->
+
+<div class="employee-modal" id="employeeModal">
+
+    <div class="employee-box">
+
+        <div class="employee-header">
+
+            <h2>
+                <i class="fa-solid fa-user-plus"></i>
+                إضافة / تعديل موظف
+            </h2>
+
+            <button class="close-modal" id="closeEmployeeModal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+        <div class="employee-body">
+
+            <label>اسم الموظف</label>
+
+            <input
+                    type="text"
+                    id="employeeName"
+                    placeholder="اسم الموظف">
+
+            <label>الوظيفة</label>
+
+            <input
+                    type="text"
+                    id="employeeJob"
+                    placeholder="الوظيفة">
+
+        </div>
+
+        <div class="employee-footer">
+
+            <button id="cancelEmployee" class="cancel-btn">
+                إلغاء
+            </button>
+
+            <button id="saveEmployee" class="confirm-btn">
+                حفظ
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+<script src="js/api-client.js"></script>
+<script src="js/data.js"></script>
+<script src="js/attendance.js"></script>
+<script>
+  if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';
+</script>
+<script src="js/role.js"></script>
+</body>
+
+</html>

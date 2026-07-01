@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المخزون | Laguna Cafe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/inventory.css">
+</head>
+<body>
+<div class="container">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-circle"><i class="fa-solid fa-mug-hot"></i></div>
+      <h2>Laguna Cafe</h2>
+      <p>Cafe & Restaurant</p>
+    </div>
+    <nav>
+      <a href="index.html"><i class="fa-solid fa-chart-line"></i><span>لوحة التحكم</span></a>
+      <a href="menu.html"><i class="fa-solid fa-utensils"></i><span>المنيو</span></a>
+      <a href="invoices.html"><i class="fa-solid fa-file-invoice"></i><span>الفواتير</span></a>
+      <a href="returns.html"><i class="fa-solid fa-arrow-rotate-left"></i><span>المرتجعات</span></a>
+      <a href="employees.html" class="admin-only"><i class="fa-solid fa-users"></i><span>الموظفين</span></a>
+      <a href="attendance.html"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
+      <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
+      <a href="inventory.html" class="active admin-only"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
+      <a href="expenses.html" class="admin-only"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
+      <a href="customers.html" class="admin-only"><i class="fa-solid fa-user-group"></i><span>العملاء</span></a>
+      <a href="reports.html" class="admin-only"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
+      <a href="qr.html"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
+      <a href="settings.html" class="admin-only"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1><i class="fa-solid fa-boxes-stacked"></i>المخزون</h1>
+        <p>إدارة مخزون Laguna Cafe</p>
+      </div>
+    </div>
+    <section class="inventory-stats">
+      <div class="stat-card"><i class="fa-solid fa-box"></i><div><h2 id="invTotal">0</h2><span>إجمالي الأصناف</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-circle-check"></i><div><h2 id="invInStock">0</h2><span>متوفر</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-triangle-exclamation"></i><div><h2 id="invLowStock">0</h2><span>منخفض</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-circle-xmark"></i><div><h2 id="invOutOfStock">0</h2><span>نفذ</span></div></div>
+    </section>
+    <div class="inventory-tools">
+      <input type="text" id="invSearch" placeholder="بحث باسم المنتج...">
+      <select id="invCategory">
+        <option value="all">كل الأقسام</option>
+        <option value="قهوة">قهوة</option>
+        <option value="ألبان">ألبان</option>
+        <option value="مواد جافة">مواد جافة</option>
+        <option value="مشروبات">مشروبات</option>
+        <option value="حلويات">حلويات</option>
+      </select>
+      <button class="add-btn" id="addInvBtn"><i class="fa-solid fa-plus"></i>إضافة صنف</button>
+    </div>
+    <section class="inventory-table">
+      <div class="table-header">
+        <span>الاسم</span><span>القسم</span><span>الكمية</span><span>الوحدة</span><span>الحد الأدنى</span><span>الحالة</span><span>الإجراءات</span>
+      </div>
+      <div id="invList"></div>
+    </section>
+  </main>
+</div>
+<div class="modal" id="invModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="invModalTitle">إضافة صنف</h2>
+      <button class="close-modal" id="closeInvModal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <label>اسم الصنف</label><input type="text" id="invName">
+      <label>القسم</label>
+      <select id="invCategoryModal">
+        <option value="قهوة">قهوة</option><option value="ألبان">ألبان</option>
+        <option value="مواد جافة">مواد جافة</option><option value="مشروبات">مشروبات</option>
+        <option value="حلويات">حلويات</option>
+      </select>
+      <label>الكمية</label><input type="number" id="invQty" min="0">
+      <label>الوحدة</label>
+      <select id="invUnit"><option value="كجم">كجم</option><option value="لتر">لتر</option><option value="قطعة">قطعة</option><option value="كرتونة">كرتونة</option></select>
+      <label>الحد الأدنى</label><input type="number" id="invMin" min="0">
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" id="cancelInv">إلغاء</button>
+      <button class="confirm-btn" id="saveInv">حفظ</button>
+    </div>
+  </div>
+</div>
+<script src="js/api-client.js"></script>
+<script src="js/data.js"></script>
+<script src="js/inventory.js"></script>
+<script>if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';</script>
+<script src="js/role.js"></script>
+</body>
+</html>

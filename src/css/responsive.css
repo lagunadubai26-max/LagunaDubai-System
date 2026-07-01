@@ -1,0 +1,14 @@
+@media (max-width: 1200px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-content { grid-template-columns: 1fr; }
+  .menu-layout { grid-template-columns: 1fr; }
+  .order-box { position: static; width: 100%; height: auto; }
+}
+@media (max-width: 768px) {
+  .container { flex-direction: column; }
+  .sidebar { position: static; width: 100%; height: auto; }
+  .main { margin-right: 0; width: 100%; padding: 20px; }
+  .cards { grid-template-columns: 1fr; }
+  .topbar { flex-direction: column; gap: 15px; }
+  .filter-box { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,186 @@
+/* ===========================
+GOOGLE RESET
+=========================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+
+    font-family:'Cairo',sans-serif;
+
+    background:#F5F7FB;
+
+    direction:rtl;
+
+    color:#1b1b1b;
+
+}
+
+/* ===========================
+VARIABLES
+=========================== */
+
+:root{
+
+    --primary:#0E3D4D;
+
+    --secondary:#12B5C8;
+
+    --success:#15B66D;
+
+    --warning:#F4A825;
+
+    --danger:#E74C3C;
+
+    --white:#ffffff;
+
+    --background:#F5F7FB;
+
+    --border:#E6EAF0;
+
+    --shadow:0 8px 20px rgba(0,0,0,.06);
+
+    --radius:18px;
+
+}
+
+/* ===========================
+LINKS
+=========================== */
+
+a{
+
+    text-decoration:none;
+
+    color:inherit;
+
+}
+
+button{
+
+    border:none;
+
+    cursor:pointer;
+
+    font-family:inherit;
+
+}
+
+img{
+
+    width:100%;
+
+    display:block;
+
+}
+
+ul{
+
+    list-style:none;
+
+}
+
+/* ===========================
+LAYOUT
+=========================== */
+
+.container{
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ===========================
+MAIN CONTENT
+=========================== */
+
+.main{
+    flex: 1;
+    margin-right: 270px;
+    padding: 30px;
+    width: calc(100% - 270px);
+    overflow-x: hidden;
+}
+/* ===========================
+SIDEBAR
+=========================== */
+
+.sidebar{
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 270px;
+    height: 100vh;
+
+    background: #073646;
+    color: #fff;
+
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+
+    overflow-y: auto;
+}
+
+.logo{
+    padding:30px 20px;
+    text-align:center;
+    border-bottom:1px solid rgba(255,255,255,.1);
+}
+
+.logo-circle{
+    width:80px;
+    height:80px;
+    margin:auto;
+    margin-bottom:15px;
+    background:#12B5C8;
+    border-radius:50%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:34px;
+}
+
+.logo h2{
+    font-size:26px;
+    margin-bottom:5px;
+}
+
+.logo p{
+    opacity:.8;
+}
+
+.sidebar nav{
+    display:flex;
+    flex-direction:column;
+    margin-top:20px;
+}
+
+.sidebar nav a{
+    padding:18px 25px;
+    display:flex;
+    align-items:center;
+    gap:15px;
+    transition:.3s;
+    color:#fff;
+}
+
+.sidebar nav a:hover{
+    background:#0A4B5D;
+}
+
+.sidebar nav a.active{
+    background:#12B5C8;
+}
+
+.sidebar nav i{
+    width:22px;
+    text-align:center;
+}

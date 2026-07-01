@@ -1,0 +1,68 @@
+{
+  "name": "laguna-cafe",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "postinstall": "node -e \"try{require('electron')}catch{e=>{}}\" 2>/dev/null && npx @electron/rebuild 2>/dev/null || true",
+    "start": "npm rebuild better-sqlite3 2>/dev/null && node server.js",
+    "dev": "npm rebuild better-sqlite3 2>/dev/null && node --watch server.js",
+    "desktop": "npx @electron/rebuild 2>/dev/null && electron .",
+    "rebuild:node": "npm rebuild better-sqlite3",
+    "rebuild:electron": "npx @electron/rebuild",
+    "build:linux": "electron-builder --linux",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:all": "electron-builder --linux --win"
+  },
+  "build": {
+    "appId": "com.lagunacafe.app",
+    "productName": "Laguna Cafe",
+    "directories": {
+      "output": "dist",
+      "buildResources": "."
+    },
+    "files": [
+      "main.js",
+      "server.js",
+      "db.js",
+      "routes/**/*",
+      "middleware/**/*",
+      "icon.png",
+      "../src/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../src",
+        "to": "src"
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "icon.png",
+      "category": "Office"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "icon.png"
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.1.0",
+    "electron": "^31.7.7",
+    "electron-builder": "^25.0.0"
+  }
+}

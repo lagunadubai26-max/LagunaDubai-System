@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>الفواتير | Laguna Cafe</title>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/invoices.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Sidebar -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+
+            <img src="images/logo.png" alt="Laguna Cafe">
+
+            <h2>Laguna Cafe</h2>
+
+            <p>Cafe & Restaurant</p>
+
+        </div>
+
+        <nav>
+
+            <a href="index.html"><i class="fa-solid fa-chart-line"></i><span>لوحة التحكم</span></a>
+            <a href="menu.html"><i class="fa-solid fa-utensils"></i><span>المنيو</span></a>
+            <a href="invoices.html" class="active"><i class="fa-solid fa-file-invoice"></i><span>الفواتير</span></a>
+            <a href="returns.html"><i class="fa-solid fa-arrow-rotate-left"></i><span>المرتجعات</span></a>
+            <a href="attendance.html"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
+            <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
+            <a href="inventory.html" class="admin-only"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
+            <a href="expenses.html" class="admin-only"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
+            <a href="customers.html" class="admin-only"><i class="fa-solid fa-user-group"></i><span>العملاء</span></a>
+            <a href="reports.html" class="admin-only"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
+            <a href="qr.html"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
+            <a href="settings.html" class="admin-only"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
+            <a href="auth.html" onclick="sessionStorage.removeItem('laguna_user')" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.1)"><i class="fa-solid fa-right-from-bracket"></i><span>تسجيل الخروج</span></a>
+
+        </nav>
+
+    </aside>
+
+    <!-- Main Content -->
+
+    <main class="main">
+
+        <!-- Page Header -->
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>
+
+                    <i class="fa-solid fa-file-invoice"></i>
+
+                    الفواتير
+
+                </h1>
+
+                <p>
+
+                    إدارة جميع فواتير Laguna Cafe
+
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- Statistics -->
+
+        <section class="invoice-stats">
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-file-invoice"></i>
+
+                <div>
+
+                    <h2>154</h2>
+
+                    <span>إجمالي الفواتير</span>
+
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-money-bill-wave"></i>
+
+                <div>
+
+                    <h2>18,750 ج.م</h2>
+
+                    <span>إجمالي المبيعات</span>
+
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-circle-check"></i>
+
+                <div>
+
+                    <h2>142</h2>
+
+                    <span>فواتير مدفوعة</span>
+
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-clock"></i>
+
+                <div>
+
+                    <h2>12</h2>
+
+                    <span>فواتير معلقة</span>
+
+                </div>
+
+            </div>
+
+        </section>
+        <!-- Search & Filter -->
+
+        <section class="filter-box">
+
+            <input type="text" placeholder="بحث برقم الفاتورة أو اسم العميل...">
+
+            <select>
+
+                <option>كل الحالات</option>
+                <option>مدفوعة</option>
+                <option>معلقة</option>
+                <option>ملغية</option>
+
+            </select>
+
+            <input type="date">
+
+            <input type="date">
+
+            <button class="search-btn">
+
+                <i class="fa-solid fa-filter"></i>
+
+                تطبيق
+
+            </button>
+
+        </section>
+
+        <!-- Invoice Table -->
+
+        <section class="invoice-table">
+
+            <div class="table-header">
+
+                <span>رقم الفاتورة</span>
+                <span>العميل</span>
+                <span>التاريخ</span>
+                <span>الإجمالي</span>
+                <span>الحالة</span>
+                <span>الإجراءات</span>
+
+            </div>
+
+            <!-- Invoice 1 -->
+
+            <div class="invoice-row">
+
+                <span>#INV-0001</span>
+
+                <span>أحمد محمد</span>
+
+                <span>29 / 06 / 2026</span>
+
+                <span>385 ج.م</span>
+
+                <span class="paid">مدفوعة</span>
+
+                <div class="actions">
+
+                    <button class="view-btn">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+
+                    <button class="print-btn">
+                        <i class="fa-solid fa-print"></i>
+                    </button>
+
+                    <button class="delete-btn">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- Invoice 2 -->
+
+            <div class="invoice-row">
+
+                <span>#INV-0002</span>
+
+                <span>محمد علي</span>
+
+                <span>29 / 06 / 2026</span>
+
+                <span>220 ج.م</span>
+
+                <span class="pending">معلقة</span>
+
+                <div class="actions">
+
+                    <button class="view-btn">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+
+                    <button class="print-btn">
+                        <i class="fa-solid fa-print"></i>
+                    </button>
+
+                    <button class="delete-btn">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- Invoice 3 -->
+
+            <div class="invoice-row">
+
+                <span>#INV-0003</span>
+
+                <span>سارة أحمد</span>
+
+                <span>28 / 06 / 2026</span>
+
+                <span>510 ج.م</span>
+
+                <span class="paid">مدفوعة</span>
+
+                <div class="actions">
+
+                    <button class="view-btn">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+
+                    <button class="print-btn">
+                        <i class="fa-solid fa-print"></i>
+                    </button>
+
+                    <button class="delete-btn">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- Invoice 4 -->
+
+            <div class="invoice-row">
+
+                <span>#INV-0004</span>
+
+                <span>تيك أواي</span>
+
+                <span>28 / 06 / 2026</span>
+
+                <span>175 ج.م</span>
+
+                <span class="paid">مدفوعة</span>
+
+                <div class="actions">
+
+                    <button class="view-btn">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+
+                    <button class="print-btn">
+                        <i class="fa-solid fa-print"></i>
+                    </button>
+
+                    <button class="delete-btn">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script src="js/api-client.js"></script>
+<script src="js/data.js"></script>
+<script src="js/invoices.js"></script>
+<script>
+  if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';
+</script>
+
+<script src="js/role.js"></script>
+</body>
+
+</html>

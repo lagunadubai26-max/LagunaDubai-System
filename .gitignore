@@ -1,0 +1,8 @@
+node_modules/
+backend/laguna.db
+backend/laguna.db-*
+backend/dist/
+*.log
+.DS_Store
+.idea/
+*.iml

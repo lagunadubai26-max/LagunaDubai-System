@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>المرتجعات | Laguna Cafe</title>
+
+    <!-- CSS -->
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <link rel="stylesheet" href="css/returns.css">
+
+    <!-- Font Awesome -->
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Sidebar -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+
+            <img src="images/logo.png" alt="Laguna Cafe">
+
+            <h2>Laguna Cafe</h2>
+
+        </div>
+
+        <nav>
+
+            <a href="index.html"><i class="fa-solid fa-chart-line"></i><span>لوحة التحكم</span></a>
+
+            <a href="menu.html"><i class="fa-solid fa-utensils"></i><span>المنيو</span></a>
+            <a href="invoices.html"><i class="fa-solid fa-file-invoice"></i><span>الفواتير</span></a>
+            <a href="returns.html" class="active"><i class="fa-solid fa-arrow-rotate-left"></i><span>المرتجعات</span></a>
+            <a href="attendance.html"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
+            <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
+            <a href="inventory.html" class="admin-only"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
+            <a href="expenses.html" class="admin-only"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
+            <a href="customers.html" class="admin-only"><i class="fa-solid fa-user-group"></i><span>العملاء</span></a>
+            <a href="reports.html" class="admin-only"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
+            <a href="qr.html"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
+            <a href="settings.html" class="admin-only"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
+            <a href="auth.html" onclick="sessionStorage.removeItem('laguna_user')" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.1)"><i class="fa-solid fa-right-from-bracket"></i><span>تسجيل الخروج</span></a>
+
+        </nav>
+
+    </aside>
+
+    <!-- Main -->
+
+    <main class="main">
+
+        <div class="page-header">
+
+            <div>
+
+                <h1>
+
+                    <i class="fa-solid fa-rotate-left"></i>
+
+                    المرتجعات
+
+                </h1>
+
+                <p>إدارة جميع المرتجعات الخاصة بالطلبات</p>
+
+            </div>
+
+        </div>
+
+        <!-- Statistics -->
+
+        <section class="returns-stats">
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-box-open"></i>
+
+                <div>
+
+                    <h2>52</h2>
+
+                    <span>إجمالي المرتجعات</span>
+
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-money-bill-wave"></i>
+
+                <div>
+
+                    <h2>1,280 ج.م</h2>
+
+                    <span>قيمة المرتجعات</span>
+
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-circle-check"></i>
+
+                <div>
+
+                    <h2>46</h2>
+
+                    <span>تمت المراجعة</span>
+
+                </div>
+
+            </div>
+
+            <div class="stat-card">
+
+                <i class="fa-solid fa-clock"></i>
+
+                <div>
+
+                    <h2>6</h2>
+
+                    <span>قيد المراجعة</span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Search -->
+
+        <section class="filter-box">
+
+            <input type="text" placeholder="بحث برقم الفاتورة أو المنتج">
+
+            <select>
+
+                <option>كل الحالات</option>
+
+                <option>تمت المراجعة</option>
+
+                <option>قيد المراجعة</option>
+
+            </select>
+
+            <input type="date">
+
+            <input type="date">
+
+            <button class="search-btn">
+
+                <i class="fa-solid fa-filter"></i>
+
+                تطبيق
+
+            </button>
+
+        </section>
+        <!-- Returns Table -->
+
+        <section class="returns-table">
+
+            <div class="table-header">
+
+                <span>رقم المرتجع</span>
+
+                <span>رقم الفاتورة</span>
+
+                <span>المنتج</span>
+
+                <span>الكمية</span>
+
+                <span>قيمة المرتجع</span>
+
+                <span>التاريخ</span>
+
+                <span>الحالة</span>
+
+                <span>الإجراءات</span>
+
+            </div>
+
+            <!-- Row -->
+
+            <div class="table-row">
+
+                <span>#RET-001</span>
+
+                <span>#INV-0105</span>
+
+                <span>لاتيه</span>
+
+                <span>2</span>
+
+                <span>140 ج.م</span>
+
+                <span>30 / 06 / 2026</span>
+
+                <span class="status success">
+                    تمت المراجعة
+                </span>
+
+                <div class="actions">
+
+                    <button class="view-btn">
+
+                        <i class="fa-solid fa-eye"></i>
+
+                    </button>
+
+                    <button class="edit-btn">
+
+                        <i class="fa-solid fa-pen"></i>
+
+                    </button>
+
+                    <button class="delete-btn">
+
+                        <i class="fa-solid fa-trash"></i>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- Row -->
+
+            <div class="table-row">
+
+                <span>#RET-002</span>
+
+                <span>#INV-0106</span>
+
+                <span>كابتشينو</span>
+
+                <span>1</span>
+
+                <span>85 ج.م</span>
+
+                <span>30 / 06 / 2026</span>
+
+                <span class="status pending">
+                    قيد المراجعة
+                </span>
+
+                <div class="actions">
+
+                    <button class="view-btn">
+
+                        <i class="fa-solid fa-eye"></i>
+
+                    </button>
+
+                    <button class="edit-btn">
+
+                        <i class="fa-solid fa-pen"></i>
+
+                    </button>
+
+                    <button class="delete-btn">
+
+                        <i class="fa-solid fa-trash"></i>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- Row -->
+
+            <div class="table-row">
+
+                <span>#RET-003</span>
+
+                <span>#INV-0108</span>
+
+                <span>دبل تركي</span>
+
+                <span>1</span>
+
+                <span>60 ج.م</span>
+
+                <span>29 / 06 / 2026</span>
+
+                <span class="status success">
+                    تمت المراجعة
+                </span>
+
+                <div class="actions">
+
+                    <button class="view-btn">
+
+                        <i class="fa-solid fa-eye"></i>
+
+                    </button>
+
+                    <button class="edit-btn">
+
+                        <i class="fa-solid fa-pen"></i>
+
+                    </button>
+
+                    <button class="delete-btn">
+
+                        <i class="fa-solid fa-trash"></i>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- Row -->
+
+            <div class="table-row">
+
+                <span>#RET-004</span>
+
+                <span>#INV-0112</span>
+
+                <span>موكا</span>
+
+                <span>3</span>
+
+                <span>255 ج.م</span>
+
+                <span>28 / 06 / 2026</span>
+
+                <span class="status success">
+                    تمت المراجعة
+                </span>
+
+                <div class="actions">
+
+                    <button class="view-btn">
+
+                        <i class="fa-solid fa-eye"></i>
+
+                    </button>
+
+                    <button class="edit-btn">
+
+                        <i class="fa-solid fa-pen"></i>
+
+                    </button>
+
+                    <button class="delete-btn">
+
+                        <i class="fa-solid fa-trash"></i>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script src="js/api-client.js"></script>
+<script src="js/data.js"></script>
+<script src="js/returns.js"></script>
+<script>
+  if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';
+</script>
+
+<script src="js/role.js"></script>
+</body>
+
+</html>

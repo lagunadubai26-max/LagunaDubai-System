@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>العملاء | Laguna Cafe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/customers.css">
+</head>
+<body>
+<div class="container">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-circle"><i class="fa-solid fa-mug-hot"></i></div>
+      <h2>Laguna Cafe</h2>
+      <p>Cafe & Restaurant</p>
+    </div>
+    <nav>
+      <a href="index.html"><i class="fa-solid fa-chart-line"></i><span>لوحة التحكم</span></a>
+      <a href="menu.html"><i class="fa-solid fa-utensils"></i><span>المنيو</span></a>
+      <a href="invoices.html"><i class="fa-solid fa-file-invoice"></i><span>الفواتير</span></a>
+      <a href="returns.html"><i class="fa-solid fa-arrow-rotate-left"></i><span>المرتجعات</span></a>
+      <a href="employees.html" class="admin-only"><i class="fa-solid fa-users"></i><span>الموظفين</span></a>
+      <a href="attendance.html"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
+      <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
+      <a href="inventory.html" class="admin-only"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
+      <a href="expenses.html" class="admin-only"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
+      <a href="customers.html" class="active admin-only"><i class="fa-solid fa-user-group"></i><span>العملاء</span></a>
+      <a href="reports.html" class="admin-only"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
+      <a href="qr.html"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
+      <a href="settings.html" class="admin-only"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1><i class="fa-solid fa-user-group"></i>العملاء</h1>
+        <p>إدارة عملاء Laguna Cafe</p>
+      </div>
+    </div>
+    <section class="customer-stats">
+      <div class="stat-card"><i class="fa-solid fa-users"></i><div><h2 id="custTotal">0</h2><span>إجمالي العملاء</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-money-bill-wave"></i><div><h2 id="custTotalSpent">0</h2><span>إجمالي المشتريات</span></div></div>
+    </section>
+    <div class="customer-tools">
+      <input type="text" id="custSearch" placeholder="بحث باسم العميل...">
+      <button class="add-btn" id="addCustBtn"><i class="fa-solid fa-user-plus"></i>إضافة عميل</button>
+    </div>
+    <section class="customer-table">
+      <div class="table-header">
+        <span>الاسم</span><span>رقم الهاتف</span><span>إجمالي المشتريات</span><span>عدد الزيارات</span><span>آخر زيارة</span><span>الإجراءات</span>
+      </div>
+      <div id="custList"></div>
+    </section>
+  </main>
+</div>
+<div class="modal" id="custModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="custModalTitle">إضافة عميل</h2>
+      <button class="close-modal" id="closeCustModal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <label>اسم العميل</label><input type="text" id="custName">
+      <label>رقم الهاتف</label><input type="text" id="custPhone">
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" id="cancelCust">إلغاء</button>
+      <button class="confirm-btn" id="saveCust">حفظ</button>
+    </div>
+  </div>
+</div>
+<script src="js/api-client.js"></script>
+<script src="js/data.js"></script>
+<script src="js/customers.js"></script>
+<script>if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';</script>
+<script src="js/role.js"></script>
+</body>
+</html>
