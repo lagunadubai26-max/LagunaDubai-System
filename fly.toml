@@ -2,9 +2,6 @@
 app = 'lagunadubai-system'
 primary_region = 'fra'
 
-[build]
-  buildpacks = ["heroku/nodejs"]
-
 [[mounts]]
   source = 'data'
   destination = '/data'
