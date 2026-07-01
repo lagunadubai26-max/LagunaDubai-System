@@ -20,7 +20,7 @@ const API = (() => {
       async all() { return await SUPABASE.get(table, { params: { select: '*', order: 'id.asc' } }) || []; },
       async add(data) { const r = await SUPABASE.post(table, data); return r ? r[0] : data; },
       async update(id, data) { await SUPABASE.put(table, data, { params: { id: `eq.${id}` } }); },
-      async remove(id) { await SUPABASE.delete(table, { params: { id: `eq.${id}` } }); }
+      async remove(id) { await SUPABASE.del(table, { params: { id: `eq.${id}` } }); }
     };
   }
 
