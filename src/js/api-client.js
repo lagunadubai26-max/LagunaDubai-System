@@ -8,8 +8,7 @@ const API = (() => {
     const users = await SUPABASE.get('users', { params: { username: `eq.${username}`, password: `eq.${password}`, select: '*' } });
     if (!users || !users.length) return null;
     const user = users[0];
-    const token = btoa(JSON.stringify(user));
-    sessionStorage.setItem('laguna_token', token);
+    sessionStorage.setItem('laguna_token', user.id);
     sessionStorage.setItem('laguna_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
     authenticated = true;
     return user;

@@ -41,8 +41,7 @@ loginBtn.onclick = async () => {
   const users = await SUPABASE.get('users', { params: { username: `eq.${u}`, password: `eq.${p}`, select: '*' } });
   if (!users || !users.length) { errorEl.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة'; return; }
   const user = users[0];
-  const token = btoa(JSON.stringify(user));
-  sessionStorage.setItem('laguna_token', token);
+  sessionStorage.setItem('laguna_token', user.id);
   sessionStorage.setItem('laguna_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
   window.location.href = 'index.html';
 };
@@ -54,8 +53,7 @@ empLoginBtn.onclick = async () => {
   const rows = await SUPABASE.get('employees', { params: { id: `eq.${empId}`, pin: `eq.${pin}`, select: '*' } });
   if (!rows || !rows.length) { empErrorEl.textContent = 'الرقم السري خطأ'; return; }
   const emp = rows[0];
-  const token = btoa(JSON.stringify({ id: emp.id, username: emp.name, role: 'Employee' }));
-  sessionStorage.setItem('laguna_token', token);
+  sessionStorage.setItem('laguna_token', emp.id);
   sessionStorage.setItem('laguna_user', JSON.stringify({ id: emp.id, username: emp.name, name: emp.name, role: 'Employee' }));
   window.location.href = 'index.html';
 };
