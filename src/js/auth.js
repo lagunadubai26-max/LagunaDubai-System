@@ -24,24 +24,13 @@ document.querySelectorAll('.auth-tab').forEach(tab => {
 });
 
 async function loadEmployees() {
-  try {
-    employees = await API.employees.all();
-    employees.forEach(emp => {
-      const opt = document.createElement('option');
-      opt.value = emp.id;
-      opt.textContent = emp.name + ' (' + emp.job + ')';
-      employeeSelect.appendChild(opt);
-    });
-  } catch {
-    const localEmps = DB.employees.local();
-    employees = localEmps;
-    localEmps.forEach(emp => {
-      const opt = document.createElement('option');
-      opt.value = emp.id;
-      opt.textContent = emp.name;
-      employeeSelect.appendChild(opt);
-    });
-  }
+  const all = await SUPABASE.get('employees', { params: { select: 'id,name,job', order: 'name.asc' } }) || [];
+  all.forEach(emp => {
+    const opt = document.createElement('option');
+    opt.value = emp.id;
+    opt.textContent = emp.name + ' (' + emp.job + ')';
+    employeeSelect.appendChild(opt);
+  });
 }
 loadEmployees();
 
@@ -49,42 +38,26 @@ loginBtn.onclick = async () => {
   const u = username.value.trim();
   const p = password.value.trim();
   if (!u || !p) { errorEl.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور'; return; }
-  try {
-    const user = await API.login(u, p);
-    if (!user) {
-      const localUser = DB.users.auth(u, p);
-      if (localUser) {
-        sessionStorage.setItem('laguna_user', JSON.stringify(localUser));
-        window.location.href = 'index.html';
-        return;
-      }
-      errorEl.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
-      return;
-    }
-    window.location.href = 'index.html';
-  } catch {
-    errorEl.textContent = 'حدث خطأ في الاتصال';
-  }
+  const users = await SUPABASE.get('users', { params: { username: `eq.${u}`, password: `eq.${p}`, select: '*' } });
+  if (!users || !users.length) { errorEl.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة'; return; }
+  const user = users[0];
+  const token = btoa(JSON.stringify(user));
+  sessionStorage.setItem('laguna_token', token);
+  sessionStorage.setItem('laguna_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
+  window.location.href = 'index.html';
 };
 
 empLoginBtn.onclick = async () => {
   const empId = employeeSelect.value;
   const pin = employeePin.value.trim();
   if (!empId || !pin) { empErrorEl.textContent = 'يرجى اختيار اسمك وإدخال الرقم السري'; return; }
-  try {
-    const res = await fetch('/api/auth/employee-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employeeId: empId, pin })
-    });
-    if (!res.ok) { empErrorEl.textContent = 'الرقم السري خطأ'; return; }
-    const data = await res.json();
-    API.setToken(data.token);
-    sessionStorage.setItem('laguna_user', JSON.stringify(data.user));
-    window.location.href = 'index.html';
-  } catch {
-    empErrorEl.textContent = 'حدث خطأ في الاتصال';
-  }
+  const rows = await SUPABASE.get('employees', { params: { id: `eq.${empId}`, pin: `eq.${pin}`, select: '*' } });
+  if (!rows || !rows.length) { empErrorEl.textContent = 'الرقم السري خطأ'; return; }
+  const emp = rows[0];
+  const token = btoa(JSON.stringify({ id: emp.id, username: emp.name, role: 'Employee' }));
+  sessionStorage.setItem('laguna_token', token);
+  sessionStorage.setItem('laguna_user', JSON.stringify({ id: emp.id, username: emp.name, name: emp.name, role: 'Employee' }));
+  window.location.href = 'index.html';
 };
 
 username.addEventListener('keydown', (e) => { if (e.key === 'Enter') password.focus(); });

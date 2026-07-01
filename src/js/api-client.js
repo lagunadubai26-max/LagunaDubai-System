@@ -1,99 +1,62 @@
 const API = (() => {
-  const BASE = '';
-  let token = null;
   let authenticated = false;
 
-  function setToken(t) { token = t; sessionStorage.setItem('laguna_token', t); authenticated = true; }
-  function getToken() { if (!token) token = sessionStorage.getItem('laguna_token'); return token; }
-  function isAuthenticated() { return !!getToken(); }
-  function logout() { token = null; authenticated = false; sessionStorage.removeItem('laguna_token'); sessionStorage.removeItem('laguna_user'); }
-
-  async function request(method, url, body) {
-    const headers = { 'Content-Type': 'application/json' };
-    const t = getToken();
-    if (t) headers['Authorization'] = 'Bearer ' + t;
-    const opts = { method, headers };
-    if (body) opts.body = JSON.stringify(body);
-    try {
-      const res = await fetch(BASE + '/api' + url, opts);
-      if (res.status === 401) { logout(); window.location.href = 'auth.html'; return null; }
-      return await res.json();
-    } catch {
-      return null;
-    }
-  }
+  function isAuthenticated() { return !!sessionStorage.getItem('laguna_token'); }
+  function logout() { sessionStorage.removeItem('laguna_token'); sessionStorage.removeItem('laguna_user'); authenticated = false; }
 
   async function login(username, password) {
-    const res = await fetch(BASE + '/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    setToken(data.token);
-    sessionStorage.setItem('laguna_user', JSON.stringify(data.user));
-    return data.user;
+    const users = await SUPABASE.get('users', { params: { username: `eq.${username}`, password: `eq.${password}`, select: '*' } });
+    if (!users || !users.length) return null;
+    const user = users[0];
+    const token = btoa(JSON.stringify(user));
+    sessionStorage.setItem('laguna_token', token);
+    sessionStorage.setItem('laguna_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
+    authenticated = true;
+    return user;
+  }
+
+  function crud(table) {
+    return {
+      async all() { return await SUPABASE.get(table, { params: { select: '*', order: 'id.asc' } }) || []; },
+      async add(data) { const r = await SUPABASE.post(table, data); return r ? r[0] : data; },
+      async update(id, data) { await SUPABASE.put(table, data, { params: { id: `eq.${id}` } }); },
+      async remove(id) { await SUPABASE.delete(table, { params: { id: `eq.${id}` } }); }
+    };
   }
 
   return {
-    login, logout, isAuthenticated, request, setToken,
+    login, logout, isAuthenticated,
     employees: {
-      all() { return request('GET', '/employees'); },
-      add(d) { return request('POST', '/employees', d); },
-      update(id, d) { return request('PUT', '/employees/' + id, d); },
-      remove(id) { return request('DELETE', '/employees/' + id); }
+      ...crud('employees'),
+      async all() { return await SUPABASE.get('employees', { params: { select: 'id,name,job,phone,salary,hireDate,status,pin', order: 'name.asc' } }) || []; }
     },
     attendance: {
-      all() { return request('GET', '/attendance'); },
-      today() { return request('GET', '/attendance/today'); },
-      checkIn(employeeId, name, job) { return request('POST', '/attendance/checkin', { employeeId, name, job }); },
-      checkOut(id) { return request('PUT', '/attendance/checkout/' + id); },
-      update(id, d) { return request('PUT', '/attendance/' + id, d); },
-      remove(id) { return request('DELETE', '/attendance/' + id); }
+      ...crud('attendance'),
+      async today() { return await SUPABASE.get('attendance', { params: { date: `eq.${new Date().toISOString().slice(0,10)}`, select: '*' } }) || []; },
+      async checkIn(employeeId, name, job) {
+        const today = new Date().toISOString().slice(0,10);
+        const id = Date.now().toString(36);
+        const now = new Date().toISOString();
+        return await SUPABASE.post('attendance', { id, employeeId, name, job, date: today, checkIn: now, status: 'present' });
+      },
+      async checkOut(id) {
+        const now = new Date().toISOString();
+        await SUPABASE.put('attendance', { checkOut: now }, { params: { id: `eq.${id}` } });
+      }
     },
-    invoices: {
-      all() { return request('GET', '/invoices'); },
-      add(d) { return request('POST', '/invoices', d); },
-      update(id, d) { return request('PUT', '/invoices/' + id, d); },
-      remove(id) { return request('DELETE', '/invoices/' + id); }
-    },
-    returns: {
-      all() { return request('GET', '/returns'); },
-      add(d) { return request('POST', '/returns', d); },
-      update(id, d) { return request('PUT', '/returns/' + id, d); },
-      remove(id) { return request('DELETE', '/returns/' + id); }
-    },
-    tables: {
-      all() { return request('GET', '/tables'); },
-      add(d) { return request('POST', '/tables', d); },
-      update(id, d) { return request('PUT', '/tables/' + id, d); },
-      remove(id) { return request('DELETE', '/tables/' + id); }
-    },
-    expenses: {
-      all() { return request('GET', '/expenses'); },
-      add(d) { return request('POST', '/expenses', d); },
-      remove(id) { return request('DELETE', '/expenses/' + id); }
-    },
-    customers: {
-      all() { return request('GET', '/customers'); },
-      add(d) { return request('POST', '/customers', d); },
-      update(id, d) { return request('PUT', '/customers/' + id, d); },
-      remove(id) { return request('DELETE', '/customers/' + id); }
-    },
-    inventory: {
-      all() { return request('GET', '/inventory'); },
-      add(d) { return request('POST', '/inventory', d); },
-      update(id, d) { return request('PUT', '/inventory/' + id, d); },
-      remove(id) { return request('DELETE', '/inventory/' + id); }
-    },
+    invoices: crud('invoices'),
+    returns: crud('returns'),
+    tables: crud('cafe_tables'),
+    expenses: crud('expenses'),
+    customers: crud('customers'),
+    inventory: crud('inventory'),
     settings: {
-      get() { return request('GET', '/settings'); },
-      save(d) { return request('PUT', '/settings', d); }
+      async get() { const r = await SUPABASE.get('settings', { params: { select: 'key,value' } }); if (!r) return {}; const o = {}; r.forEach(s => o[s.key] = s.value); return o; },
+      async save(data) { for (const [key, value] of Object.entries(data)) await SUPABASE.put('settings', { value }, { params: { key: `eq.${key}` } }); }
     },
     users: {
-      all() { return request('GET', '/users'); },
-      add(d) { return request('POST', '/users', d); }
+      async all() { return await SUPABASE.get('users', { params: { select: 'id,username,name,role' } }) || []; },
+      async add(d) { const r = await SUPABASE.post('users', d); return r ? r[0] : d; }
     }
   };
 })();

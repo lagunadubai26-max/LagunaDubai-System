@@ -1,4 +1,4 @@
-const DB_MODE = window.location.port === '3000' || window.location.hostname === 'localhost' && window.location.port !== '' ? 'api' : 'local';
+const DB_MODE = 'api';
 
 const DB = {
   mode: DB_MODE,

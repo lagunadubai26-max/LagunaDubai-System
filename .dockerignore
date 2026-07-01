@@ -1,0 +1,14 @@
+node_modules/
+.git/
+*.db
+*.db-shm
+*.db-wal
+.idea/
+*.iml
+*.log
+.DS_Store
+dist/
+start-desktop.sh
+start-server.sh
+backend/node_modules/
+backend/laguna.db*
