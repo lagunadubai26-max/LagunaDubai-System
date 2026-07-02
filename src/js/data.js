@@ -1,4 +1,4 @@
-const DB_MODE = 'local';
+const DB_MODE = 'api';
 
 const DB = {
   mode: DB_MODE,
