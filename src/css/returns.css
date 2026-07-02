@@ -173,7 +173,7 @@
 
     gap:10px;
 
-    transition:.3s;
+    transition:var(--transition);
 
 }
 
@@ -237,7 +237,7 @@
 
     border-bottom:1px solid #ececec;
 
-    transition:.3s;
+    transition:var(--transition);
 
 }
 
@@ -321,7 +321,7 @@
 
     cursor:pointer;
 
-    transition:.3s;
+    transition:var(--transition);
 
 }
 

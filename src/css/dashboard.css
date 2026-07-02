@@ -3,7 +3,9 @@
 .sales-chart,.payment-box{
   background:var(--card-bg);border-radius:var(--radius);padding:24px;
   box-shadow:var(--shadow);border:1px solid var(--border);
+  transition:var(--transition);
 }
+.sales-chart:hover,.payment-box:hover{box-shadow:var(--shadow-lg)}
 
 .section-title{
   display:flex;justify-content:space-between;
@@ -17,8 +19,9 @@
   background:var(--accent);color:#fff;border:none;
   padding:8px 18px;border-radius:var(--radius-sm);
   cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;
+  transition:var(--transition);
 }
-.section-title button:hover{background:var(--accent-dark)}
+.section-title button:hover{background:var(--accent-dark);transform:translateY(-1px)}
 
 .chart-placeholder{
   height:320px;background:#fafaf9;border-radius:var(--radius-sm);
