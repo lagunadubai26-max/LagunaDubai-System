@@ -3,6 +3,7 @@ async function load() {
   document.getElementById('cafeName').value = settings.cafeName || 'Laguna Cafe';
   document.getElementById('currency').value = settings.currency || 'ج.م';
   document.getElementById('taxRate').value = settings.taxRate || 14;
+  document.getElementById('serviceTax').value = settings.serviceTax || 10;
   document.getElementById('lowStockAlert').value = settings.lowStockAlert || 5;
 }
 
@@ -11,6 +12,7 @@ document.getElementById('saveSettings').onclick = async () => {
     cafeName: document.getElementById('cafeName').value,
     currency: document.getElementById('currency').value,
     taxRate: Number(document.getElementById('taxRate').value),
+    serviceTax: Number(document.getElementById('serviceTax').value),
     lowStockAlert: Number(document.getElementById('lowStockAlert').value)
   });
   alert('تم حفظ الإعدادات بنجاح');

@@ -29,6 +29,7 @@ async function render() {
       <span>${Number(inv.total).toLocaleString()} ج.م</span>
       <span class="${stCls}">${stTxt}</span>
       <div class="actions">
+        <button class="toggle-status-btn" data-id="${inv.id}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
         <button class="view-btn" data-id="${inv.id}"><i class="fa-solid fa-eye"></i></button>
         <button class="print-btn" data-id="${inv.id}"><i class="fa-solid fa-print"></i></button>
         <button class="delete-btn" data-id="${inv.id}"><i class="fa-solid fa-trash"></i></button>
@@ -65,6 +66,17 @@ function attachActions() {
       if (inv.items) inv.items.forEach(item => { itemsHtml += `<tr><td>${item.name}</td><td>${item.qty}</td><td>${item.price} ج.م</td><td>${item.qty * item.price} ج.م</td></tr>`; });
       w.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${inv.id}</title><style>body{font-family: 'Cairo', sans-serif;padding:40px;}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{padding:12px;border:1px solid #ddd;text-align:center}th{background:#1c1917;color:#fff}h1{color:#1c1917;text-align:center}.total{text-align:left;font-size:20px;font-weight:bold;color:#d97706;margin-top:20px}</style></head><body><h1>Laguna Cafe</h1><h3 style="text-align:center;color:#777">${inv.id}</h3><p><strong>العميل:</strong> ${inv.customer}</p><p><strong>التاريخ:</strong> ${new Date(inv.date).toLocaleDateString('ar-EG')}</p><p><strong>طريقة الدفع:</strong> ${inv.paymentMethod || 'Cash'}</p><table><thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table><p class="total">الإجمالي: ${Number(inv.total).toLocaleString()} ج.م</p><p style="text-align:center;color:#888;margin-top:40px;border-top:1px solid #eee;padding-top:20px;">شكراً لزيارتكم Laguna Cafe</p><script>window.print();window.close();<\/script></body></html>`);
       w.document.close();
+    };
+  });
+  document.querySelectorAll('.toggle-status-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const inv = invoices.find(i => i.id === btn.dataset.id);
+      if (!inv) return;
+      const isPaid = inv.status === 'paid' || inv.status === 'مدفوعة';
+      const newStatus = isPaid ? 'returned' : 'paid';
+      if (!confirm(isPaid ? 'تحويل الفاتورة إلى مرتجع؟' : 'تحويل الفاتورة إلى مدفوعة؟')) return;
+      await DB.invoices.update(inv.id, { status: newStatus });
+      render();
     };
   });
   document.querySelectorAll('.delete-btn').forEach(btn => {

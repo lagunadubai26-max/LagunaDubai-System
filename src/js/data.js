@@ -92,6 +92,12 @@ const DB = {
       DB.set('invoices', list);
       return inv;
     },
+    async update(id, data) {
+      if (DB_MODE !== 'local') try { await API.invoices.update(id, data); } catch {}
+      const list = DB.invoices.local();
+      const idx = list.findIndex(i => i.id === id);
+      if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('invoices', list); }
+    },
     async remove(id) {
       if (DB_MODE !== 'local') try { await API.invoices.remove(id); } catch {}
       DB.set('invoices', DB.invoices.local().filter(i => i.id !== id));
@@ -233,7 +239,7 @@ const DB = {
       if (Object.keys(local).length === 0 && DB_MODE !== 'local') {
         try { const api = await API.settings.get(); if (api && Object.keys(api).length) { DB.set('settings', api); return api; } } catch {}
       }
-      return Object.keys(local).length ? local : { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, lowStockAlert: 5 };
+      return Object.keys(local).length ? local : { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, serviceTax: 10, lowStockAlert: 5 };
     },
     async save(s) {
       if (DB_MODE !== 'local') try { await API.settings.save(s); } catch {}
@@ -310,7 +316,7 @@ const DB = {
     }
     if (DB.tables.local().length === 0) {
       const list = [];
-      for (let i = 1; i <= 12; i++) { list.push({ id: 't' + i, name: 'طاولة ' + i, capacity: i <= 4 ? 2 : i <= 8 ? 4 : 6, status: 'available', currentOrder: null }); }
+      for (let i = 1; i <= 12; i++) { list.push({ id: 't' + i, name: 'طاولة ' + i, capacity: i <= 4 ? 2 : i <= 8 ? 4 : 6, status: 'available', currentOrder: null, hasService: i > 6 }); }
       DB.set('tables', list);
     }
     if (DB.customers.local().length === 0) {

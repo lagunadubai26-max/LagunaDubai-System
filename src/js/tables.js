@@ -5,6 +5,7 @@ const modal = document.getElementById('tableModal');
 const modalTitle = document.getElementById('modalTitle');
 const tableName = document.getElementById('tableName');
 const tableCapacity = document.getElementById('tableCapacity');
+const tableService = document.getElementById('tableService');
 const saveBtn = document.getElementById('saveTable');
 
 async function render() {
@@ -19,7 +20,7 @@ async function render() {
     card.innerHTML = `
       <div class="table-status" style="background:${colorMap[t.status]}"></div>
       <h3>${t.name}</h3>
-      <p><i class="fa-solid fa-chair"></i> ${t.capacity} كراسي</p>
+      <p><i class="fa-solid fa-chair"></i> ${t.capacity} كراسي ${t.hasService ? '<span style="color:#d97706;font-size:12px;margin-right:8px"><i class="fa-solid fa-star"></i> ضيافة</span>' : ''}</p>
       <span class="badge" style="background:${colorMap[t.status]}">${statusMap[t.status]}</span>
       <div class="table-actions">
         <button class="edit-btn" data-id="${t.id}"><i class="fa-solid fa-pen"></i></button>
@@ -49,6 +50,7 @@ function attachEvents() {
       modalTitle.textContent = 'تعديل طاولة';
       tableName.value = t.name;
       tableCapacity.value = t.capacity;
+      tableService.checked = t.hasService || false;
       modal.classList.add('show');
     };
   });
@@ -79,10 +81,11 @@ saveBtn.onclick = async () => {
   const name = tableName.value.trim();
   const capacity = parseInt(tableCapacity.value);
   if (!name || !capacity) return alert('يرجى إدخال اسم الطاولة وعدد الكراسي');
+  const hasService = tableService.checked;
   if (editTableId) {
-    await DB.tables.update(editTableId, { name, capacity });
+    await DB.tables.update(editTableId, { name, capacity, hasService });
   } else {
-    await DB.tables.add({ name, capacity, status: 'available', currentOrder: null });
+    await DB.tables.add({ name, capacity, status: 'available', currentOrder: null, hasService });
   }
   modal.classList.remove('show');
   render();

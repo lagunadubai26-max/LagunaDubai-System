@@ -1,4 +1,4 @@
-const BASE = 'https://adhamkhaled1510.github.io/LagunaDubai-System/src/menu.html';
+const BASE = window.location.origin + '/LagunaDubai-System/menu.html';
 const container = document.getElementById('qrContent');
 
 async function render() {
@@ -8,11 +8,11 @@ async function render() {
 
   tables.forEach(t => {
     const card = document.createElement('div');
-    card.className = 'qr-card';
+    card.className = 'qr-card' + (t.hasService ? ' qr-service' : '');
     const num = t.name.replace(/\D/g, '');
-    const url = BASE + '?table=' + num;
+    const url = BASE + '?table=' + num + (t.hasService ? '&service=1' : '');
     card.innerHTML = `
-      <h2>${t.name}</h2>
+      <h2>${t.name}${t.hasService ? ' <span style="color:#d97706;font-size:14px">🌟 ضيافة</span>' : ''}</h2>
       <p>امسح الكود لفتح القائمة</p>
       <div class="qr-code" id="qr-${t.id}"></div>
       <button class="qr-download" data-url="${url}" data-name="${t.name}"><i class="fa-solid fa-download"></i> تحميل</button>

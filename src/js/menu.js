@@ -1,12 +1,25 @@
 let total = 0;
+let serviceTaxRate = 0;
 const urlParams = new URLSearchParams(window.location.search);
 const tableNum = urlParams.get('table');
+const hasService = urlParams.get('service') === '1';
 const isCustomer = !!tableNum;
 if (isCustomer) {
-  document.querySelector('.menu-header h1').innerHTML = '<i class="fa-solid fa-utensils"></i> القائمة - طاولة ' + tableNum;
+  document.querySelector('.menu-header h1').innerHTML = '<i class="fa-solid fa-utensils"></i> القائمة - طاولة ' + tableNum + (hasService ? ' <span style="color:#d97706;font-size:14px">🌟 ضيافة</span>' : '');
   document.querySelectorAll('.sidebar, #sidebarToggle, .sidebar-overlay').forEach(el => el && (el.style.display = 'none'));
   const mainEl = document.querySelector('.main');
   if (mainEl) { mainEl.style.marginRight = '0'; mainEl.style.width = '100%'; }
+}
+(async () => {
+  if (hasService) {
+    const settings = await DB.settings.get();
+    serviceTaxRate = settings.serviceTax || 10;
+  }
+})();
+
+function getTotalWithService() {
+  if (serviceTaxRate > 0) return total + Math.round(total * serviceTaxRate / 100);
+  return total;
 }
 
 function syncOrderSheet() {
@@ -14,7 +27,8 @@ function syncOrderSheet() {
   const sheetList = document.getElementById('sheetOrderList');
   const sheetTotal = document.getElementById('sheetTotal');
   if (orderList && sheetList) sheetList.innerHTML = orderList.innerHTML;
-  if (sheetTotal) sheetTotal.textContent = total + ' جنيه';
+  const displayTotal = getTotalWithService();
+  if (sheetTotal) sheetTotal.textContent = displayTotal + ' جنيه' + (serviceTaxRate > 0 ? ' (شامل ' + serviceTaxRate + '% خدمة)' : '');
   let count = 0;
   document.querySelectorAll('.order-box .order-item').forEach(i => {
     const name = i.querySelector('.name');
@@ -198,19 +212,36 @@ checkoutBtn.addEventListener("click", () => {
   });
   if (items.length === 0) return alert("الطلب فارغ، أضف منتجات أولاً");
   const totalAmount = items.reduce((s, i) => s + i.qty * i.price, 0);
-  document.getElementById('checkoutTotal').textContent = totalAmount + ' جنيه';
+  const serviceAmount = serviceTaxRate > 0 ? Math.round(totalAmount * serviceTaxRate / 100) : 0;
+  const grandTotal = totalAmount + serviceAmount;
+  document.getElementById('checkoutTotal').textContent = grandTotal + ' جنيه' + (serviceTaxRate > 0 ? ' (الخدمة ' + serviceAmount + ' ج.م)' : '');
   document.getElementById('checkoutModal').classList.add('show');
   window._checkoutItems = items;
-  window._checkoutTotal = totalAmount;
+  window._checkoutTotal = grandTotal;
+  window._checkoutService = serviceAmount;
 });
 
+document.getElementById('checkoutCustomerType').onchange = () => {
+  const isSpecial = document.getElementById('checkoutCustomerType').value === 'special';
+  document.getElementById('checkoutSpecialFields').style.display = isSpecial ? 'block' : 'none';
+};
+
 document.getElementById('confirmCheckout').onclick = async () => {
-  const customer = document.getElementById('checkoutCustomer').value.trim() || 'نقدي';
+  const custType = document.getElementById('checkoutCustomerType').value;
+  let customer, totalAmount;
+  if (custType === 'special') {
+    customer = document.getElementById('checkoutSpecialName').value.trim() || 'عميل خاص';
+    totalAmount = Number(document.getElementById('checkoutSpecialPrice').value);
+    if (!totalAmount || totalAmount <= 0) return alert('يرجى إدخال السعر المخصص للعميل الخاص');
+  } else {
+    customer = 'نقدي';
+    totalAmount = window._checkoutTotal;
+  }
   const method = document.getElementById('checkoutMethod').value;
   const items = window._checkoutItems;
-  const totalAmount = window._checkoutTotal;
+  const serviceAmount = window._checkoutService || 0;
   const table = tableNum ? 'طاولة ' + tableNum : null;
-  const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, status: "paid", paymentMethod: method });
+  const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, serviceAmount, paymentMethod: method, status: "paid" });
   document.getElementById('checkoutModal').classList.remove('show');
   alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''} بنجاح بقيمة ${totalAmount} جنيه`);
   clearOrder();
