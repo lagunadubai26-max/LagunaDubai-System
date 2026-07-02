@@ -9,7 +9,7 @@ const categoryNames = {
   coffee: 'قهوة', hot: 'مشروبات ساخنة', ice: 'آيس كوفي', matcha: 'ماتشا',
   frappe: 'فرابيه', smoothie: 'سموزي', milkshake: 'ميلك شيك', yogurt: 'زبادي',
   juice: 'عصائر فريش', cocktail: 'كوكتيلات', mojito: 'موهيتو', cans: 'كانز',
-  waffle: 'وافل', dessert: 'حلويات', fruit: 'سلطة فواكه', icefruit: 'آيس كريم + فروت سالاد'
+  desserts: 'حلويات'
 };
 
 async function render() {
