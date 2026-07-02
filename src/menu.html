@@ -87,9 +87,9 @@
             </div>
             <div class="topbar-right" style="display:flex;align-items:center;gap:15px;">
                 <div class="profile" style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:45px;height:45px;border-radius:50%;background:#12B5C8;display:flex;justify-content:center;align-items:center;color:#fff;font-size:20px;"><i class="fa-solid fa-user"></i></div>
+                    <div style="width:45px;height:45px;border-radius:50%;background:var(--accent);display:flex;justify-content:center;align-items:center;color:#fff;font-size:20px;"><i class="fa-solid fa-user"></i></div>
                     <div>
-                        <h4 id="profileName" style="font-size:16px;color:#073646;">جاري التحميل...</h4>
+                        <h4 id="profileName" style="font-size:16px;color:var(--primary-light);">جاري التحميل...</h4>
                         <span id="profileRole" style="font-size:13px;color:#888;">...</span>
                     </div>
                 </div>
@@ -175,20 +175,20 @@
 <!-- Checkout Modal -->
 <div class="confirm-modal" id="checkoutModal">
   <div class="confirm-box" style="width:420px;">
-    <i class="fa-solid fa-file-invoice" style="color:#12B5C8;"></i>
+    <i class="fa-solid fa-file-invoice" style="color:var(--accent);"></i>
     <h3>إتمام الطلب</h3>
     <div style="text-align:right;padding:10px 0;">
-      <label style="display:block;margin-bottom:8px;font-weight:600;color:#073646;">اسم العميل</label>
+      <label style="display:block;margin-bottom:8px;font-weight:600;color:var(--primary-light);">اسم العميل</label>
       <input type="text" id="checkoutCustomer" placeholder="نقدي" style="width:100%;height:48px;border:2px solid #e0e0e0;border-radius:12px;padding:0 15px;font-size:16px;font-family:'Cairo',sans-serif;outline:none;margin-bottom:15px;">
-      <label style="display:block;margin-bottom:8px;font-weight:600;color:#073646;">طريقة الدفع</label>
+      <label style="display:block;margin-bottom:8px;font-weight:600;color:var(--primary-light);">طريقة الدفع</label>
       <select id="checkoutMethod" style="width:100%;height:48px;border:2px solid #e0e0e0;border-radius:12px;padding:0 15px;font-size:16px;font-family:'Cairo',sans-serif;outline:none;margin-bottom:15px;">
         <option value="Cash">كاش</option>
         <option value="Visa">فيزا</option>
         <option value="Wallet">محفظة</option>
       </select>
-      <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;color:#073646;padding:10px 0;border-top:1px solid #eee;">
+      <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;color:var(--primary-light);padding:10px 0;border-top:1px solid #eee;">
         <span>الإجمالي:</span>
-        <span id="checkoutTotal" style="color:#12B5C8;">0 جنيه</span>
+        <span id="checkoutTotal" style="color:var(--accent);">0 جنيه</span>
       </div>
     </div>
     <div class="confirm-buttons">
