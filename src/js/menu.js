@@ -5,8 +5,8 @@ const isCustomer = !!tableNum;
 if (isCustomer) {
   document.querySelector('.menu-header h1').innerHTML = '<i class="fa-solid fa-utensils"></i> القائمة - طاولة ' + tableNum;
   document.querySelectorAll('.sidebar, #sidebarToggle, .sidebar-overlay').forEach(el => el && (el.style.display = 'none'));
-  const container = document.querySelector('.container');
-  if (container) container.style.gridTemplateColumns = '1fr';
+  const mainEl = document.querySelector('.main');
+  if (mainEl) { mainEl.style.marginRight = '0'; mainEl.style.width = '100%'; }
 }
 
 async function loadProducts() {
