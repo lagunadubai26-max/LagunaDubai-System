@@ -1,8 +1,13 @@
 let total = 0;
 const urlParams = new URLSearchParams(window.location.search);
 const tableNum = urlParams.get('table');
-if (tableNum) {
-  document.querySelector('.page-header h1').innerHTML = '<i class="fa-solid fa-utensils"></i> القائمة - طاولة ' + tableNum;
+const isCustomer = !!tableNum;
+if (isCustomer) {
+  document.querySelector('.menu-header h1').innerHTML = '<i class="fa-solid fa-utensils"></i> القائمة - طاولة ' + tableNum;
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.style.display = 'none';
+  const container = document.querySelector('.container');
+  if (container) container.style.gridTemplateColumns = '1fr';
 }
 
 async function loadProducts() {
@@ -178,7 +183,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
   const method = document.getElementById('checkoutMethod').value;
   const items = window._checkoutItems;
   const totalAmount = window._checkoutTotal;
-  const inv = await DB.invoices.add({ customer, date: new Date().toISOString(), items, total: totalAmount, status: "paid", paymentMethod: method });
+  const table = tableNum ? 'طاولة ' + tableNum : null;
+  const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, status: "paid", paymentMethod: method });
   document.getElementById('checkoutModal').classList.remove('show');
   alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''} بنجاح بقيمة ${totalAmount} جنيه`);
   clearOrder();

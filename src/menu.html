@@ -81,28 +81,7 @@
 
         </header>
 
-        <div class="topbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;background:#fff;padding:15px 25px;border-radius:18px;box-shadow:var(--shadow);">
-            <div class="topbar-left">
-                <p style="color:#777">مرحبًا بك في نظام Laguna Cafe</p>
-            </div>
-            <div class="topbar-right" style="display:flex;align-items:center;gap:15px;">
-                <div class="profile" style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:45px;height:45px;border-radius:50%;background:var(--accent);display:flex;justify-content:center;align-items:center;color:#fff;font-size:20px;"><i class="fa-solid fa-user"></i></div>
-                    <div>
-                        <h4 id="profileName" style="font-size:16px;color:var(--primary-light);">جاري التحميل...</h4>
-                        <span id="profileRole" style="font-size:13px;color:#888;">...</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <script>
-          if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';
-          const _user = JSON.parse(sessionStorage.getItem('laguna_user'));
-          if (_user) {
-            document.getElementById('profileName').textContent = _user.name;
-            document.getElementById('profileRole').textContent = _user.role === 'Employee' ? 'موظف' : 'مدير';
-          }
-        </script>
+        
 
         <!-- Categories -->
 
@@ -225,9 +204,6 @@
 <script src="js/api-client.js"></script>
 <script src="js/data.js"></script>
 <script src="js/menu.js"></script>
-<script>
-  if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';
-</script>
 <script src="js/role.js"></script>
 
 </body>
