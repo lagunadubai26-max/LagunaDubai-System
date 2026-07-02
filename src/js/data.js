@@ -8,7 +8,7 @@ const DB = {
   },
   set(key, val) { localStorage.setItem('laguna_' + key, JSON.stringify(val)); },
   employees: {
-    async all() { if (DB_MODE === 'api') return await API.employees.all() || DB.employees.local(); return DB.employees.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.employees.all(); return Array.isArray(a) && a.length ? a : DB.employees.local(); } return DB.employees.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_employees')) || []; } catch { return []; } },
     async save(list) { DB.set('employees', list); if (DB_MODE === 'api') { /* API handles writes */ } },
     async add(emp) { const list = DB.employees.local(); emp.id = Date.now().toString(36); list.push(emp); DB.set('employees', list); if (DB_MODE === 'api') await API.employees.add(emp); return emp; },
@@ -16,22 +16,22 @@ const DB = {
     async remove(id) { if (DB_MODE === 'api') await API.employees.remove(id); DB.set('employees', DB.employees.local().filter(e => e.id !== id)); }
   },
   attendance: {
-    async all() { if (DB_MODE === 'api') return await API.attendance.all() || DB.attendance.local(); return DB.attendance.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.attendance.all(); return Array.isArray(a) && a.length ? a : DB.attendance.local(); } return DB.attendance.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_attendance')) || []; } catch { return []; } },
     async save(list) { DB.set('attendance', list); },
-    async today() { if (DB_MODE === 'api') return await API.attendance.today() || DB.attendance.local().filter(a => new Date(a.date).toDateString() === new Date().toDateString()); return DB.attendance.local().filter(a => new Date(a.date).toDateString() === new Date().toDateString()); },
+    async today() { if (DB_MODE === 'api') { const a = await API.attendance.today(); return Array.isArray(a) && a.length ? a : DB.attendance.local().filter(aa => new Date(aa.date).toDateString() === new Date().toDateString()); } return DB.attendance.local().filter(aa => new Date(aa.date).toDateString() === new Date().toDateString()); },
     async checkIn(employeeId, name, job) { if (DB_MODE === 'api') return await API.attendance.checkIn(employeeId, name, job); const list = DB.attendance.local(); const id = Date.now().toString(36); list.push({ id, employeeId, name, job, date: new Date().toISOString(), checkIn: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), checkOut: null, status: 'present' }); DB.set('attendance', list); },
     async checkOut(id) { if (DB_MODE === 'api') await API.attendance.checkOut(id); const list = DB.attendance.local(); const item = list.find(a => a.id === id); if (item) { item.checkOut = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }); DB.set('attendance', list); } }
   },
   invoices: {
-    async all() { if (DB_MODE === 'api') return await API.invoices.all() || DB.invoices.local(); return DB.invoices.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.invoices.all(); return Array.isArray(a) && a.length ? a : DB.invoices.local(); } return DB.invoices.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_invoices')) || []; } catch { return []; } },
     async save(list) { DB.set('invoices', list); },
     async add(inv) { const list = DB.invoices.local(); inv.id = 'INV-' + String(list.length + 1).padStart(4, '0'); list.unshift(inv); DB.set('invoices', list); if (DB_MODE === 'api') await API.invoices.add(inv); return inv; },
     async remove(id) { if (DB_MODE === 'api') await API.invoices.remove(id); DB.set('invoices', DB.invoices.local().filter(i => i.id !== id)); }
   },
   returns: {
-    async all() { if (DB_MODE === 'api') return await API.returns.all() || DB.returns.local(); return DB.returns.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.returns.all(); return Array.isArray(a) && a.length ? a : DB.returns.local(); } return DB.returns.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_returns')) || []; } catch { return []; } },
     async save(list) { DB.set('returns', list); },
     async add(r) { const list = DB.returns.local(); r.id = 'RET-' + String(list.length + 1).padStart(3, '0'); list.unshift(r); DB.set('returns', list); if (DB_MODE === 'api') await API.returns.add(r); return r; },
@@ -39,7 +39,7 @@ const DB = {
     async remove(id) { if (DB_MODE === 'api') await API.returns.remove(id); DB.set('returns', DB.returns.local().filter(i => i.id !== id)); }
   },
   tables: {
-    async all() { if (DB_MODE === 'api') return await API.tables.all() || DB.tables.local(); return DB.tables.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.tables.all(); return Array.isArray(a) && a.length ? a : DB.tables.local(); } return DB.tables.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_tables')) || []; } catch { return []; } },
     async save(list) { DB.set('tables', list); },
     async add(t) { const list = DB.tables.local(); t.id = Date.now().toString(36); list.push(t); DB.set('tables', list); if (DB_MODE === 'api') await API.tables.add(t); return t; },
@@ -47,14 +47,14 @@ const DB = {
     async remove(id) { if (DB_MODE === 'api') await API.tables.remove(id); DB.set('tables', DB.tables.local().filter(i => i.id !== id)); }
   },
   expenses: {
-    async all() { if (DB_MODE === 'api') return await API.expenses.all() || DB.expenses.local(); return DB.expenses.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.expenses.all(); return Array.isArray(a) && a.length ? a : DB.expenses.local(); } return DB.expenses.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_expenses')) || []; } catch { return []; } },
     async save(list) { DB.set('expenses', list); },
     async add(e) { const list = DB.expenses.local(); e.id = Date.now().toString(36); list.unshift(e); DB.set('expenses', list); if (DB_MODE === 'api') await API.expenses.add(e); return e; },
     async remove(id) { if (DB_MODE === 'api') await API.expenses.remove(id); DB.set('expenses', DB.expenses.local().filter(i => i.id !== id)); }
   },
   customers: {
-    async all() { if (DB_MODE === 'api') return await API.customers.all() || DB.customers.local(); return DB.customers.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.customers.all(); return Array.isArray(a) && a.length ? a : DB.customers.local(); } return DB.customers.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_customers')) || []; } catch { return []; } },
     async save(list) { DB.set('customers', list); },
     async add(c) { const list = DB.customers.local(); c.id = Date.now().toString(36); list.push(c); DB.set('customers', list); if (DB_MODE === 'api') await API.customers.add(c); return c; },
@@ -62,7 +62,7 @@ const DB = {
     async remove(id) { if (DB_MODE === 'api') await API.customers.remove(id); DB.set('customers', DB.customers.local().filter(i => i.id !== id)); }
   },
   inventory: {
-    async all() { if (DB_MODE === 'api') return await API.inventory.all() || DB.inventory.local(); return DB.inventory.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.inventory.all(); return Array.isArray(a) && a.length ? a : DB.inventory.local(); } return DB.inventory.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_inventory')) || []; } catch { return []; } },
     async save(list) { DB.set('inventory', list); },
     async add(item) { const list = DB.inventory.local(); item.id = Date.now().toString(36); list.push(item); DB.set('inventory', list); if (DB_MODE === 'api') await API.inventory.add(item); return item; },
@@ -74,14 +74,14 @@ const DB = {
     async save(s) { if (DB_MODE === 'api') await API.settings.save(s); DB.set('settings', s); }
   },
   users: {
-    async all() { if (DB_MODE === 'api') return await API.users.all() || DB.users.local(); return DB.users.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.users.all(); return Array.isArray(a) && a.length ? a : DB.users.local(); } return DB.users.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_users')) || []; } catch { return []; } },
     async save(list) { DB.set('users', list); },
     async add(u) { if (DB_MODE === 'api') return await API.users.add(u) || u; const list = DB.users.local(); u.id = Date.now().toString(36); list.push(u); DB.set('users', list); return u; },
     auth(username, password) { const list = DB.users.local(); return list.find(u => u.username === username && u.password === password) || null; }
   },
   products: {
-    async all() { if (DB_MODE === 'api') return await API.products.all() || DB.products.local(); return DB.products.local(); },
+    async all() { if (DB_MODE === 'api') { const a = await API.products.all(); return Array.isArray(a) && a.length ? a : DB.products.local(); } return DB.products.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_products')) || []; } catch { return []; } },
     async save(list) { DB.set('products', list); },
     async add(p) { if (DB_MODE === 'api') return await API.products.add(p) || p; const list = DB.products.local(); p.id = Date.now().toString(36); list.push(p); DB.set('products', list); return p; },
