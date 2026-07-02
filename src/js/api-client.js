@@ -16,7 +16,7 @@ const API = (() => {
 
   function crud(table) {
     return {
-      async all() { return await SUPABASE.get(table, { params: { select: '*', order: 'id.asc' } }) || []; },
+      async all() { return await SUPABASE.get(table, { params: { select: '*', order: 'id.asc' } }); },
       async add(data) { const r = await SUPABASE.post(table, data); return r ? r[0] : data; },
       async update(id, data) { await SUPABASE.put(table, data, { params: { id: `eq.${id}` } }); },
       async remove(id) { await SUPABASE.del(table, { params: { id: `eq.${id}` } }); }
@@ -27,11 +27,11 @@ const API = (() => {
     login, logout, isAuthenticated,
     employees: {
       ...crud('employees'),
-      async all() { return await SUPABASE.get('employees', { params: { select: 'id,name,job,phone,salary,hireDate,status,pin', order: 'name.asc' } }) || []; }
+      async all() { return await SUPABASE.get('employees', { params: { select: 'id,name,job,phone,salary,hireDate,status,pin', order: 'name.asc' } }); }
     },
     attendance: {
       ...crud('attendance'),
-      async today() { return await SUPABASE.get('attendance', { params: { date: `eq.${new Date().toISOString().slice(0,10)}`, select: '*' } }) || []; },
+      async today() { return await SUPABASE.get('attendance', { params: { date: `eq.${new Date().toISOString().slice(0,10)}`, select: '*' } }); },
       async checkIn(employeeId, name, job) {
         const today = new Date().toISOString().slice(0,10);
         const id = Date.now().toString(36);
@@ -54,7 +54,7 @@ const API = (() => {
       async save(data) { for (const [key, value] of Object.entries(data)) await SUPABASE.put('settings', { value }, { params: { key: `eq.${key}` } }); }
     },
     users: {
-      async all() { return await SUPABASE.get('users', { params: { select: 'id,username,name,role' } }) || []; },
+      async all() { return await SUPABASE.get('users', { params: { select: 'id,username,name,role' } }); },
       async add(d) { const r = await SUPABASE.post('users', d); return r ? r[0] : d; }
     },
     products: crud('products')
