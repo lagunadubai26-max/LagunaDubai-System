@@ -141,10 +141,13 @@ const clearNoBtn = clearModal.querySelector(".cancel-btn");
 
 clearBtn.addEventListener("click", () => clearModal.classList.add("show"));
 clearNoBtn.addEventListener("click", () => clearModal.classList.remove("show"));
-clearYesBtn.addEventListener("click", () => {
+function clearOrder() {
   document.querySelector(".order-list").innerHTML = `<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>`;
   total = 0;
   document.querySelector(".total strong").innerText = "0 جنيه";
+}
+clearYesBtn.addEventListener("click", () => {
+  clearOrder();
   clearModal.classList.remove("show");
 });
 
@@ -173,7 +176,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
   const inv = await DB.invoices.add({ customer, date: new Date().toISOString(), items, total: totalAmount, status: "paid", paymentMethod: method });
   document.getElementById('checkoutModal').classList.remove('show');
   alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''} بنجاح بقيمة ${totalAmount} جنيه`);
-  document.querySelector(".clear-order").click();
+  clearOrder();
 };
 document.getElementById('cancelCheckout').onclick = () => {
   document.getElementById('checkoutModal').classList.remove('show');
