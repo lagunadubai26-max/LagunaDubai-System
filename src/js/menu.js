@@ -242,6 +242,14 @@ document.getElementById('confirmCheckout').onclick = async () => {
   const serviceAmount = window._checkoutService || 0;
   const table = tableNum ? 'طاولة ' + tableNum : null;
   const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, serviceAmount, paymentMethod: method, status: "paid" });
+  if (custType === 'special') {
+    const existing = (await DB.customers.all() || []).find(c => c.name === customer);
+    if (existing) {
+      await DB.customers.update(existing.id, { visits: (existing.visits || 0) + 1, totalSpent: (existing.totalSpent || 0) + totalAmount, lastVisit: new Date().toISOString() });
+    } else {
+      await DB.customers.add({ name: customer, phone: '', totalSpent: totalAmount, visits: 1, lastVisit: new Date().toISOString() });
+    }
+  }
   document.getElementById('checkoutModal').classList.remove('show');
   alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''} بنجاح بقيمة ${totalAmount} جنيه`);
   clearOrder();

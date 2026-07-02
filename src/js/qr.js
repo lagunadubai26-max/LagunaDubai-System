@@ -1,26 +1,51 @@
 const BASE = window.location.origin + '/LagunaDubai-System/menu.html';
 const container = document.getElementById('qrContent');
 
+function renderCard(t, section) {
+  const card = document.createElement('div');
+  card.className = 'qr-card';
+  const num = t.name.replace(/\D/g, '');
+  const url = BASE + '?table=' + num + (t.hasService ? '&service=1' : '');
+  card.innerHTML = `
+    <h2>${t.name}</h2>
+    <p>امسح الكود لفتح القائمة</p>
+    <div class="qr-code" id="qr-${section}-${t.id}"></div>
+    <button class="qr-download" data-url="${url}" data-name="${t.name}"><i class="fa-solid fa-download"></i> تحميل</button>
+    <div class="qr-link">
+      <input type="text" value="${url}" readonly>
+    </div>`;
+  return card;
+}
+
 async function render() {
   container.innerHTML = '<div class="qr-loading"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</div>';
   const tables = await DB.tables.all() || [];
   container.innerHTML = '';
 
-  tables.forEach(t => {
-    const card = document.createElement('div');
-    card.className = 'qr-card' + (t.hasService ? ' qr-service' : '');
-    const num = t.name.replace(/\D/g, '');
-    const url = BASE + '?table=' + num + (t.hasService ? '&service=1' : '');
-    card.innerHTML = `
-      <h2>${t.name}${t.hasService ? ' <span style="color:#d97706;font-size:14px">🌟 ضيافة</span>' : ''}</h2>
-      <p>امسح الكود لفتح القائمة</p>
-      <div class="qr-code" id="qr-${t.id}"></div>
-      <button class="qr-download" data-url="${url}" data-name="${t.name}"><i class="fa-solid fa-download"></i> تحميل</button>
-      <div class="qr-link">
-        <input type="text" value="${url}" readonly>
-      </div>`;
-    container.appendChild(card);
-  });
+  const regularTables = tables.filter(t => !t.hasService);
+  const serviceTables = tables.filter(t => t.hasService);
+
+  if (regularTables.length) {
+    const section = document.createElement('div');
+    section.className = 'qr-section';
+    section.innerHTML = '<h2 class="qr-section-title" style="font-size:22px;color:var(--primary);margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:10px"><i class="fa-solid fa-qrcode"></i> القائمة العادية</h2>';
+    const grid = document.createElement('div');
+    grid.className = 'qr-grid';
+    regularTables.forEach(t => grid.appendChild(renderCard(t, 'regular')));
+    section.appendChild(grid);
+    container.appendChild(section);
+  }
+
+  if (serviceTables.length) {
+    const section = document.createElement('div');
+    section.className = 'qr-section';
+    section.innerHTML = '<h2 class="qr-section-title" style="font-size:22px;color:var(--accent);margin:32px 0 16px;border-bottom:2px solid #d97706;padding-bottom:10px"><i class="fa-solid fa-star"></i> القائمة مع ضريبة الخدمة</h2>';
+    const grid = document.createElement('div');
+    grid.className = 'qr-grid';
+    serviceTables.forEach(t => grid.appendChild(renderCard(t, 'service')));
+    section.appendChild(grid);
+    container.appendChild(section);
+  }
 
   document.querySelectorAll('.qr-card').forEach(card => {
     const id = card.querySelector('.qr-code').id;

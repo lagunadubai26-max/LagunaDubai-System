@@ -1,4 +1,6 @@
-.qr-content {
+.qr-content {}
+.qr-section { margin-bottom: 32px; }
+.qr-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
@@ -57,12 +59,11 @@
   direction: ltr;
 }
 .qr-loading {
-  grid-column: 1 / -1;
   text-align: center;
   padding: 60px;
   color: #888;
   font-size: 18px;
 }
 @media (max-width: 768px) {
-  .qr-content { grid-template-columns: 1fr; }
+  .qr-grid { grid-template-columns: 1fr; }
 }
