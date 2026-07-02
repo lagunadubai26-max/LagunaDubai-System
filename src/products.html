@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/products.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+<div class="container">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-circle"><i class="fa-solid fa-mug-hot"></i></div>
+      <h2>Laguna Cafe</h2>
+      <p>Cafe & Restaurant</p>
+    </div>
+    <nav>
+      <a href="index.html"><i class="fa-solid fa-chart-line"></i><span>لوحة التحكم</span></a>
+      <a href="menu.html"><i class="fa-solid fa-utensils"></i><span>المنيو</span></a>
+      <a href="invoices.html"><i class="fa-solid fa-file-invoice"></i><span>الفواتير</span></a>
+      <a href="returns.html"><i class="fa-solid fa-arrow-rotate-left"></i><span>المرتجعات</span></a>
+      <a href="employees.html" class="admin-only"><i class="fa-solid fa-users"></i><span>الموظفين</span></a>
+      <a href="attendance.html"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
+      <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
+      <a href="inventory.html" class="admin-only"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
+      <a href="expenses.html" class="admin-only"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
+      <a href="customers.html" class="admin-only"><i class="fa-solid fa-user-group"></i><span>العملاء</span></a>
+      <a href="reports.html" class="admin-only"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
+      <a href="qr.html"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
+      <a href="settings.html" class="admin-only"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
+      <a href="products.html" class="active admin-only"><i class="fa-solid fa-pizza-slice"></i><span>المنتجات</span></a>
+      <a href="auth.html" onclick="sessionStorage.removeItem('laguna_user');sessionStorage.removeItem('laguna_token')" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.1)"><i class="fa-solid fa-right-from-bracket"></i><span>تسجيل الخروج</span></a>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1><i class="fa-solid fa-pizza-slice"></i>المنتجات</h1>
+        <p>إدارة منتجات قائمة الطعام</p>
+      </div>
+    </div>
+    <div class="topbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;background:#fff;padding:15px 25px;border-radius:18px;box-shadow:var(--shadow);">
+      <div class="topbar-left"><p style="color:#777">مرحبًا بك في نظام Laguna Cafe</p></div>
+      <div class="topbar-right" style="display:flex;align-items:center;gap:15px;">
+        <div class="profile" style="display:flex;align-items:center;gap:12px;">
+          <div style="width:45px;height:45px;border-radius:50%;background:#12B5C8;display:flex;justify-content:center;align-items:center;color:#fff;font-size:20px;"><i class="fa-solid fa-user"></i></div>
+          <div>
+            <h4 id="profileName" style="font-size:16px;color:#073646;">جاري التحميل...</h4>
+            <span id="profileRole" style="font-size:13px;color:#888;">...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';
+      const _user = JSON.parse(sessionStorage.getItem('laguna_user'));
+      if (_user) { document.getElementById('profileName').textContent = _user.name; document.getElementById('profileRole').textContent = _user.role === 'Employee' ? 'موظف' : 'مدير'; }
+    </script>
+    <section class="product-stats">
+      <div class="stat-card"><i class="fa-solid fa-box"></i><div><h2 id="prodTotal">0</h2><span>إجمالي المنتجات</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-layer-group"></i><div><h2 id="prodCategories">0</h2><span>عدد الأقسام</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-circle-check"></i><div><h2 id="prodActive">0</h2><span>متاح</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-circle-xmark"></i><div><h2 id="prodInactive">0</h2><span>غير متاح</span></div></div>
+    </section>
+    <div class="product-tools">
+      <input type="text" id="prodSearch" placeholder="بحث باسم المنتج...">
+      <select id="prodCategory">
+        <option value="all">كل الأقسام</option>
+        <option value="coffee">قهوة</option>
+        <option value="hot">مشروبات ساخنة</option>
+        <option value="ice">آيس كوفي</option>
+        <option value="matcha">ماتشا</option>
+        <option value="frappe">فرابيه</option>
+        <option value="smoothie">سموزي</option>
+        <option value="milkshake">ميلك شيك</option>
+        <option value="yogurt">زبادي</option>
+        <option value="juice">عصائر فريش</option>
+        <option value="cocktail">كوكتيلات</option>
+        <option value="mojito">موهيتو</option>
+        <option value="cans">كانز</option>
+        <option value="waffle">وافل</option>
+        <option value="dessert">حلويات</option>
+        <option value="fruit">سلطة فواكه</option>
+        <option value="icefruit">آيس كريم + فروت سالاد</option>
+      </select>
+      <button class="add-btn" id="addProdBtn"><i class="fa-solid fa-plus"></i>إضافة منتج</button>
+    </div>
+    <section class="product-table">
+      <div class="table-header">
+        <span>الصورة</span><span>الاسم</span><span>القسم</span><span>السعر</span><span>الحالة</span><span>الإجراءات</span>
+      </div>
+      <div id="prodList"></div>
+    </section>
+  </main>
+</div>
+<div class="modal" id="prodModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="prodModalTitle">إضافة منتج</h2>
+      <button class="close-modal" id="closeProdModal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <label>اسم المنتج (عربي)</label><input type="text" id="prodName">
+      <label>اسم المنتج (إنجليزي)</label><input type="text" id="prodNameEn">
+      <label>القسم</label>
+      <select id="prodCategoryModal">
+        <option value="coffee">قهوة</option>
+        <option value="hot">مشروبات ساخنة</option>
+        <option value="ice">آيس كوفي</option>
+        <option value="matcha">ماتشا</option>
+        <option value="frappe">فرابيه</option>
+        <option value="smoothie">سموزي</option>
+        <option value="milkshake">ميلك شيك</option>
+        <option value="yogurt">زبادي</option>
+        <option value="juice">عصائر فريش</option>
+        <option value="cocktail">كوكتيلات</option>
+        <option value="mojito">موهيتو</option>
+        <option value="cans">كانز</option>
+        <option value="waffle">وافل</option>
+        <option value="dessert">حلويات</option>
+        <option value="fruit">سلطة فواكه</option>
+        <option value="icefruit">آيس كريم + فروت سالاد</option>
+      </select>
+      <label>السعر (جنيه)</label><input type="number" id="prodPrice" min="0">
+      <label>مسار الصورة</label><input type="text" id="prodImage" placeholder="مثال: images/menu/سنجل تركي.webp">
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+        <input type="checkbox" id="prodAvailable" checked>
+        <label for="prodAvailable" style="margin:0;">متاح</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" id="cancelProd">إلغاء</button>
+      <button class="confirm-btn" id="saveProd">حفظ</button>
+    </div>
+  </div>
+</div>
+<script src="js/supabase-client.js"></script>
+<script src="js/api-client.js"></script>
+<script src="js/data.js"></script>
+<script src="js/products.js"></script>
+<script src="js/role.js"></script>
+</body>
+</html>
