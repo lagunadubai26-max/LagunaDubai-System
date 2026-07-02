@@ -135,17 +135,17 @@ function attachSearch() {
 }
 
 const clearBtn = document.querySelector(".clear-order");
-const modal = document.querySelector(".confirm-modal");
-const yesBtn = document.querySelector(".confirm-btn");
-const noBtn = document.querySelector(".cancel-btn");
+const clearModal = document.getElementById('confirmModal');
+const clearYesBtn = clearModal.querySelector(".confirm-btn");
+const clearNoBtn = clearModal.querySelector(".cancel-btn");
 
-clearBtn.addEventListener("click", () => modal.classList.add("show"));
-noBtn.addEventListener("click", () => modal.classList.remove("show"));
-yesBtn.addEventListener("click", () => {
+clearBtn.addEventListener("click", () => clearModal.classList.add("show"));
+clearNoBtn.addEventListener("click", () => clearModal.classList.remove("show"));
+clearYesBtn.addEventListener("click", () => {
   document.querySelector(".order-list").innerHTML = `<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>`;
   total = 0;
   document.querySelector(".total strong").innerText = "0 جنيه";
-  modal.classList.remove("show");
+  clearModal.classList.remove("show");
 });
 
 const checkoutBtn = document.querySelector(".checkout");
