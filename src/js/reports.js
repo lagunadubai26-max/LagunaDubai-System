@@ -49,7 +49,7 @@ function drawSalesChart(invoices) {
   const data = labels.map(k => days[k]);
   window.reportSalesChart = new Chart(canvas, {
     type: 'bar',
-    data: { labels, datasets: [{ label: 'المبيعات', data, backgroundColor: '#12B5C8', borderRadius: 8 }] },
+    data: { labels, datasets: [{ label: 'المبيعات', data, backgroundColor: '#d97706', borderRadius: 8 }] },
     options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
   });
 }
@@ -67,7 +67,7 @@ function drawPaymentChart(invoices) {
   const data = Object.values(paymentMap);
   window.reportPaymentChart = new Chart(canvas, {
     type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: ['#12B5C8', '#15B66D', '#F4A825', '#E74C3C', '#9b59b6'].slice(0, labels.length) }] },
+    data: { labels, datasets: [{ data, backgroundColor: ['#d97706', '#059669', '#f59e0b', '#dc2626', '#7c3aed'].slice(0, labels.length) }] },
     options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
   });
 }
