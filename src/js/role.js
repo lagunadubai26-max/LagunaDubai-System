@@ -6,10 +6,16 @@
   adminLinks.forEach(el => {
     if (isEmployee) el.style.display = 'none';
   });
-  if (isEmployee) {
-    const h4 = document.querySelector('.profile h4');
-    const span = document.querySelector('.profile span');
-    if (h4) h4.textContent = user.name;
-    if (span) span.textContent = 'موظف';
-  }
+  // Profile section in sidebar
+  const avatar = document.getElementById('sidebarAvatar');
+  const name = document.getElementById('sidebarName');
+  const role = document.getElementById('sidebarRole');
+  if (avatar) avatar.textContent = user.name.charAt(0);
+  if (name) name.textContent = user.name;
+  if (role) role.textContent = user.role === 'Administrator' ? 'مدير' : 'موظف';
+  // Legacy profile section
+  const h4 = document.querySelector('.profile h4');
+  const span = document.querySelector('.profile span');
+  if (h4) h4.textContent = user.name;
+  if (span) span.textContent = user.role === 'Administrator' ? 'مدير' : 'موظف';
 })();

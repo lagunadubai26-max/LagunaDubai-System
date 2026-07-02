@@ -7,7 +7,7 @@
   <title>العملاء | Laguna Cafe</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/customers.css">
@@ -36,8 +36,15 @@
         <a href="qr.html"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
         <a href="settings.html" class="admin-only"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
         <a href="products.html" class="admin-only"><i class="fa-solid fa-pizza-slice"></i><span>المنتجات</span></a>
-        <a href="auth.html" onclick="sessionStorage.removeItem('laguna_user');sessionStorage.removeItem('laguna_token')" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.1)"><i class="fa-solid fa-right-from-bracket"></i><span>تسجيل الخروج</span></a>
     </nav>
+    <div class="profile-section">
+        <div class="avatar" id="sidebarAvatar">أ</div>
+        <div class="info">
+            <div class="name" id="sidebarName">الاسم</div>
+            <div class="role" id="sidebarRole">الدور</div>
+        </div>
+        <a href="auth.html" onclick="sessionStorage.removeItem('laguna_user');sessionStorage.removeItem('laguna_token')" style="color:var(--muted);font-size:16px;text-decoration:none" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></a>
+    </div>
 </aside>
   <main class="main">
     <div class="page-header">
