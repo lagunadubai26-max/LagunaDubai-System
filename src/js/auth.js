@@ -10,8 +10,6 @@ const employeePin = document.getElementById('employeePin');
 const errorEl = document.getElementById('authError');
 const empErrorEl = document.getElementById('empAuthError');
 
-let employees = [];
-
 document.querySelectorAll('.auth-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -24,11 +22,11 @@ document.querySelectorAll('.auth-tab').forEach(tab => {
 });
 
 async function loadEmployees() {
-  const all = await SUPABASE.get('employees', { params: { select: 'id,name,job', order: 'name.asc' } }) || [];
+  const all = await DB.employees.all() || [];
   all.forEach(emp => {
     const opt = document.createElement('option');
     opt.value = emp.id;
-    opt.textContent = emp.name + ' (' + emp.job + ')';
+    opt.textContent = emp.name + ' (' + (emp.job || '') + ')';
     employeeSelect.appendChild(opt);
   });
 }
@@ -38,24 +36,30 @@ loginBtn.onclick = async () => {
   const u = username.value.trim();
   const p = password.value.trim();
   if (!u || !p) { errorEl.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور'; return; }
-  const users = await SUPABASE.get('users', { params: { username: `eq.${u}`, password: `eq.${p}`, select: '*' } });
-  if (!users || !users.length) { errorEl.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة'; return; }
-  const user = users[0];
-  sessionStorage.setItem('laguna_token', user.id);
-  sessionStorage.setItem('laguna_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
-  window.location.href = 'index.html';
+  const users = await DB.users.all() || [];
+  const user = users.find(x => x.username === u && x.password === p);
+  if (user) {
+    sessionStorage.setItem('laguna_token', user.id);
+    sessionStorage.setItem('laguna_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
+    window.location.href = 'index.html';
+  } else {
+    errorEl.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+  }
 };
 
 empLoginBtn.onclick = async () => {
   const empId = employeeSelect.value;
   const pin = employeePin.value.trim();
   if (!empId || !pin) { empErrorEl.textContent = 'يرجى اختيار اسمك وإدخال الرقم السري'; return; }
-  const rows = await SUPABASE.get('employees', { params: { id: `eq.${empId}`, pin: `eq.${pin}`, select: '*' } });
-  if (!rows || !rows.length) { empErrorEl.textContent = 'الرقم السري خطأ'; return; }
-  const emp = rows[0];
-  sessionStorage.setItem('laguna_token', emp.id);
-  sessionStorage.setItem('laguna_user', JSON.stringify({ id: emp.id, username: emp.name, name: emp.name, role: 'Employee' }));
-  window.location.href = 'index.html';
+  const employees = await DB.employees.all() || [];
+  const emp = employees.find(x => x.id === empId && String(x.pin) === pin);
+  if (emp) {
+    sessionStorage.setItem('laguna_token', emp.id);
+    sessionStorage.setItem('laguna_user', JSON.stringify({ id: emp.id, username: emp.name, name: emp.name, role: 'Employee' }));
+    window.location.href = 'index.html';
+  } else {
+    empErrorEl.textContent = 'الرقم السري خطأ';
+  }
 };
 
 username.addEventListener('keydown', (e) => { if (e.key === 'Enter') password.focus(); });
