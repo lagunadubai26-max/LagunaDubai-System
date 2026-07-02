@@ -1,4 +1,4 @@
-const DB_MODE = 'api';
+const DB_MODE = 'local';
 
 const DB = {
   mode: DB_MODE,
@@ -102,6 +102,12 @@ const DB = {
     try { const u = localStorage.getItem('laguna_users'); if (u && !u.startsWith('[')) localStorage.removeItem('laguna_users'); } catch {}
     if (DB.users.local().length === 0) {
       DB.users.save([{ id: 'u1', username: 'admin', password: 'admin123', name: 'أحمد علي', role: 'Administrator' }]);
+    }
+    if (DB.employees.local().length === 0) {
+      DB.set('employees', [
+        { id: 'e1', name: 'أحمد موظف', job: 'ويتر', phone: '01012345678', salary: '3000', hireDate: '2025-01-15', status: 'active', pin: '1234' },
+        { id: 'e2', name: 'محمد موظف', job: 'شيف', phone: '01198765432', salary: '5000', hireDate: '2025-02-01', status: 'active', pin: '5678' }
+      ]);
     }
     if (DB.tables.local().length === 0) {
       const list = [];
