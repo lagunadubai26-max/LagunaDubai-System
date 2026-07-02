@@ -1,94 +1,295 @@
-const DB_MODE = 'api';
+const DB_MODE = 'hybrid';
 
 const DB = {
   mode: DB_MODE,
+  syncInProgress: false,
   async get(key, defaults) {
     try { const d = localStorage.getItem('laguna_' + key); return d ? JSON.parse(d) : defaults; }
     catch { return defaults; }
   },
   set(key, val) { localStorage.setItem('laguna_' + key, JSON.stringify(val)); },
+
+  async syncFromAPI(table, localFn, setFn, apiFn) {
+    try {
+      const data = await apiFn();
+      if (Array.isArray(data) && data.length) {
+        setFn(data);
+      }
+    } catch {}
+  },
+
   employees: {
-    async all() { if (DB_MODE === 'api') { const a = await API.employees.all(); return Array.isArray(a) && a.length ? a : DB.employees.local(); } return DB.employees.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_employees')) || []; } catch { return []; } },
-    async save(list) { DB.set('employees', list); if (DB_MODE === 'api') { /* API handles writes */ } },
-    async add(emp) { const list = DB.employees.local(); emp.id = Date.now().toString(36); list.push(emp); DB.set('employees', list); if (DB_MODE === 'api') await API.employees.add(emp); return emp; },
-    async update(id, data) { if (DB_MODE === 'api') await API.employees.update(id, data); const list = DB.employees.local(); const idx = list.findIndex(e => e.id === id); if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('employees', list); } },
-    async remove(id) { if (DB_MODE === 'api') await API.employees.remove(id); DB.set('employees', DB.employees.local().filter(e => e.id !== id)); }
+    async all() {
+      const local = DB.employees.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('employees', local, d => DB.set('employees', d), () => API.employees.all());
+      return local;
+    },
+    async add(emp) {
+      emp.id = Date.now().toString(36);
+      const list = DB.employees.local();
+      list.push(emp);
+      DB.set('employees', list);
+      if (DB_MODE !== 'local') API.employees.add(emp).catch(() => {});
+      return emp;
+    },
+    async update(id, data) {
+      const list = DB.employees.local();
+      const idx = list.findIndex(e => e.id === id);
+      if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('employees', list); }
+      if (DB_MODE !== 'local') API.employees.update(id, data).catch(() => {});
+    },
+    async remove(id) {
+      DB.set('employees', DB.employees.local().filter(e => e.id !== id));
+      if (DB_MODE !== 'local') API.employees.remove(id).catch(() => {});
+    }
   },
+
   attendance: {
-    async all() { if (DB_MODE === 'api') { const a = await API.attendance.all(); return Array.isArray(a) && a.length ? a : DB.attendance.local(); } return DB.attendance.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_attendance')) || []; } catch { return []; } },
-    async save(list) { DB.set('attendance', list); },
-    async today() { if (DB_MODE === 'api') { const a = await API.attendance.today(); return Array.isArray(a) && a.length ? a : DB.attendance.local().filter(aa => new Date(aa.date).toDateString() === new Date().toDateString()); } return DB.attendance.local().filter(aa => new Date(aa.date).toDateString() === new Date().toDateString()); },
-    async checkIn(employeeId, name, job) { if (DB_MODE === 'api') return await API.attendance.checkIn(employeeId, name, job); const list = DB.attendance.local(); const id = Date.now().toString(36); list.push({ id, employeeId, name, job, date: new Date().toISOString(), checkIn: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), checkOut: null, status: 'present' }); DB.set('attendance', list); },
-    async checkOut(id) { if (DB_MODE === 'api') await API.attendance.checkOut(id); const list = DB.attendance.local(); const item = list.find(a => a.id === id); if (item) { item.checkOut = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }); DB.set('attendance', list); } },
-    async remove(id) { if (DB_MODE === 'api') await API.attendance.remove(id); DB.set('attendance', DB.attendance.local().filter(a => a.id !== id)); }
+    async all() {
+      const local = DB.attendance.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('attendance', local, d => DB.set('attendance', d), () => API.attendance.all());
+      return local;
+    },
+    async today() {
+      const todayStr = new Date().toDateString();
+      const local = DB.attendance.local().filter(a => new Date(a.date).toDateString() === todayStr);
+      if (DB_MODE !== 'local') {
+        DB.syncFromAPI('attendance_today', local, d => DB.set('attendance', d), () => API.attendance.today());
+      }
+      return local;
+    },
+    async checkIn(employeeId, name, job) {
+      const id = Date.now().toString(36);
+      const rec = { id, employeeId, name, job, date: new Date().toISOString(), checkIn: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), checkOut: null, status: 'present' };
+      const list = DB.attendance.local();
+      list.push(rec);
+      DB.set('attendance', list);
+      if (DB_MODE !== 'local') API.attendance.checkIn(employeeId, name, job).catch(() => {});
+      return rec;
+    },
+    async checkOut(id) {
+      const list = DB.attendance.local();
+      const item = list.find(a => a.id === id);
+      if (item) { item.checkOut = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }); DB.set('attendance', list); }
+      if (DB_MODE !== 'local') API.attendance.checkOut(id).catch(() => {});
+    },
+    async remove(id) {
+      DB.set('attendance', DB.attendance.local().filter(a => a.id !== id));
+      if (DB_MODE !== 'local') API.attendance.remove(id).catch(() => {});
+    }
   },
+
   invoices: {
-    async all() { if (DB_MODE === 'api') { const a = await API.invoices.all(); return Array.isArray(a) && a.length ? a : DB.invoices.local(); } return DB.invoices.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_invoices')) || []; } catch { return []; } },
-    async save(list) { DB.set('invoices', list); },
-    async add(inv) { const list = DB.invoices.local(); inv.id = 'INV-' + String(list.length + 1).padStart(4, '0'); list.unshift(inv); DB.set('invoices', list); if (DB_MODE === 'api') await API.invoices.add(inv); return inv; },
-    async remove(id) { if (DB_MODE === 'api') await API.invoices.remove(id); DB.set('invoices', DB.invoices.local().filter(i => i.id !== id)); }
+    async all() {
+      const local = DB.invoices.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('invoices', local, d => DB.set('invoices', d), () => API.invoices.all());
+      return local;
+    },
+    async add(inv) {
+      const list = DB.invoices.local();
+      inv.id = 'INV-' + String(list.length + 1).padStart(4, '0');
+      list.unshift(inv);
+      DB.set('invoices', list);
+      if (DB_MODE !== 'local') API.invoices.add(inv).catch(() => {});
+      return inv;
+    },
+    async remove(id) {
+      DB.set('invoices', DB.invoices.local().filter(i => i.id !== id));
+      if (DB_MODE !== 'local') API.invoices.remove(id).catch(() => {});
+    }
   },
+
   returns: {
-    async all() { if (DB_MODE === 'api') { const a = await API.returns.all(); return Array.isArray(a) && a.length ? a : DB.returns.local(); } return DB.returns.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_returns')) || []; } catch { return []; } },
-    async save(list) { DB.set('returns', list); },
-    async add(r) { const list = DB.returns.local(); r.id = 'RET-' + String(list.length + 1).padStart(3, '0'); list.unshift(r); DB.set('returns', list); if (DB_MODE === 'api') await API.returns.add(r); return r; },
-    async update(id, data) { if (DB_MODE === 'api') await API.returns.update(id, data); const list = DB.returns.local(); const idx = list.findIndex(i => i.id === id); if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('returns', list); } },
-    async remove(id) { if (DB_MODE === 'api') await API.returns.remove(id); DB.set('returns', DB.returns.local().filter(i => i.id !== id)); }
+    async all() {
+      const local = DB.returns.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('returns', local, d => DB.set('returns', d), () => API.returns.all());
+      return local;
+    },
+    async add(r) {
+      const list = DB.returns.local();
+      r.id = Date.now().toString(36);
+      list.unshift(r);
+      DB.set('returns', list);
+      if (DB_MODE !== 'local') API.returns.add(r).catch(() => {});
+      return r;
+    },
+    async update(id, data) {
+      const list = DB.returns.local();
+      const idx = list.findIndex(i => i.id === id);
+      if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('returns', list); }
+      if (DB_MODE !== 'local') API.returns.update(id, data).catch(() => {});
+    },
+    async remove(id) {
+      DB.set('returns', DB.returns.local().filter(i => i.id !== id));
+      if (DB_MODE !== 'local') API.returns.remove(id).catch(() => {});
+    }
   },
+
   tables: {
-    async all() { if (DB_MODE === 'api') { const a = await API.tables.all(); return Array.isArray(a) && a.length ? a : DB.tables.local(); } return DB.tables.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_tables')) || []; } catch { return []; } },
-    async save(list) { DB.set('tables', list); },
-    async add(t) { const list = DB.tables.local(); t.id = Date.now().toString(36); list.push(t); DB.set('tables', list); if (DB_MODE === 'api') await API.tables.add(t); return t; },
-    async update(id, data) { if (DB_MODE === 'api') await API.tables.update(id, data); const list = DB.tables.local(); const idx = list.findIndex(i => i.id === id); if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('tables', list); } },
-    async remove(id) { if (DB_MODE === 'api') await API.tables.remove(id); DB.set('tables', DB.tables.local().filter(i => i.id !== id)); }
+    async all() {
+      const local = DB.tables.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('tables', local, d => DB.set('tables', d), () => API.tables.all());
+      return local;
+    },
+    async add(t) {
+      const list = DB.tables.local();
+      t.id = Date.now().toString(36);
+      list.push(t);
+      DB.set('tables', list);
+      if (DB_MODE !== 'local') API.tables.add(t).catch(() => {});
+      return t;
+    },
+    async update(id, data) {
+      const list = DB.tables.local();
+      const idx = list.findIndex(i => i.id === id);
+      if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('tables', list); }
+      if (DB_MODE !== 'local') API.tables.update(id, data).catch(() => {});
+    },
+    async remove(id) {
+      DB.set('tables', DB.tables.local().filter(i => i.id !== id));
+      if (DB_MODE !== 'local') API.tables.remove(id).catch(() => {});
+    }
   },
+
   expenses: {
-    async all() { if (DB_MODE === 'api') { const a = await API.expenses.all(); return Array.isArray(a) && a.length ? a : DB.expenses.local(); } return DB.expenses.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_expenses')) || []; } catch { return []; } },
-    async save(list) { DB.set('expenses', list); },
-    async add(e) { const list = DB.expenses.local(); e.id = Date.now().toString(36); list.unshift(e); DB.set('expenses', list); if (DB_MODE === 'api') await API.expenses.add(e); return e; },
-    async remove(id) { if (DB_MODE === 'api') await API.expenses.remove(id); DB.set('expenses', DB.expenses.local().filter(i => i.id !== id)); }
+    async all() {
+      const local = DB.expenses.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('expenses', local, d => DB.set('expenses', d), () => API.expenses.all());
+      return local;
+    },
+    async add(e) {
+      const list = DB.expenses.local();
+      e.id = Date.now().toString(36);
+      list.unshift(e);
+      DB.set('expenses', list);
+      if (DB_MODE !== 'local') API.expenses.add(e).catch(() => {});
+      return e;
+    },
+    async remove(id) {
+      DB.set('expenses', DB.expenses.local().filter(i => i.id !== id));
+      if (DB_MODE !== 'local') API.expenses.remove(id).catch(() => {});
+    }
   },
+
   customers: {
-    async all() { if (DB_MODE === 'api') { const a = await API.customers.all(); return Array.isArray(a) && a.length ? a : DB.customers.local(); } return DB.customers.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_customers')) || []; } catch { return []; } },
-    async save(list) { DB.set('customers', list); },
-    async add(c) { const list = DB.customers.local(); c.id = Date.now().toString(36); list.push(c); DB.set('customers', list); if (DB_MODE === 'api') await API.customers.add(c); return c; },
-    async update(id, data) { if (DB_MODE === 'api') await API.customers.update(id, data); const list = DB.customers.local(); const idx = list.findIndex(i => i.id === id); if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('customers', list); } },
-    async remove(id) { if (DB_MODE === 'api') await API.customers.remove(id); DB.set('customers', DB.customers.local().filter(i => i.id !== id)); }
+    async all() {
+      const local = DB.customers.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('customers', local, d => DB.set('customers', d), () => API.customers.all());
+      return local;
+    },
+    async add(c) {
+      const list = DB.customers.local();
+      c.id = Date.now().toString(36);
+      list.push(c);
+      DB.set('customers', list);
+      if (DB_MODE !== 'local') API.customers.add(c).catch(() => {});
+      return c;
+    },
+    async update(id, data) {
+      const list = DB.customers.local();
+      const idx = list.findIndex(i => i.id === id);
+      if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('customers', list); }
+      if (DB_MODE !== 'local') API.customers.update(id, data).catch(() => {});
+    },
+    async remove(id) {
+      DB.set('customers', DB.customers.local().filter(i => i.id !== id));
+      if (DB_MODE !== 'local') API.customers.remove(id).catch(() => {});
+    }
   },
+
   inventory: {
-    async all() { if (DB_MODE === 'api') { const a = await API.inventory.all(); return Array.isArray(a) && a.length ? a : DB.inventory.local(); } return DB.inventory.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_inventory')) || []; } catch { return []; } },
-    async save(list) { DB.set('inventory', list); },
-    async add(item) { const list = DB.inventory.local(); item.id = Date.now().toString(36); list.push(item); DB.set('inventory', list); if (DB_MODE === 'api') await API.inventory.add(item); return item; },
-    async update(id, data) { if (DB_MODE === 'api') await API.inventory.update(id, data); const list = DB.inventory.local(); const idx = list.findIndex(i => i.id === id); if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('inventory', list); } },
-    async remove(id) { if (DB_MODE === 'api') await API.inventory.remove(id); DB.set('inventory', DB.inventory.local().filter(i => i.id !== id)); }
+    async all() {
+      const local = DB.inventory.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('inventory', local, d => DB.set('inventory', d), () => API.inventory.all());
+      return local;
+    },
+    async add(item) {
+      const list = DB.inventory.local();
+      item.id = Date.now().toString(36);
+      list.push(item);
+      DB.set('inventory', list);
+      if (DB_MODE !== 'local') API.inventory.add(item).catch(() => {});
+      return item;
+    },
+    async update(id, data) {
+      const list = DB.inventory.local();
+      const idx = list.findIndex(i => i.id === id);
+      if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('inventory', list); }
+      if (DB_MODE !== 'local') API.inventory.update(id, data).catch(() => {});
+    },
+    async remove(id) {
+      DB.set('inventory', DB.inventory.local().filter(i => i.id !== id));
+      if (DB_MODE !== 'local') API.inventory.remove(id).catch(() => {});
+    }
   },
+
   settings: {
-    async get() { if (DB_MODE === 'api') return await API.settings.get() || { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, lowStockAlert: 5 }; try { return JSON.parse(localStorage.getItem('laguna_settings')) || { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, lowStockAlert: 5 }; } catch { return { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, lowStockAlert: 5 }; } },
-    async save(s) { if (DB_MODE === 'api') await API.settings.save(s); DB.set('settings', s); }
+    async get() {
+      const local = (() => { try { return JSON.parse(localStorage.getItem('laguna_settings')) || { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, lowStockAlert: 5 }; } catch { return { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, lowStockAlert: 5 }; } })();
+      if (DB_MODE !== 'local') {
+        API.settings.get().then(api => { if (api && Object.keys(api).length) DB.set('settings', api); }).catch(() => {});
+      }
+      return local;
+    },
+    async save(s) {
+      DB.set('settings', s);
+      if (DB_MODE !== 'local') API.settings.save(s).catch(() => {});
+    }
   },
+
   users: {
-    async all() { if (DB_MODE === 'api') { const a = await API.users.all(); return Array.isArray(a) && a.length ? a : DB.users.local(); } return DB.users.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_users')) || []; } catch { return []; } },
-    async save(list) { DB.set('users', list); },
-    async add(u) { if (DB_MODE === 'api') return await API.users.add(u) || u; const list = DB.users.local(); u.id = Date.now().toString(36); list.push(u); DB.set('users', list); return u; },
+    async all() {
+      const local = DB.users.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('users', local, d => DB.set('users', d), () => API.users.all());
+      return local;
+    },
+    async add(u) {
+      const list = DB.users.local();
+      u.id = Date.now().toString(36);
+      list.push(u);
+      DB.set('users', list);
+      if (DB_MODE !== 'local') API.users.add(u).catch(() => {});
+      return u;
+    },
     auth(username, password) { const list = DB.users.local(); return list.find(u => u.username === username && u.password === password) || null; }
   },
+
   products: {
-    async all() { if (DB_MODE === 'api') { const a = await API.products.all(); return Array.isArray(a) && a.length ? a : DB.products.local(); } return DB.products.local(); },
     local() { try { return JSON.parse(localStorage.getItem('laguna_products')) || []; } catch { return []; } },
-    async save(list) { DB.set('products', list); },
-    async add(p) { if (DB_MODE === 'api') return await API.products.add(p) || p; const list = DB.products.local(); p.id = Date.now().toString(36); list.push(p); DB.set('products', list); return p; },
-    async update(id, data) { if (DB_MODE === 'api') await API.products.update(id, data); const list = DB.products.local(); const idx = list.findIndex(i => i.id === id); if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('products', list); } },
-    async remove(id) { if (DB_MODE === 'api') await API.products.remove(id); DB.set('products', DB.products.local().filter(i => i.id !== id)); }
+    async all() {
+      const local = DB.products.local();
+      if (DB_MODE !== 'local') DB.syncFromAPI('products', local, d => DB.set('products', d), () => API.products.all());
+      return local;
+    },
+    async add(p) {
+      const list = DB.products.local();
+      p.id = Date.now().toString(36);
+      list.push(p);
+      DB.set('products', list);
+      if (DB_MODE !== 'local') API.products.add(p).catch(() => {});
+      return p;
+    },
+    async update(id, data) {
+      const list = DB.products.local();
+      const idx = list.findIndex(i => i.id === id);
+      if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('products', list); }
+      if (DB_MODE !== 'local') API.products.update(id, data).catch(() => {});
+    },
+    async remove(id) {
+      DB.set('products', DB.products.local().filter(i => i.id !== id));
+      if (DB_MODE !== 'local') API.products.remove(id).catch(() => {});
+    }
   },
+
   seed() {
     try { const p = localStorage.getItem('laguna_products'); if (p && !p.startsWith('[')) localStorage.removeItem('laguna_products'); } catch {}
     try { const i = localStorage.getItem('laguna_invoices'); if (i && !i.startsWith('[')) localStorage.removeItem('laguna_invoices'); } catch {}
@@ -129,7 +330,7 @@ const DB = {
       ]);
     }
     if (DB.products.local().length === 0) {
-      const raw = 'p1^سنجل تركي^Single Turkish Coffee^coffee^30^images/menu/سنجل تركي.webp|p2^دبل تركي^Double Turkish Coffee^coffee^35^images/menu/دبل تركي.webp|p3^فرنساوي^French Press^coffee^45^images/menu/فرنساوي.webp|p4^قهوة نكهات^Flavored Coffee^coffee^45^images/menu/قهوة نكهات.webp|p5^نسكافية حليب^Nescafe with Milk^coffee^50^images/menu/نسكافية حليب.png|p6^سنجل اسبرسو^Single Espresso^coffee^40^images/menu/سنجل اسبرسو.webp|p7^دبل اسبرسو^Double Espresso^coffee^55^images/menu/دبل اسبرسو.webp|p8^ميكاتو^Mecato^coffee^50^images/menu/ميكاتو.png|p9^دبل ميكاتو^Double Mecato^coffee^60^images/menu/دبل ميكاتو.png|p10^امريكان كوفي^American Coffee^coffee^50^images/menu/امريكان كوفي.png|p11^لاتيه^Latte^coffee^60^images/menu/لاتيه.webp|p12^كابتشينو^Cappuccino^coffee^60^images/menu/كابتشينو.webp|p13^كابتشينو فليفر^Flavored Cappuccino^coffee^65^images/menu/كابتشينو فليفر.png|p14^دارك موكا^Dark Mocha^coffee^50^images/menu/دارك موكا.webp|p15^وايت موكا^White Mocha^coffee^59^images/menu/وايت موكا.webp|p16^كورتادو^Cortado^coffee^65^images/menu/كورتادو.webp|p17^لاتيه فليفر^Flavored Latte^coffee^65^images/menu/لاتيه فليفر.png|p18^شاي احمر^Red Tea^hot^20^images/menu/شاي احمر.webp|p19^شاي اخضر^Green Tea^hot^25^images/menu/شاي اخضر.webp|p20^شاي فواكة^Fruit Tea^hot^25^images/menu/شاي فواكة.png|p21^شاي بلبن^Tea with Milk^hot^50^images/menu/شاي بلبن.webp|p22^شاي كومبليت^Complete Tea^hot^25^images/menu/شاي كومبليت.png|p23^براد شاي^Tea Pot^hot^60^images/menu/براد شاي.webp|p24^اعشاب^Herbal Tea^hot^25^images/menu/اعشاب.webp|p25^قرفة^Cinnamon^hot^30^images/menu/قرفة.webp|p26^سحلب^Sahlab^hot^50^images/menu/سحلب.webp|p27^جنزبيل^Ginger^hot^30^images/menu/جنزبيل.png|p28^هوت سيدر^Hot Cider^hot^45^images/menu/هوت سيدر.png|p29^هوت شوكلت^Hot Chocolate^hot^50^images/menu/هوت شوكلت.webp|p30^هوت كاراميل^Hot Caramel^hot^55^images/menu/هوت كاراميل.png|p31^هوت نوتيلا^Hot Nutella^hot^55^images/menu/هوت نوتيلا.png|p32^هوت مارشملو^Hot Marshmallow^hot^55^images/menu/هوت مارشملو.png|p33^هوت اوريو^Hot Oreo^hot^55^images/menu/هوت اوريو.png|p34^آيس كوفي^Iced Coffee^ice^65^images/menu/آيس كوفي.webp|p35^آيس موكا^Iced Mocha^ice^75^images/menu/آيس موكا.webp|p36^آيس لاتيه^Iced Latte^ice^65^images/menu/آيس لاتيه.webp|p37^آيس موكا وايت^Iced White Mocha^ice^70^images/menu/آيس موكا وايت.png|p38^اسبانش لاتيه^Spanish Latte^ice^75^images/menu/اسبانش لاتيه.webp|p39^آيس لاتيه فليفر^Iced Flavored Latte^ice^70^images/menu/آيس لاتيه فليفر.png|p40^آيس ماتشا^Iced Matcha^matcha^70^images/menu/آيس ماتشا.webp|p41^ماتشا فرابيه^Matcha Frappe^matcha^80^images/menu/ماتشا فرابيه.webp|p42^شوكلت^Chocolate Frappe^frappe^60^images/menu/فرابيه شوكلت.webp|p43^كارميل^Caramel Frappe^frappe^65^images/menu/فرابيه كارميل.webp|p44^فانيليا^Vanilla Frappe^frappe^65^images/menu/فرابيه فانيليا.webp|p45^بندق^Hazelnut Frappe^frappe^65^images/menu/فرابيه بندق.webp|p46^بيستاشيو^Pistachio Frappe^frappe^70^images/menu/فرابيه بيستاشيو.webp|p47^نوتيلا^Nutella Frappe^frappe^65^images/menu/فرابيه نوتيلا.webp|p48^تفاح اخضر^Green Apple Smoothie^smoothie^50^images/menu/اسموزي تفاح اخضر.png|p49^خوخ^Peach Smoothie^smoothie^50^images/menu/اسموزي خوخ.png|p50^اناناس^Pineapple Smoothie^smoothie^50^images/menu/اسموزي اناناس.png|p51^باشن فروت^Passion Fruit Smoothie^smoothie^50^images/menu/اسموزي باشن فروت.webp|p52^مانجو^Mango Smoothie^smoothie^55^images/menu/اسموزي مانجو.webp|p53^بطيخ^Watermelon Smoothie^smoothie^55^images/menu/بطيخ.webp|p54^فراولة^Strawberry Smoothie^smoothie^55^images/menu/فراولة.webp|p55^ميكس بيري^Mixed Berry Smoothie^smoothie^55^images/menu/اسموزي ميكس بيري.webp|p56^كيوي^Kiwi Smoothie^smoothie^60^images/menu/كيوي.webp|p57^شوكلت^Chocolate Milkshake^milkshake^60^images/menu/ميلك شيك شوكلت.webp|p58^كراميل^Caramel Milkshake^milkshake^60^images/menu/ميلك شيك كراميل.webp|p59^فانيليا^Vanilla Milkshake^milkshake^60^images/menu/ميلك شيك فانيليا.webp|p60^فراولة^Strawberry Milkshake^milkshake^65^images/menu/فراولة.webp|p61^خوخ^Peach Milkshake^milkshake^60^images/menu/ميلك شيك خوخ.webp|p62^مانجا^Mango Milkshake^milkshake^65^images/menu/مانجا.webp|p63^بندق^Hazelnut Milkshake^milkshake^65^images/menu/ميلك شيك بندق.png|p64^بلو بيري^Blueberry Milkshake^milkshake^60^images/menu/ميلك شيك بلو بيري.png|p65^مكس بيري^Mixed Berry Milkshake^milkshake^60^images/menu/ميلك شيك مكس بيري.webp|p66^نوتيلا^Nutella Milkshake^milkshake^65^images/menu/ميلك شيك نوتيلا.webp|p67^وايت نوتيلا براوني^White Nutella Brownie Milkshake^milkshake^70^images/menu/ميلك شيك وايت نوتيلا براوني.png|p68^باشون فروت^Passion Fruit Milkshake^milkshake^65^images/menu/ميلك شيك باشون فروت.png|p69^كلاسيك^Classic Yogurt^yogurt^60^images/menu/زبادي كلاسيك.png|p70^مانجو^Mango Yogurt^yogurt^70^images/menu/زبادي مانجو.webp|p71^فراوله^Strawberry Yogurt^yogurt^70^images/menu/زبادي فراوله.png|p72^خوخ^Peach Yogurt^yogurt^70^images/menu/زبادي خوخ.webp|p73^موز^Banana Yogurt^yogurt^70^images/menu/موز.webp|p74^بلو بيري^Blueberry Yogurt^yogurt^70^images/menu/زبادي بلو بيري.webp|p75^باشن فروت^Passion Fruit Yogurt^yogurt^70^images/menu/زبادي باشن فروت.webp|p76^عسل^Honey Yogurt^yogurt^65^images/menu/زبادي عسل.png|p77^مكس فواكه^Mixed Fruit Yogurt^yogurt^80^images/menu/زبادي مكس فواكه.png|p78^ليمون^Lemon Juice^juice^50^images/menu/ليمون.webp|p79^ليمون نعناع^Mint Lemon Juice^juice^55^images/menu/ليمون نعناع.webp|p80^برتقال^Orange Juice^juice^60^images/menu/برتقال.webp|p81^فراولة^Strawberry Juice^juice^60^images/menu/فراولة.webp|p82^مانجا^Mango Juice^juice^70^images/menu/مانجا.webp|p83^جوافه^Guava Juice^juice^70^images/menu/جوافه.webp|p84^موز^Banana Juice^juice^70^images/menu/موز.webp|p85^بطيخ^Watermelon Juice^juice^60^images/menu/بطيخ.webp|p86^بلح^Dates Juice^juice^75^images/menu/بلح.png|p87^افوكادو^Avocado Juice^juice^80^images/menu/افوكادو.webp|p88^ديلايت بانش^Delight Punch^cocktail^65^images/menu/ديلايت بانش.png|p89^تيمارا^Timara^cocktail^65^images/menu/تيمارا.png|p90^فلوريدا^Florida^cocktail^65^images/menu/فلوريدا.webp|p91^دابومبا^Dabumba^cocktail^70^images/menu/دابومبا.png|p92^وايت اوشن^White Ocean^cocktail^70^images/menu/وايت اوشن.webp|p93^شهر زاد^Shahrzad^cocktail^70^images/menu/شهر زاد.png|p94^لاروز^La Rose^cocktail^75^images/menu/لاروز.png|p95^صن رايز^Sunrise Mojito^mojito^50^images/menu/موهيتو صن رايز.webp|p96^صن شاين^Sunshine Mojito^mojito^50^images/menu/موهيتو صن شاين.webp|p97^باشن فروت^Passion Fruit Mojito^mojito^50^images/menu/موهيتو باشون فروت.png|p98^توت^Berry Mojito^mojito^50^images/menu/موهيتو توت.png|p99^شيري كولا^Cherry Cola Mojito^mojito^50^images/menu/موهيتو شيري كولا.png|p100^شعير^Barley Mojito^mojito^55^images/menu/موهيتو شعير.png|p101^باور صودا^Power Soda Mojito^mojito^75^images/menu/باور صودا.png|p102^بيبسي^Pepsi^cans^30^images/menu/بيبسي.webp|p103^بيبسي دايت^Diet Pepsi^cans^30^images/menu/بيبسي دايت.webp|p104^اسبرايت^Sprite^cans^30^images/menu/اسبرايت.webp|p105^ميرندا^Miranda^cans^30^images/menu/ميرندا.webp|p106^فانتا^Fanta^cans^30^images/menu/فانتا.webp|p107^سفن اب^7UP^cans^30^images/menu/سفن اب.webp|p108^ماونتن ديو^Mountain Dew^cans^30^images/menu/ماونتن ديو.webp|p109^تويست^Twist^cans^30^images/menu/تويست.webp|p110^شويبس^Schweppes^cans^30^images/menu/شويبس.webp|p111^فيروز^Fayrouz^cans^35^images/menu/فيروز.webp|p112^في كولا^V Cola^cans^35^images/menu/في كولا.webp|p113^فيوري^Fuego^cans^30^images/menu/فيوري.webp|p114^بيريل^Birell^cans^35^images/menu/بيريل.webp|p115^ريد بول^Red Bull^cans^75^images/menu/ريد بول.webp|p116^مونستر^Monster^cans^75^images/menu/مونستر.webp|p117^وافل دارك^Dark Waffle^desserts^65^images/menu/وافل دارك.png|p118^وافل نوتيلا^Nutella Waffle^desserts^70^images/menu/وافل نوتيلا.png|p119^وافل وايت^White Waffle^desserts^70^images/menu/وافل وايت.png|p120^وافل لوتس^Lotus Waffle^desserts^70^images/menu/وافل لوتس.png|p121^وافل اوريو^Oreo Waffle^desserts^75^images/menu/وافل اوريو.png|p122^وافل ايس كريم & موز^Ice Cream & Banana Waffle^desserts^80^images/menu/وافل ايس كريم & موز.png|p123^مولتن كيك^Molten Cake^desserts^65^images/menu/مولتن كيك.png|p124^مولتن ايس كريم^Molten Ice Cream^desserts^70^images/menu/مولتن ايس كريم.png|p125^سينابون^Cinnabon^desserts^55^images/menu/سينابون.png|p126^سينابون نوتيلا^Nutella Cinnabon^desserts^60^images/menu/سينابون نوتيلا.png|p127^براونيز^Brownies^desserts^50^images/menu/براونيز.png|p128^فروت سالط^Fruit Salad^desserts^60^images/menu/فروت سالط.png|p129^فروت سالط ايس كريم^Fruit Salad with Ice Cream^desserts^70^images/menu/فروت سالط ايس كريم.png|p130^فروت سالط ايس كريم مكسرات^Fruit Salad with Ice Cream & Nuts^desserts^75^images/menu/فروت سالط ايس كريم مكسرات.png';
+      const raw = 'p1^سنجل تركي^Single Turkish Coffee^coffee^30^images/menu/سنجل تركي.webp|p2^دبل تركي^Double Turkish Coffee^coffee^35^images/menu/دبل تركي.webp|p3^فرنساوي^French Press^coffee^45^images/menu/فرنساوي.webp|p4^قهوة نكهات^Flavored Coffee^coffee^45^images/menu/قهوة نكهات.webp|p5^نسكافية حليب^Nescafe with Milk^coffee^50^images/menu/نسكافية حليب.png|p6^سنجل اسبرسو^Single Espresso^coffee^40^images/menu/سنجل اسبرسو.webp|p7^دبل اسبرسو^Double Espresso^coffee^55^images/menu/دبل اسبرسو.webp|p8^ميكاتو^Mecato^coffee^50^images/menu/ميكاتو.png|p9^دبل ميكاتو^Double Mecato^coffee^60^images/menu/دبل ميكاتو.png|p10^امريكان كوفي^American Coffee^coffee^50^images/menu/امريكان كوفي.png|p11^لاتيه^Latte^coffee^60^images/menu/لاتيه.webp|p12^كابتشينو^Cappuccino^coffee^60^images/menu/كابتشينو.webp|p13^كابتشينو فليفر^Flavored Cappuccino^coffee^65^images/menu/كابتشينو فليفر.png|p14^دارك موكا^Dark Mocha^coffee^50^images/menu/دارك موكا.webp|p15^وايت موكا^White Mocha^coffee^59^images/menu/وايت موكا.webp|p16^كورتادو^Cortado^coffee^65^images/menu/كورتادو.webp|p17^لاتيه فليفر^Flavored Latte^coffee^65^images/menu/لاتيه فليفر.png|p18^شاي احمر^Red Tea^hot^20^images/menu/شاي احمر.webp|p19^شاي اخضر^Green Tea^hot^25^images/menu/شاي اخضر.webp|p20^شاي فواكة^Fruit Tea^hot^25^images/menu/شاي فواكة.png|p21^شاي بلبن^Tea with Milk^hot^50^images/menu/شاي بلبن.webp|p22^شاي كومبليت^Complete Tea^hot^25^images/menu/شاي كومبليت.png|p23^براد شاي^Tea Pot^hot^60^images/menu/براد شاي.webp|p24^اعشاب^Herbal Tea^hot^25^images/menu/اعشاب.webp|p25^قرفة^Cinnamon^hot^30^images/menu/قرفة.webp|p26^سحلب^Sahlab^hot^50^images/menu/سحلب.webp|p27^جنزبيل^Ginger^hot^30^images/menu/جنزبيل.png|p28^هوت سيدر^Hot Cider^hot^45^images/menu/هوت سيدر.png|p29^هوت شوكلت^Hot Chocolate^hot^50^images/menu/هوت شوكلت.webp|p30^هوت كاراميل^Hot Caramel^hot^55^images/menu/هوت كاراميل.png|p31^هوت نوتيلا^Hot Nutella^hot^55^images/menu/هوت نوتيلا.png|p32^هوت مارشملو^Hot Marshmallow^hot^55^images/menu/هوت مارشملو.png|p33^هوت اوريو^Hot Oreo^hot^55^im...';
       const prods = raw.split('|').map(s => {
         const [id, name, nameEn, category, price, image] = s.split('^');
         return { id, name, nameEn, category, price: Number(price), image: image || '', available: 1 };
