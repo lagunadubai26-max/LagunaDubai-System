@@ -56,6 +56,7 @@ const API = (() => {
     users: {
       async all() { return await SUPABASE.get('users', { params: { select: 'id,username,name,role' } }) || []; },
       async add(d) { const r = await SUPABASE.post('users', d); return r ? r[0] : d; }
-    }
+    },
+    products: crud('products')
   };
 })();

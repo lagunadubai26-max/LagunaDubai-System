@@ -68,9 +68,7 @@ function attachEvents() {
       const statusEl = row.querySelector(".status");
       statusEl.className = "status present";
       statusEl.innerText = "حاضر";
-      const list = await DB.attendance.all() || [];
-      const rec = list.find(a => a.id === row.dataset.id);
-      if (rec) { rec.checkIn = timeStr; rec.status = 'present'; }
+      await DB.attendance.checkIn(row.dataset.id, row.children[0].innerText, row.children[1].innerText);
       updateStats();
     };
     row.querySelector(".leave-btn").onclick = async function () {

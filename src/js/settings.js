@@ -16,13 +16,21 @@ document.getElementById('saveSettings').onclick = async () => {
   alert('تم حفظ الإعدادات بنجاح');
 };
 
-document.getElementById('resetData').onclick = () => {
+document.getElementById('resetData').onclick = async () => {
   if (!confirm('هل تريد مسح كل البيانات؟ هذا الإجراء لا يمكن التراجع عنه!')) return;
-  if (!confirm('تأكيد: مسح كل البيانات المخزنة؟')) return;
+  if (!confirm('تأكيد: مسح كل البيانات من سحابة Supabase؟')) return;
+  if (!confirm('مسح نهائي؟ سيتم حذف كل الفواتير والطلبات والموظفين!')) return;
+  const tables = ['invoices', 'returns', 'attendance', 'expenses', 'customers', 'inventory', 'settings', 'employees'];
+  for (const t of tables) {
+    const all = await SUPABASE.get(t, { params: { select: 'id' } }) || [];
+    for (const row of all) {
+      await SUPABASE.del(t, { params: { id: `eq.${row.id}` } });
+    }
+  }
   const keys = Object.keys(localStorage).filter(k => k.startsWith('laguna_'));
   keys.forEach(k => localStorage.removeItem(k));
   DB.seed();
-  alert('تم مسح كل البيانات وإعادة تعيين النظام');
+  alert('تم مسح كل البيانات من Supabase والجهاز');
   location.reload();
 };
 

@@ -99,3 +99,14 @@ CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- Products (Menu Items)
+CREATE TABLE products (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  nameEn TEXT DEFAULT '',
+  category TEXT NOT NULL,
+  price REAL DEFAULT 0,
+  image TEXT DEFAULT '',
+  available INTEGER DEFAULT 1
+);

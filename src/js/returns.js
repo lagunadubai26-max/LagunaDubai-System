@@ -78,18 +78,7 @@ function attachEvents() {
   });
 }
 
-if (filterBtn) {
-  filterBtn.onclick = async () => {
-    const product = prompt('اسم المنتج');
-    if (!product) return;
-    const qty = prompt('الكمية');
-    if (!qty) return;
-    const amount = prompt('قيمة المرتجع');
-    if (!amount) return;
-    await DB.returns.add({ invoice: '#INV-' + Date.now(), product, qty: Number(qty), amount: Number(amount), status: 'pending', date: new Date().toISOString() });
-    render();
-  };
-}
+
 if (searchInput) searchInput.addEventListener('keyup', render);
 if (statusSelect) statusSelect.addEventListener('change', render);
 
