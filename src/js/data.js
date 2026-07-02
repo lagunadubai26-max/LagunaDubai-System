@@ -2,14 +2,13 @@ const DB_MODE = 'hybrid';
 
 const DB = {
   mode: DB_MODE,
-  syncInProgress: false,
   async get(key, defaults) {
     try { const d = localStorage.getItem('laguna_' + key); return d ? JSON.parse(d) : defaults; }
     catch { return defaults; }
   },
   set(key, val) { localStorage.setItem('laguna_' + key, JSON.stringify(val)); },
 
-  async syncFromAPI(table, localFn, setFn, apiFn) {
+  async syncFromAPI(table, local, setFn, apiFn) {
     try {
       const data = await apiFn();
       if (Array.isArray(data) && data.length) {
@@ -27,21 +26,21 @@ const DB = {
     },
     async add(emp) {
       emp.id = Date.now().toString(36);
+      if (DB_MODE !== 'local') try { await API.employees.add(emp); } catch {}
       const list = DB.employees.local();
       list.push(emp);
       DB.set('employees', list);
-      if (DB_MODE !== 'local') API.employees.add(emp).catch(() => {});
       return emp;
     },
     async update(id, data) {
+      if (DB_MODE !== 'local') try { await API.employees.update(id, data); } catch {}
       const list = DB.employees.local();
       const idx = list.findIndex(e => e.id === id);
       if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('employees', list); }
-      if (DB_MODE !== 'local') API.employees.update(id, data).catch(() => {});
     },
     async remove(id) {
+      if (DB_MODE !== 'local') try { await API.employees.remove(id); } catch {}
       DB.set('employees', DB.employees.local().filter(e => e.id !== id));
-      if (DB_MODE !== 'local') API.employees.remove(id).catch(() => {});
     }
   },
 
@@ -55,29 +54,26 @@ const DB = {
     async today() {
       const todayStr = new Date().toDateString();
       const local = DB.attendance.local().filter(a => new Date(a.date).toDateString() === todayStr);
-      if (DB_MODE !== 'local') {
-        DB.syncFromAPI('attendance_today', local, d => DB.set('attendance', d), () => API.attendance.today());
-      }
       return local;
     },
     async checkIn(employeeId, name, job) {
       const id = Date.now().toString(36);
       const rec = { id, employeeId, name, job, date: new Date().toISOString(), checkIn: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), checkOut: null, status: 'present' };
+      if (DB_MODE !== 'local') try { await API.attendance.checkIn(employeeId, name, job); } catch {}
       const list = DB.attendance.local();
       list.push(rec);
       DB.set('attendance', list);
-      if (DB_MODE !== 'local') API.attendance.checkIn(employeeId, name, job).catch(() => {});
       return rec;
     },
     async checkOut(id) {
+      if (DB_MODE !== 'local') try { await API.attendance.checkOut(id); } catch {}
       const list = DB.attendance.local();
       const item = list.find(a => a.id === id);
       if (item) { item.checkOut = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }); DB.set('attendance', list); }
-      if (DB_MODE !== 'local') API.attendance.checkOut(id).catch(() => {});
     },
     async remove(id) {
+      if (DB_MODE !== 'local') try { await API.attendance.remove(id); } catch {}
       DB.set('attendance', DB.attendance.local().filter(a => a.id !== id));
-      if (DB_MODE !== 'local') API.attendance.remove(id).catch(() => {});
     }
   },
 
@@ -91,14 +87,14 @@ const DB = {
     async add(inv) {
       const list = DB.invoices.local();
       inv.id = 'INV-' + String(list.length + 1).padStart(4, '0');
+      if (DB_MODE !== 'local') try { await API.invoices.add(inv); } catch {}
       list.unshift(inv);
       DB.set('invoices', list);
-      if (DB_MODE !== 'local') API.invoices.add(inv).catch(() => {});
       return inv;
     },
     async remove(id) {
+      if (DB_MODE !== 'local') try { await API.invoices.remove(id); } catch {}
       DB.set('invoices', DB.invoices.local().filter(i => i.id !== id));
-      if (DB_MODE !== 'local') API.invoices.remove(id).catch(() => {});
     }
   },
 
@@ -110,22 +106,22 @@ const DB = {
       return local;
     },
     async add(r) {
-      const list = DB.returns.local();
       r.id = Date.now().toString(36);
+      if (DB_MODE !== 'local') try { await API.returns.add(r); } catch {}
+      const list = DB.returns.local();
       list.unshift(r);
       DB.set('returns', list);
-      if (DB_MODE !== 'local') API.returns.add(r).catch(() => {});
       return r;
     },
     async update(id, data) {
+      if (DB_MODE !== 'local') try { await API.returns.update(id, data); } catch {}
       const list = DB.returns.local();
       const idx = list.findIndex(i => i.id === id);
       if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('returns', list); }
-      if (DB_MODE !== 'local') API.returns.update(id, data).catch(() => {});
     },
     async remove(id) {
+      if (DB_MODE !== 'local') try { await API.returns.remove(id); } catch {}
       DB.set('returns', DB.returns.local().filter(i => i.id !== id));
-      if (DB_MODE !== 'local') API.returns.remove(id).catch(() => {});
     }
   },
 
@@ -137,22 +133,22 @@ const DB = {
       return local;
     },
     async add(t) {
-      const list = DB.tables.local();
       t.id = Date.now().toString(36);
+      if (DB_MODE !== 'local') try { await API.tables.add(t); } catch {}
+      const list = DB.tables.local();
       list.push(t);
       DB.set('tables', list);
-      if (DB_MODE !== 'local') API.tables.add(t).catch(() => {});
       return t;
     },
     async update(id, data) {
+      if (DB_MODE !== 'local') try { await API.tables.update(id, data); } catch {}
       const list = DB.tables.local();
       const idx = list.findIndex(i => i.id === id);
       if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('tables', list); }
-      if (DB_MODE !== 'local') API.tables.update(id, data).catch(() => {});
     },
     async remove(id) {
+      if (DB_MODE !== 'local') try { await API.tables.remove(id); } catch {}
       DB.set('tables', DB.tables.local().filter(i => i.id !== id));
-      if (DB_MODE !== 'local') API.tables.remove(id).catch(() => {});
     }
   },
 
@@ -164,16 +160,16 @@ const DB = {
       return local;
     },
     async add(e) {
-      const list = DB.expenses.local();
       e.id = Date.now().toString(36);
+      if (DB_MODE !== 'local') try { await API.expenses.add(e); } catch {}
+      const list = DB.expenses.local();
       list.unshift(e);
       DB.set('expenses', list);
-      if (DB_MODE !== 'local') API.expenses.add(e).catch(() => {});
       return e;
     },
     async remove(id) {
+      if (DB_MODE !== 'local') try { await API.expenses.remove(id); } catch {}
       DB.set('expenses', DB.expenses.local().filter(i => i.id !== id));
-      if (DB_MODE !== 'local') API.expenses.remove(id).catch(() => {});
     }
   },
 
@@ -185,22 +181,22 @@ const DB = {
       return local;
     },
     async add(c) {
-      const list = DB.customers.local();
       c.id = Date.now().toString(36);
+      if (DB_MODE !== 'local') try { await API.customers.add(c); } catch {}
+      const list = DB.customers.local();
       list.push(c);
       DB.set('customers', list);
-      if (DB_MODE !== 'local') API.customers.add(c).catch(() => {});
       return c;
     },
     async update(id, data) {
+      if (DB_MODE !== 'local') try { await API.customers.update(id, data); } catch {}
       const list = DB.customers.local();
       const idx = list.findIndex(i => i.id === id);
       if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('customers', list); }
-      if (DB_MODE !== 'local') API.customers.update(id, data).catch(() => {});
     },
     async remove(id) {
+      if (DB_MODE !== 'local') try { await API.customers.remove(id); } catch {}
       DB.set('customers', DB.customers.local().filter(i => i.id !== id));
-      if (DB_MODE !== 'local') API.customers.remove(id).catch(() => {});
     }
   },
 
@@ -212,36 +208,36 @@ const DB = {
       return local;
     },
     async add(item) {
-      const list = DB.inventory.local();
       item.id = Date.now().toString(36);
+      if (DB_MODE !== 'local') try { await API.inventory.add(item); } catch {}
+      const list = DB.inventory.local();
       list.push(item);
       DB.set('inventory', list);
-      if (DB_MODE !== 'local') API.inventory.add(item).catch(() => {});
       return item;
     },
     async update(id, data) {
+      if (DB_MODE !== 'local') try { await API.inventory.update(id, data); } catch {}
       const list = DB.inventory.local();
       const idx = list.findIndex(i => i.id === id);
       if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('inventory', list); }
-      if (DB_MODE !== 'local') API.inventory.update(id, data).catch(() => {});
     },
     async remove(id) {
+      if (DB_MODE !== 'local') try { await API.inventory.remove(id); } catch {}
       DB.set('inventory', DB.inventory.local().filter(i => i.id !== id));
-      if (DB_MODE !== 'local') API.inventory.remove(id).catch(() => {});
     }
   },
 
   settings: {
     async get() {
-      const local = (() => { try { return JSON.parse(localStorage.getItem('laguna_settings')) || { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, lowStockAlert: 5 }; } catch { return { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, lowStockAlert: 5 }; } })();
-      if (DB_MODE !== 'local') {
-        API.settings.get().then(api => { if (api && Object.keys(api).length) DB.set('settings', api); }).catch(() => {});
+      const local = (() => { try { return JSON.parse(localStorage.getItem('laguna_settings')) || {}; } catch { return {}; } })();
+      if (Object.keys(local).length === 0 && DB_MODE !== 'local') {
+        try { const api = await API.settings.get(); if (api && Object.keys(api).length) { DB.set('settings', api); return api; } } catch {}
       }
-      return local;
+      return Object.keys(local).length ? local : { cafeName: 'Laguna Cafe', currency: 'ج.م', taxRate: 14, lowStockAlert: 5 };
     },
     async save(s) {
+      if (DB_MODE !== 'local') try { await API.settings.save(s); } catch {}
       DB.set('settings', s);
-      if (DB_MODE !== 'local') API.settings.save(s).catch(() => {});
     }
   },
 
@@ -253,14 +249,15 @@ const DB = {
       return local;
     },
     async add(u) {
-      const list = DB.users.local();
       u.id = Date.now().toString(36);
+      if (DB_MODE !== 'local') try { await API.users.add(u); } catch {}
+      const list = DB.users.local();
       list.push(u);
       DB.set('users', list);
-      if (DB_MODE !== 'local') API.users.add(u).catch(() => {});
       return u;
     },
-    auth(username, password) { const list = DB.users.local(); return list.find(u => u.username === username && u.password === password) || null; }
+    auth(username, password) { const list = DB.users.local(); return list.find(u => u.username === username && u.password === password) || null; },
+    async save(list) { DB.set('users', list); }
   },
 
   products: {
@@ -271,22 +268,22 @@ const DB = {
       return local;
     },
     async add(p) {
-      const list = DB.products.local();
       p.id = Date.now().toString(36);
+      if (DB_MODE !== 'local') try { await API.products.add(p); } catch {}
+      const list = DB.products.local();
       list.push(p);
       DB.set('products', list);
-      if (DB_MODE !== 'local') API.products.add(p).catch(() => {});
       return p;
     },
     async update(id, data) {
+      if (DB_MODE !== 'local') try { await API.products.update(id, data); } catch {}
       const list = DB.products.local();
       const idx = list.findIndex(i => i.id === id);
       if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('products', list); }
-      if (DB_MODE !== 'local') API.products.update(id, data).catch(() => {});
     },
     async remove(id) {
+      if (DB_MODE !== 'local') try { await API.products.remove(id); } catch {}
       DB.set('products', DB.products.local().filter(i => i.id !== id));
-      if (DB_MODE !== 'local') API.products.remove(id).catch(() => {});
     }
   },
 
@@ -303,7 +300,7 @@ const DB = {
     try { const s = localStorage.getItem('laguna_settings'); if (s && !s.startsWith('{')) localStorage.removeItem('laguna_settings'); } catch {}
     try { const u = localStorage.getItem('laguna_users'); if (u && !u.startsWith('[')) localStorage.removeItem('laguna_users'); } catch {}
     if (DB.users.local().length === 0) {
-      DB.users.save([{ id: 'u1', username: 'admin', password: 'admin123', name: 'أحمد علي', role: 'Administrator' }]);
+      DB.set('users', [{ id: 'u1', username: 'admin', password: 'admin123', name: 'أحمد علي', role: 'Administrator' }]);
     }
     if (DB.employees.local().length === 0) {
       DB.set('employees', [
