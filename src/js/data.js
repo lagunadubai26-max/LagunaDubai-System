@@ -89,6 +89,17 @@ const DB = {
     async remove(id) { if (DB_MODE === 'api') await API.products.remove(id); DB.set('products', DB.products.local().filter(i => i.id !== id)); }
   },
   seed() {
+    try { const p = localStorage.getItem('laguna_products'); if (p && !p.startsWith('[')) localStorage.removeItem('laguna_products'); } catch {}
+    try { const i = localStorage.getItem('laguna_invoices'); if (i && !i.startsWith('[')) localStorage.removeItem('laguna_invoices'); } catch {}
+    try { const a = localStorage.getItem('laguna_attendance'); if (a && !a.startsWith('[')) localStorage.removeItem('laguna_attendance'); } catch {}
+    try { const r = localStorage.getItem('laguna_returns'); if (r && !r.startsWith('[')) localStorage.removeItem('laguna_returns'); } catch {}
+    try { const e = localStorage.getItem('laguna_expenses'); if (e && !e.startsWith('[')) localStorage.removeItem('laguna_expenses'); } catch {}
+    try { const c = localStorage.getItem('laguna_customers'); if (c && !c.startsWith('[')) localStorage.removeItem('laguna_customers'); } catch {}
+    try { const em = localStorage.getItem('laguna_employees'); if (em && !em.startsWith('[')) localStorage.removeItem('laguna_employees'); } catch {}
+    try { const inv = localStorage.getItem('laguna_inventory'); if (inv && !inv.startsWith('[')) localStorage.removeItem('laguna_inventory'); } catch {}
+    try { const t = localStorage.getItem('laguna_tables'); if (t && !t.startsWith('[')) localStorage.removeItem('laguna_tables'); } catch {}
+    try { const s = localStorage.getItem('laguna_settings'); if (s && !s.startsWith('{')) localStorage.removeItem('laguna_settings'); } catch {}
+    try { const u = localStorage.getItem('laguna_users'); if (u && !u.startsWith('[')) localStorage.removeItem('laguna_users'); } catch {}
     if (DB.users.local().length === 0) {
       DB.users.save([{ id: 'u1', username: 'admin', password: 'admin123', name: 'أحمد علي', role: 'Administrator' }]);
     }
