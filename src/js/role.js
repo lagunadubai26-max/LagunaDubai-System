@@ -13,6 +13,16 @@
   if (avatar) avatar.textContent = user.name.charAt(0);
   if (name) name.textContent = user.name;
   if (role) role.textContent = user.role === 'Administrator' ? 'مدير' : 'موظف';
+  // Mobile sidebar toggle
+  const toggle = document.getElementById('sidebarToggle');
+  const overlay = document.getElementById('sidebarOverlay');
+  const sidebar = document.querySelector('.sidebar');
+  if (toggle && sidebar && overlay) {
+    function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+    toggle.onclick = () => { sidebar.classList.toggle('open'); overlay.classList.toggle('show'); };
+    overlay.onclick = closeSidebar;
+    document.querySelectorAll('.sidebar nav a').forEach(a => a.onclick = closeSidebar);
+  }
   // Legacy profile section
   const h4 = document.querySelector('.profile h4');
   const span = document.querySelector('.profile span');

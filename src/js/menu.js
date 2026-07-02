@@ -4,8 +4,7 @@ const tableNum = urlParams.get('table');
 const isCustomer = !!tableNum;
 if (isCustomer) {
   document.querySelector('.menu-header h1').innerHTML = '<i class="fa-solid fa-utensils"></i> القائمة - طاولة ' + tableNum;
-  const sidebar = document.querySelector('.sidebar');
-  if (sidebar) sidebar.style.display = 'none';
+  document.querySelectorAll('.sidebar, #sidebarToggle, .sidebar-overlay').forEach(el => el && (el.style.display = 'none'));
   const container = document.querySelector('.container');
   if (container) container.style.gridTemplateColumns = '1fr';
 }
