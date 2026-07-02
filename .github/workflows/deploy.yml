@@ -3,19 +3,17 @@ on:
   push:
     branches: [main]
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/upload-pages-artifact@v5
+      - uses: peaceiris/actions-gh-pages@v4
         with:
-          path: src
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          publish_dir: src
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
