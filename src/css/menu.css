@@ -78,3 +78,40 @@
     cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px;
 }
 .clear-order:hover{background:#fef2f2;border-color:var(--danger);color:var(--danger)}
+
+/* Floating cart button (mobile) */
+.cart-float{
+    display:none;position:fixed;bottom:20px;left:20px;z-index:150;
+    width:60px;height:60px;border-radius:50%;border:none;
+    background:var(--accent);color:#fff;font-size:24px;
+    cursor:pointer;box-shadow:0 4px 20px rgba(217,119,6,.4);
+    align-items:center;justify-content:center;transition:.2s;
+}
+.cart-float:active{transform:scale(.92)}
+.cart-float .badge{
+    position:absolute;top:-4px;right:-4px;
+    width:22px;height:22px;border-radius:50%;background:var(--danger);
+    color:#fff;font-size:11px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+}
+/* Cart bottom sheet (mobile) */
+.cart-sheet{
+    display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;
+    background:#fff;border-radius:20px 20px 0 0;
+    box-shadow:0 -4px 30px rgba(0,0,0,.15);max-height:80vh;
+    flex-direction:column;overflow:hidden;animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.cart-sheet .sheet-handle{
+    width:40px;height:4px;border-radius:2px;background:#ddd;margin:10px auto 0;
+}
+.cart-sheet .sheet-header{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:16px 20px;border-bottom:1px solid var(--border);
+}
+.cart-sheet .sheet-header h2{font-size:18px;color:var(--primary);font-weight:700;margin:0}
+.cart-sheet .sheet-close{
+    border:none;background:none;font-size:22px;color:var(--muted);cursor:pointer;
+}
+.cart-sheet .order-list{max-height:40vh;flex:1}
+.cart-sheet .order-footer{padding:16px 20px}

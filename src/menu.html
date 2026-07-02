@@ -179,6 +179,24 @@
   </div>
 </div>
 
+<!-- Floating cart button (mobile) -->
+<button class="cart-float" id="cartFloat"><i class="fa-solid fa-bag-shopping"></i><span class="badge" id="cartBadge">0</span></button>
+
+<!-- Cart bottom sheet (mobile) -->
+<div class="cart-sheet" id="cartSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2>الطلب الحالي</h2>
+    <button class="sheet-close" id="sheetClose"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="order-list" id="sheetOrderList"></div>
+  <div class="order-footer">
+    <button class="clear-order" id="sheetClear"><i class="fa-solid fa-trash"></i> مسح الكل</button>
+    <div class="total"><span>الإجمالي</span><strong id="sheetTotal">0 جنيه</strong></div>
+    <button class="checkout" id="sheetCheckout"><i class="fa-solid fa-cart-shopping"></i> إتمام الطلب</button>
+  </div>
+</div>
+
 <!-- نافذة تأكيد مسح الطلب -->
 <div class="confirm-modal" id="confirmModal">
 

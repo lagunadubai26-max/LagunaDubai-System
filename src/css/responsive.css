@@ -83,29 +83,26 @@
 
   /* Menu */
   .menu-header { flex-direction: column; gap: 12px; align-items: stretch; }
-  .menu-header h1 { font-size: 22px; }
+  .menu-header h1 { font-size: 24px; }
   .search-box { width: 100%; }
-  .search-box input { height: 42px; font-size: 14px; }
+  .search-box input { height: 44px; font-size: 15px; }
 
   .menu-layout { grid-template-columns: 1fr; gap: 16px; }
 
-  .products { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .product-card { padding: 10px; height: auto; min-height: 240px; }
-  .product-card .menu-icon { width: 100%; height: 100px; margin-bottom: 8px; }
-  .product-card h3 { font-size: 13px; margin-bottom: 2px; }
-  .product-card p { font-size: 10px; margin-bottom: 4px; }
-  .product-card h2 { font-size: 15px; margin-bottom: 8px; }
-  .product-card button { height: 36px; font-size: 13px; }
+  .products { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .product-card { padding: 14px; height: auto; min-height: 280px; }
+  .product-card .menu-icon { width: 100%; height: 130px; margin-bottom: 10px; }
+  .product-card h3 { font-size: 15px; margin-bottom: 4px; }
+  .product-card p { font-size: 12px; margin-bottom: 6px; }
+  .product-card h2 { font-size: 18px; margin-bottom: 10px; }
+  .product-card button { height: 40px; font-size: 14px; }
 
-  .categories { overflow-x: auto; flex-wrap: nowrap; gap: 6px; padding: 8px 0; }
-  .category-btn { white-space: nowrap; padding: 7px 12px; font-size: 12px; flex-shrink: 0; }
+  .categories { overflow-x: auto; flex-wrap: nowrap; gap: 8px; padding: 10px 0; }
+  .category-btn { white-space: nowrap; padding: 8px 14px; font-size: 13px; flex-shrink: 0; }
 
-  .order-box { position: static; width: 100%; height: auto; top: auto; margin-top: 0; }
-  .order-box h2 { font-size: 18px; padding: 14px; }
-  .order-list { padding: 10px; max-height: 260px; }
-  .order-item { padding: 10px; }
-  .order-footer { padding: 14px 16px; }
-  .total { font-size: 18px; }
+  /* Hide order box, show floating cart */
+  .order-box { display: none; }
+  .cart-float { display: flex; }
 
   .menu-header { flex-direction: column; gap: 12px; }
   .menu-header h1 { font-size: 22px; }

@@ -1,4 +1,5 @@
 let total = 0;
+let itemCount = 0;
 const urlParams = new URLSearchParams(window.location.search);
 const tableNum = urlParams.get('table');
 const isCustomer = !!tableNum;
@@ -7,6 +8,22 @@ if (isCustomer) {
   document.querySelectorAll('.sidebar, #sidebarToggle, .sidebar-overlay').forEach(el => el && (el.style.display = 'none'));
   const mainEl = document.querySelector('.main');
   if (mainEl) { mainEl.style.marginRight = '0'; mainEl.style.width = '100%'; }
+}
+
+function syncOrderSheet() {
+  const orderList = document.querySelector('.order-box .order-list');
+  const sheetList = document.getElementById('sheetOrderList');
+  const sheetTotal = document.getElementById('sheetTotal');
+  if (orderList && sheetList) sheetList.innerHTML = orderList.innerHTML;
+  if (sheetTotal) sheetTotal.textContent = total + ' جنيه';
+  document.querySelectorAll('.order-box .order-item').forEach(i => {
+    const name = i.querySelector('.name');
+    if (name) itemCount++;
+  });
+  const badge = document.getElementById('cartBadge');
+  if (badge) badge.textContent = itemCount;
+  if (itemCount > 0) badge && (badge.style.display = 'flex'); else badge && (badge.style.display = 'none');
+  itemCount = 0;
 }
 
 async function loadProducts() {
@@ -68,6 +85,7 @@ function attachAddToCart() {
       total += price;
       document.querySelector(".total strong").innerText = total + " جنيه";
       updateButtons();
+      syncOrderSheet();
     });
   });
 }
@@ -84,6 +102,7 @@ function updateButtons() {
       item.querySelector(".price").innerText = (q * price) + " جنيه";
       total += price;
       document.querySelector(".total strong").innerText = total + " جنيه";
+      syncOrderSheet();
     };
   });
   document.querySelectorAll(".minus").forEach(btn => {
@@ -98,6 +117,7 @@ function updateButtons() {
         item.querySelector(".price").innerText = (q * price) + " جنيه";
         total -= price;
         document.querySelector(".total strong").innerText = total + " جنيه";
+        syncOrderSheet();
       }
     };
   });
@@ -112,6 +132,7 @@ function updateButtons() {
       if (document.querySelectorAll(".order-list .order-item").length === 0) {
         document.querySelector(".order-list").innerHTML = `<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>`;
       }
+      syncOrderSheet();
     };
   });
 }
@@ -152,8 +173,13 @@ clearBtn.addEventListener("click", () => clearModal.classList.add("show"));
 clearNoBtn.addEventListener("click", () => clearModal.classList.remove("show"));
 function clearOrder() {
   document.querySelector(".order-list").innerHTML = `<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>`;
+  const sol = document.getElementById('sheetOrderList');
+  if (sol) sol.innerHTML = `<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>`;
   total = 0;
   document.querySelector(".total strong").innerText = "0 جنيه";
+  const st = document.getElementById('sheetTotal');
+  if (st) st.textContent = "0 جنيه";
+  syncOrderSheet();
 }
 clearYesBtn.addEventListener("click", () => {
   clearOrder();
@@ -191,5 +217,22 @@ document.getElementById('confirmCheckout').onclick = async () => {
 document.getElementById('cancelCheckout').onclick = () => {
   document.getElementById('checkoutModal').classList.remove('show');
 };
+
+// Mobile cart floating button
+const cartFloat = document.getElementById('cartFloat');
+const cartSheet = document.getElementById('cartSheet');
+const sheetClose = document.getElementById('sheetClose');
+const sheetOrderList = document.getElementById('sheetOrderList');
+const sheetTotal = document.getElementById('sheetTotal');
+const sheetCheckout = document.getElementById('sheetCheckout');
+const sheetClear = document.getElementById('sheetClear');
+
+if (cartFloat && cartSheet) {
+  cartFloat.onclick = () => { cartSheet.style.display = 'flex'; syncOrderSheet(); };
+  sheetClose.onclick = () => cartSheet.style.display = 'none';
+  cartSheet.onclick = (e) => { if (e.target === cartSheet) cartSheet.style.display = 'none'; };
+  sheetCheckout.onclick = () => { cartSheet.style.display = 'none'; checkoutBtn.click(); };
+  sheetClear.onclick = () => { cartSheet.style.display = 'none'; clearBtn.click(); };
+}
 
 loadProducts();
