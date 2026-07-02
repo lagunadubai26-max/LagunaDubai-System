@@ -1,4 +1,9 @@
 let total = 0;
+const urlParams = new URLSearchParams(window.location.search);
+const tableNum = urlParams.get('table');
+if (tableNum) {
+  document.querySelector('.page-header h1').innerHTML = '<i class="fa-solid fa-utensils"></i> القائمة - طاولة ' + tableNum;
+}
 
 async function loadProducts() {
   const products = await DB.products.all() || [];

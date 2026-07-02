@@ -78,35 +78,13 @@
         document.getElementById('profileRole').textContent = _user.role === 'Employee' ? 'موظف' : 'مدير';
       }
     </script>
-    <section class="qr-content">
-      <div class="qr-card">
-        <h2>QR Menu</h2>
-        <p>امسح الكود لعرض قائمة الطعام</p>
-        <div class="qr-code" id="qrCode"></div>
-        <button class="qr-download" id="downloadQR"><i class="fa-solid fa-download"></i>تحميل QR Code</button>
-        <div class="qr-link">
-          <span>رابط القائمة:</span>
-          <input type="text" id="menuUrl" value="https://adhamkhaled1510.github.io/LagunaDubai-System/src/menu.html" readonly>
-        </div>
-      </div>
-      <div class="qr-info">
-        <h3>كيف يعمل QR Code؟</h3>
-        <p>QR Code يوجه الزبائن مباشرة إلى قائمة الطعام الرقمية. يمكن للزبائن مسح الكود بهواتفهم لعرض القائمة وطلب المنتجات.</p>
-        <h3>مميزات:</h3>
-        <ul>
-          <li><i class="fa-solid fa-check"></i> قائمة طعام رقمية تفاعلية</li>
-          <li><i class="fa-solid fa-check"></i> تحديث فوري للأسعار والمنتجات</li>
-          <li><i class="fa-solid fa-check"></i> تقليل الاحتكاك المباشر</li>
-          <li><i class="fa-solid fa-check"></i> دعم كامل للغة العربية</li>
-        </ul>
-      </div>
-    </section>
+    <section class="qr-content" id="qrContent"></section>
   </main>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/api-client.js"></script>
 <script src="js/data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="js/qr.js"></script>
 <script src="js/role.js"></script>
 </body>
