@@ -68,17 +68,16 @@
     <!-- Main -->
     <main class="main">
 
-        <div class="topbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;background:#fff;padding:15px 25px;border-radius:18px;box-shadow:var(--shadow);">
-            <div class="topbar-left">
-                <p style="color:#777">مرحبًا بك في نظام Laguna Cafe</p>
+        <div class="topbar">
+            <div>
+                <h1>لوحة التحكم</h1>
+                <p>مرحبًا بك في نظام Laguna Cafe</p>
             </div>
-            <div class="topbar-right" style="display:flex;align-items:center;gap:15px;">
-                <div class="profile" style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:45px;height:45px;border-radius:50%;background:#12B5C8;display:flex;justify-content:center;align-items:center;color:#fff;font-size:20px;"><i class="fa-solid fa-user"></i></div>
-                    <div>
-                        <h4 id="profileName" style="font-size:16px;color:#073646;">جاري التحميل...</h4>
-                        <span id="profileRole" style="font-size:13px;color:#888;">...</span>
-                    </div>
+            <div class="profile-top" style="display:none">
+                <div class="avatar" id="topAvatar">أ</div>
+                <div class="info">
+                    <h4 id="profileName">جاري التحميل...</h4>
+                    <span id="profileRole">...</span>
                 </div>
             </div>
         </div>
@@ -88,6 +87,7 @@
           if (_user) {
             document.getElementById('profileName').textContent = _user.name;
             document.getElementById('profileRole').textContent = _user.role === 'Employee' ? 'موظف' : 'مدير';
+            document.getElementById('topAvatar').textContent = _user.name.charAt(0);
           }
         </script>
 
@@ -96,31 +96,39 @@
         <section class="cards">
 
             <div class="card">
-                <i class="fa-solid fa-money-bill-wave"></i>
-                <h3>إجمالي المبيعات</h3>
-                <h2>0</h2>
-                <small>جاري التحميل...</small>
+                <div class="card-icon green"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="card-info">
+                    <h3>إجمالي المبيعات</h3>
+                    <h2 id="totalSales">0</h2>
+                    <small id="salesStatus" style="color:var(--muted);font-size:13px">جاري التحميل...</small>
+                </div>
             </div>
 
             <div class="card">
-                <i class="fa-solid fa-receipt"></i>
-                <h3>عدد الفواتير</h3>
-                <h2>0</h2>
-                <small>جاري التحميل...</small>
+                <div class="card-icon blue"><i class="fa-solid fa-receipt"></i></div>
+                <div class="card-info">
+                    <h3>عدد الفواتير</h3>
+                    <h2 id="totalInvoices">0</h2>
+                    <small style="color:var(--muted);font-size:13px">جاري التحميل...</small>
+                </div>
             </div>
 
             <div class="card">
-                <i class="fa-solid fa-users"></i>
-                <h3>العملاء</h3>
-                <h2>0</h2>
-                <small>جاري التحميل...</small>
+                <div class="card-icon orange"><i class="fa-solid fa-users"></i></div>
+                <div class="card-info">
+                    <h3>العملاء</h3>
+                    <h2 id="totalCustomers">0</h2>
+                    <small style="color:var(--muted);font-size:13px">جاري التحميل...</small>
+                </div>
             </div>
 
             <div class="card">
-                <i class="fa-solid fa-mug-hot"></i>
-                <h3>الطلبات</h3>
-                <h2>0</h2>
-                <small>جاري التحميل...</small>
+                <div class="card-icon purple"><i class="fa-solid fa-mug-hot"></i></div>
+                <div class="card-info">
+                    <h3>الطلبات</h3>
+                    <h2 id="totalOrders">0</h2>
+                    <small style="color:var(--muted);font-size:13px">جاري التحميل...</small>
+                </div>
             </div>
 
         </section>
@@ -132,7 +140,7 @@
             <div class="sales-chart">
 
                 <div class="section-title">
-                    <h2>Sales Overview</h2>
+                    <h2>نظرة عامة على المبيعات</h2>
                     <button>هذا الأسبوع</button>
                 </div>
 
@@ -144,21 +152,21 @@
 
             <div class="payment-box">
 
-                <h2>Payment</h2>
+                <h2>طرق الدفع</h2>
 
                 <div class="payment-item">
-                    <span>Cash</span>
-                    <strong>65%</strong>
+                    <span>كاش</span>
+                    <strong id="cashPercent">0%</strong>
                 </div>
 
                 <div class="payment-item">
-                    <span>Visa</span>
-                    <strong>25%</strong>
+                    <span>فيزا</span>
+                    <strong id="visaPercent">0%</strong>
                 </div>
 
                 <div class="payment-item">
-                    <span>Wallet</span>
-                    <strong>10%</strong>
+                    <span>محفظة</span>
+                    <strong id="walletPercent">0%</strong>
                 </div>
 
             </div>
