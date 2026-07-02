@@ -5,6 +5,15 @@ const tableBody = document.querySelector('.employees-table');
 const searchInput = document.querySelector('.filter-box input');
 const jobFilter = document.querySelector('.filter-box select');
 const addBtn = document.querySelector('.add-btn');
+const modal = document.getElementById('empModal');
+const modalTitle = document.getElementById('empModalTitle');
+const nameInput = document.getElementById('empName');
+const jobInput = document.getElementById('empJob');
+const phoneInput = document.getElementById('empPhone');
+const salaryInput = document.getElementById('empSalary');
+const hireDateInput = document.getElementById('empHireDate');
+const statusSelect = document.getElementById('empStatus');
+const pinInput = document.getElementById('empPin');
 
 async function render() {
   employees = await DB.employees.all() || [];
@@ -29,7 +38,6 @@ async function render() {
       <span>${emp.hireDate || '—'}</span>
       <span class="status ${stCls}">${stTxt}</span>
       <div class="actions">
-        <button class="view-btn" data-id="${emp.id}"><i class="fa-solid fa-eye"></i></button>
         <button class="edit-btn" data-id="${emp.id}"><i class="fa-solid fa-pen"></i></button>
         <button class="delete-btn" data-id="${emp.id}"><i class="fa-solid fa-trash"></i></button>
       </div>`;
@@ -47,27 +55,20 @@ async function render() {
 }
 
 function attachActions() {
-  document.querySelectorAll('.view-btn').forEach(btn => {
+  document.querySelectorAll('.edit-btn').forEach(btn => {
     btn.onclick = () => {
       const emp = employees.find(e => e.id === btn.dataset.id);
-      if (emp) alert(`الاسم: ${emp.name}\nالوظيفة: ${emp.job}\nالهاتف: ${emp.phone || '—'}\nالراتب: ${emp.salary || '—'}\nتاريخ التعيين: ${emp.hireDate || '—'}\nالرقم السري: ${emp.pin || 'بدون'}`);
-    };
-  });
-  document.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.onclick = async () => {
-      const emp = employees.find(e => e.id === btn.dataset.id);
       if (!emp) return;
-      const name = prompt('اسم الموظف', emp.name);
-      if (!name) return;
-      const job = prompt('الوظيفة', emp.job);
-      if (!job) return;
-      const phone = prompt('رقم الهاتف', emp.phone || '');
-      const salary = prompt('الراتب', emp.salary || '');
-      const hireDate = prompt('تاريخ التعيين', emp.hireDate || '');
-      const status = prompt('الحالة (active/vacation/stopped)', emp.status || 'active');
-      const pin = prompt('الرقم السري (4 أرقام)', emp.pin || '');
-      await DB.employees.update(emp.id, { name, job, phone, salary, hireDate, status, pin });
-      render();
+      editId = emp.id;
+      modalTitle.textContent = 'تعديل موظف';
+      nameInput.value = emp.name;
+      jobInput.value = emp.job;
+      phoneInput.value = emp.phone || '';
+      salaryInput.value = emp.salary || '';
+      hireDateInput.value = emp.hireDate || '';
+      statusSelect.value = emp.status || 'active';
+      pinInput.value = emp.pin || '';
+      modal.classList.add('show');
     };
   });
   document.querySelectorAll('.delete-btn').forEach(btn => {
@@ -80,19 +81,46 @@ function attachActions() {
 }
 
 if (addBtn) {
-  addBtn.onclick = async () => {
-    const name = prompt('اسم الموظف');
-    if (!name) return;
-    const job = prompt('الوظيفة');
-    if (!job) return;
-    const phone = prompt('رقم الهاتف');
-    const salary = prompt('الراتب');
-    const hireDate = prompt('تاريخ التعيين');
-    const pin = prompt('الرقم السري (4 أرقام للدخول)');
-    await DB.employees.add({ name, job, phone: phone || '', salary: salary || '', hireDate: hireDate || '', status: 'active', pin: pin || null });
-    render();
+  addBtn.onclick = () => {
+    editId = null;
+    modalTitle.textContent = 'إضافة موظف';
+    nameInput.value = '';
+    jobInput.value = '';
+    phoneInput.value = '';
+    salaryInput.value = '';
+    hireDateInput.value = '';
+    statusSelect.value = 'active';
+    pinInput.value = '';
+    modal.classList.add('show');
   };
 }
+
+document.getElementById('saveEmp').onclick = async () => {
+  const name = nameInput.value.trim();
+  const job = jobInput.value.trim();
+  if (!name || !job) return alert('يرجى إدخال الاسم والوظيفة');
+  const data = {
+    name,
+    job,
+    phone: phoneInput.value.trim(),
+    salary: salaryInput.value.trim(),
+    hireDate: hireDateInput.value,
+    status: statusSelect.value,
+    pin: pinInput.value.trim() || null
+  };
+  if (editId) {
+    await DB.employees.update(editId, data);
+  } else {
+    await DB.employees.add(data);
+  }
+  modal.classList.remove('show');
+  render();
+};
+
+document.getElementById('cancelEmp').onclick = () => modal.classList.remove('show');
+document.getElementById('closeEmpModal').onclick = () => modal.classList.remove('show');
+window.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('show'); });
+
 if (searchInput) searchInput.addEventListener('keyup', render);
 if (jobFilter) jobFilter.addEventListener('change', render);
 

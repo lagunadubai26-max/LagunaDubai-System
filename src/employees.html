@@ -240,6 +240,38 @@
 
 </div>
 
+<div class="modal" id="empModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="empModalTitle">إضافة موظف</h2>
+      <button class="close-modal" id="closeEmpModal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <label>الاسم</label>
+      <input type="text" id="empName">
+      <label>الوظيفة</label>
+      <input type="text" id="empJob">
+      <label>رقم الهاتف</label>
+      <input type="text" id="empPhone">
+      <label>الراتب</label>
+      <input type="text" id="empSalary">
+      <label>تاريخ التعيين</label>
+      <input type="date" id="empHireDate">
+      <label>الحالة</label>
+      <select id="empStatus">
+        <option value="active">يعمل</option>
+        <option value="vacation">إجازة</option>
+        <option value="stopped">موقوف</option>
+      </select>
+      <label>الرقم السري (4 أرقام للدخول)</label>
+      <input type="password" id="empPin" maxlength="4" placeholder="أدخل 4 أرقام">
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" id="cancelEmp">إلغاء</button>
+      <button class="confirm-btn" id="saveEmp">حفظ</button>
+    </div>
+  </div>
+</div>
 <script src="js/supabase-client.js"></script>
 <script src="js/api-client.js"></script>
 <script src="js/data.js"></script>
