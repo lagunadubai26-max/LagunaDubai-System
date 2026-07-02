@@ -1,5 +1,4 @@
 let total = 0;
-let itemCount = 0;
 const urlParams = new URLSearchParams(window.location.search);
 const tableNum = urlParams.get('table');
 const isCustomer = !!tableNum;
@@ -16,14 +15,14 @@ function syncOrderSheet() {
   const sheetTotal = document.getElementById('sheetTotal');
   if (orderList && sheetList) sheetList.innerHTML = orderList.innerHTML;
   if (sheetTotal) sheetTotal.textContent = total + ' جنيه';
+  let count = 0;
   document.querySelectorAll('.order-box .order-item').forEach(i => {
     const name = i.querySelector('.name');
-    if (name) itemCount++;
+    if (name) count++;
   });
   const badge = document.getElementById('cartBadge');
-  if (badge) badge.textContent = itemCount;
-  if (itemCount > 0) badge && (badge.style.display = 'flex'); else badge && (badge.style.display = 'none');
-  itemCount = 0;
+  if (badge) badge.textContent = count;
+  if (count > 0) badge && (badge.style.display = 'flex'); else badge && (badge.style.display = 'none');
 }
 
 async function loadProducts() {
@@ -38,7 +37,7 @@ async function loadProducts() {
     card.className = 'product-card';
     card.dataset.category = p.category;
     card.innerHTML = `
-      <div class="menu-icon"><img loading="lazy" src="${p.image || 'images/menu/placeholder.webp'}" alt="${p.name}"></div>
+      <div class="menu-icon"><img loading="lazy" src="${p.image || ''}" alt="${p.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f5f5f4%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 font-size=%2240%22>🍽</text></svg>'"></div>
       <h3>${p.name}</h3>
       <p>${p.nameEn || ''}</p>
       <h2>${p.price} جنيه</h2>

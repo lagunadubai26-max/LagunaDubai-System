@@ -104,7 +104,11 @@
       <div class="table-header">
         <span>الصورة</span><span>الاسم</span><span>القسم</span><span>السعر</span><span>الحالة</span><span>الإجراءات</span>
       </div>
-      <div id="prodList"></div>
+      <div id="prodList">
+        <div class="table-row"><div><div class="skeleton" style="width:48px;height:48px;border-radius:8px"></div></div><span><div class="skeleton" style="width:80px;height:16px"></div></span><span><div class="skeleton" style="width:60px;height:16px"></div></span><span><div class="skeleton" style="width:50px;height:16px"></div></span><span><div class="skeleton" style="width:40px;height:16px"></div></span><div><div class="skeleton" style="width:60px;height:28px;border-radius:6px"></div></div></div>
+        <div class="table-row"><div><div class="skeleton" style="width:48px;height:48px;border-radius:8px"></div></div><span><div class="skeleton" style="width:80px;height:16px"></div></span><span><div class="skeleton" style="width:60px;height:16px"></div></span><span><div class="skeleton" style="width:50px;height:16px"></div></span><span><div class="skeleton" style="width:40px;height:16px"></div></span><div><div class="skeleton" style="width:60px;height:28px;border-radius:6px"></div></div></div>
+        <div class="table-row"><div><div class="skeleton" style="width:48px;height:48px;border-radius:8px"></div></div><span><div class="skeleton" style="width:80px;height:16px"></div></span><span><div class="skeleton" style="width:60px;height:16px"></div></span><span><div class="skeleton" style="width:50px;height:16px"></div></span><span><div class="skeleton" style="width:40px;height:16px"></div></span><div><div class="skeleton" style="width:60px;height:28px;border-radius:6px"></div></div></div>
+      </div>
     </section>
   </main>
 </div>
@@ -146,6 +150,18 @@
     <div class="modal-footer">
       <button class="cancel-btn" id="cancelProd">إلغاء</button>
       <button class="confirm-btn" id="saveProd">حفظ</button>
+    </div>
+  </div>
+</div>
+<!-- نافذة تأكيد الحذف -->
+<div class="confirm-modal" id="deleteProdModal">
+  <div class="confirm-box">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <h3>حذف المنتج؟</h3>
+    <p>لا يمكن التراجع عن هذا الإجراء.</p>
+    <div class="confirm-buttons">
+      <button class="cancel-btn" id="cancelDelete">إلغاء</button>
+      <button class="confirm-btn" id="confirmDelete">حذف</button>
     </div>
   </div>
 </div>

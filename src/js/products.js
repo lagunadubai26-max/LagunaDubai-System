@@ -1,9 +1,11 @@
 let products = [];
 let editProdId = null;
+let deleteTargetId = null;
 const prodList = document.getElementById('prodList');
 const searchInput = document.getElementById('prodSearch');
 const catFilter = document.getElementById('prodCategory');
 const modal = document.getElementById('prodModal');
+const deleteModal = document.getElementById('deleteProdModal');
 
 const categoryNames = {
   coffee: 'قهوة', hot: 'مشروبات ساخنة', ice: 'آيس كوفي', matcha: 'ماتشا',
@@ -25,7 +27,7 @@ async function render() {
     const row = document.createElement('div');
     row.className = 'table-row';
     row.innerHTML = `
-      <div><img class="thumb" src="${p.image || 'images/menu/placeholder.webp'}" alt="${p.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>'"></div>
+      <div><img class="thumb" src="${p.image || ''}" alt="${p.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽</text></svg>'"></div>
       <span>${p.name}</span><span>${categoryNames[p.category] || p.category}</span>
       <span>${p.price} ج.م</span>
       <span class="status ${stCls}">${stTxt}</span>
@@ -60,10 +62,9 @@ function attachEvents() {
     };
   });
   document.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.onclick = async () => {
-      if (!confirm('هل تريد حذف هذا المنتج؟')) return;
-      await DB.products.remove(btn.dataset.id);
-      render();
+    btn.onclick = () => {
+      deleteTargetId = btn.dataset.id;
+      deleteModal.classList.add('show');
     };
   });
 }
@@ -99,6 +100,15 @@ document.getElementById('saveProd').onclick = async () => {
 
 document.getElementById('cancelProd').onclick = () => modal.classList.remove('show');
 document.getElementById('closeProdModal').onclick = () => modal.classList.remove('show');
+document.getElementById('cancelDelete').onclick = () => deleteModal.classList.remove('show');
+document.getElementById('confirmDelete').onclick = async () => {
+  if (deleteTargetId) {
+    await DB.products.remove(deleteTargetId);
+    deleteTargetId = null;
+    deleteModal.classList.remove('show');
+    render();
+  }
+};
 searchInput.addEventListener('keyup', render);
 catFilter.addEventListener('change', render);
 

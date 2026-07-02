@@ -32,7 +32,7 @@ function updateChart(invoices) {
     const dayIdx = (d.getDay() + 1) % 7;
     weeklyData[dayIdx] += Number(inv.total || 0);
   });
-  if (window.salesChart instanceof Chart) window.salesChart.destroy();
+  if (typeof Chart !== 'undefined' && window.salesChart instanceof Chart) window.salesChart.destroy();
   window.salesChart = new Chart(canvas, {
     type: 'line',
     data: {
