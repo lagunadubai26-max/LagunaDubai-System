@@ -17,14 +17,14 @@
     align-items:center;
     gap:12px;
 
-    color:#073646;
+    color:var(--primary);
     font-size:38px;
 
 }
 
 .page-header h1 i{
 
-    color:#12B5C8;
+    color:var(--accent);
 
 }
 
@@ -74,7 +74,7 @@
 
     border-radius:50%;
 
-    background:#12B5C8;
+    background:var(--accent);
 
     color:#fff;
 
@@ -88,7 +88,7 @@
 
 .stat-card h2{
 
-    color:#073646;
+    color:var(--primary);
 
     font-size:38px;
 
@@ -141,7 +141,7 @@
 
 .search-btn{
 
-    background:#12B5C8;
+    background:var(--accent);
 
     color:#fff;
 
@@ -238,7 +238,7 @@
 
 .table-header{
 
-    background:#073646;
+    background:var(--primary);
 
     color:#fff;
 
@@ -348,7 +348,7 @@
 
 .view-btn{
 
-    background:#12B5C8;
+    background:var(--accent);
 
 }
 

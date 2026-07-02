@@ -18,7 +18,7 @@
   padding: 0 25px;
   border: none;
   border-radius: 12px;
-  background: #12B5C8;
+  background: var(--accent);
   color: #fff;
   font-size: 16px;
   font-family: 'Cairo', sans-serif;
@@ -28,7 +28,7 @@
   gap: 8px;
   transition: .3s;
 }
-.report-controls button:hover { background: #0ea2b4; }
+.report-controls button:hover { background: #var(--accent-dark); }
 .report-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -48,7 +48,7 @@
   box-shadow: var(--shadow);
 }
 .chart-card h3 {
-  color: #073646;
+  color: var(--primary);
   margin-bottom: 20px;
   font-size: 20px;
 }
@@ -62,7 +62,7 @@
   box-shadow: var(--shadow);
 }
 .report-table-section h3 {
-  color: #073646;
+  color: var(--primary);
   margin-bottom: 20px;
   font-size: 20px;
 }
@@ -74,7 +74,7 @@
   text-align: center;
 }
 .report-table .table-header {
-  background: #073646;
+  background: var(--primary);
   color: #fff;
   border-radius: 12px;
   font-weight: 700;

@@ -20,13 +20,13 @@
 
     font-size:38px;
 
-    color:#073646;
+    color:var(--primary);
 
 }
 
 .page-header h1 i{
 
-    color:#12B5C8;
+    color:var(--accent);
 
 }
 
@@ -78,7 +78,7 @@
 
     border-radius:50%;
 
-    background:#12B5C8;
+    background:var(--accent);
 
     color:#fff;
 
@@ -96,7 +96,7 @@
 
     font-size:38px;
 
-    color:#073646;
+    color:var(--primary);
 
     margin-bottom:8px;
 
@@ -155,7 +155,7 @@
 
 .search-btn{
 
-    background:#12B5C8;
+    background:var(--accent);
 
     color:#fff;
 
@@ -223,7 +223,7 @@
 
 .table-header{
 
-    background:#073646;
+    background:var(--primary);
 
     color:#fff;
 
@@ -333,7 +333,7 @@
 
 .view-btn{
 
-    background:#12B5C8;
+    background:var(--accent);
 
 }
 

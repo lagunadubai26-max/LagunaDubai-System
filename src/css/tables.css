@@ -8,7 +8,7 @@
   margin-bottom: 25px;
 }
 .tables-tools .add-btn {
-  background: #12B5C8;
+  background: var(--accent);
   color: #fff;
   border: none;
   padding: 14px 30px;
@@ -21,7 +21,7 @@
   gap: 10px;
   transition: .3s;
 }
-.tables-tools .add-btn:hover { background: #0ea2b4; }
+.tables-tools .add-btn:hover { background: #var(--accent-dark); }
 .tables-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -43,9 +43,9 @@
   top: 0; left: 0; right: 0;
   height: 6px;
 }
-.table-card h3 { color: #073646; font-size: 24px; margin: 15px 0 10px; }
+.table-card h3 { color: var(--primary); font-size: 24px; margin: 15px 0 10px; }
 .table-card p { color: #777; margin-bottom: 15px; }
-.table-card p i { color: #12B5C8; margin-left: 5px; }
+.table-card p i { color: var(--accent); margin-left: 5px; }
 .table-card .badge {
   display: inline-block;
   padding: 6px 18px;
@@ -103,7 +103,7 @@
   display: flex; justify-content: space-between; align-items: center;
   padding: 20px 25px; border-bottom: 1px solid #eee;
 }
-.modal-header h2 { color: #073646; font-size: 22px; }
+.modal-header h2 { color: var(--primary); font-size: 22px; }
 .close-modal {
   width: 40px; height: 40px; border-radius: 50%;
   border: none; background: #f3f5f7; cursor: pointer; font-size: 18px;
@@ -115,7 +115,7 @@
   border-radius: 12px; padding: 0 15px; font-size: 16px;
   font-family: 'Cairo', sans-serif; margin-bottom: 18px; outline: none;
 }
-.modal-body input:focus { border-color: #12B5C8; }
+.modal-body input:focus { border-color: var(--accent); }
 .modal-footer {
   display: flex; justify-content: flex-end; gap: 12px;
   padding: 20px 25px; border-top: 1px solid #eee;
@@ -126,5 +126,5 @@
 }
 .modal-footer .confirm-btn {
   padding: 12px 30px; border-radius: 12px; border: none;
-  background: #12B5C8; color: #fff; font-family: 'Cairo', sans-serif; font-size: 16px; cursor: pointer;
+  background: var(--accent); color: #fff; font-family: 'Cairo', sans-serif; font-size: 16px; cursor: pointer;
 }

@@ -20,13 +20,13 @@
   outline: none;
 }
 .customer-tools .add-btn {
-  background: #12B5C8; color: #fff; border: none;
+  background: var(--accent); color: #fff; border: none;
   padding: 0 25px; border-radius: 12px;
   font-family: 'Cairo', sans-serif; font-size: 16px;
   cursor: pointer; display: flex; align-items: center; gap: 8px;
   transition: .3s;
 }
-.customer-tools .add-btn:hover { background: #0ea2b4; }
+.customer-tools .add-btn:hover { background: #var(--accent-dark); }
 .customer-table {
   background: #fff;
   border-radius: 20px;
@@ -42,7 +42,7 @@
   padding: 16px 20px;
 }
 .customer-table .table-header {
-  background: #073646; color: #fff; font-weight: 700;
+  background: var(--primary); color: #fff; font-weight: 700;
 }
 .customer-table .table-row { border-bottom: 1px solid #eee; transition: .3s; }
 .customer-table .table-row:hover { background: #f8fbfd; }
