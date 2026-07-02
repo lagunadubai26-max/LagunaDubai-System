@@ -31,6 +31,8 @@ async function loadProducts() {
   if (!container) return;
   container.innerHTML = '';
 
+  const categoryOrder = ['coffee','hot','ice','matcha','frappe','smoothie','milkshake','yogurt','juice','cocktail','mojito','cans','desserts'];
+  products.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category));
   products.forEach(p => {
     if (!p.available) return;
     const card = document.createElement('div');
