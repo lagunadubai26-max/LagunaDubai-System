@@ -59,6 +59,7 @@ ul{list-style:none}
     border-radius:50%;display:flex;justify-content:center;align-items:center;
     font-size:30px;color:#fff;box-shadow:0 4px 15px rgba(217,119,6,.3);
 }
+.logo-img{width:70px;height:70px;margin:0 auto 12px;display:block;border-radius:12px}
 .logo h2{font-size:24px;color:#fff;margin-bottom:3px;font-weight:700}
 .logo p{font-size:13px;opacity:.6}
 .sidebar nav{display:flex;flex-direction:column;padding:8px 0}
