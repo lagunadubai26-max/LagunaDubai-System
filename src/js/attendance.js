@@ -15,17 +15,14 @@ async function render() {
   let today = await DB.attendance.today() || [];
 
   if (today.length === 0) {
-    const employees = await DB.employees.all() || [];
-    for (const emp of employees) {
-      await DB.attendance.checkIn(emp.id, emp.name, emp.job);
-    }
-    today = await DB.attendance.today() || [];
+    // لا يوجد تسجيل حضور لليوم — اعرض جدول فارغ بدل تسجيل كل الموظفين تلقائياً
   }
 
   today.forEach(a => {
     const row = document.createElement("div");
     row.className = "attendance-row";
     row.dataset.id = a.id;
+    row.dataset.employeeId = a.employeeId || '';
     const stCls = a.status === 'present' ? 'present' : a.status === 'late' ? 'late' : 'absent';
     const stTxt = a.status === 'present' ? 'حاضر' : a.status === 'late' ? 'متأخر' : 'غائب';
     row.innerHTML = `
@@ -68,7 +65,8 @@ function attachEvents() {
       const statusEl = row.querySelector(".status");
       statusEl.className = "status present";
       statusEl.innerText = "حاضر";
-      await DB.attendance.checkIn(row.dataset.id, row.children[0].innerText, row.children[1].innerText);
+      const empId = row.dataset.employeeId || row.dataset.id;
+      await DB.attendance.checkIn(empId, row.children[0].innerText, row.children[1].innerText);
       updateStats();
     };
     row.querySelector(".leave-btn").onclick = async function () {

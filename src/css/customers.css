@@ -26,7 +26,7 @@
   cursor: pointer; display: flex; align-items: center; gap: 8px;
   transition: .3s;
 }
-.customer-tools .add-btn:hover { background: #var(--accent-dark); }
+.customer-tools .add-btn:hover { background: var(--accent-dark); }
 .customer-table {
   background: #fff;
   border-radius: 20px;

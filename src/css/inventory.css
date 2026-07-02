@@ -28,7 +28,7 @@
   cursor: pointer; display: flex; align-items: center; gap: 8px;
   transition: .3s;
 }
-.inventory-tools .add-btn:hover { background: #var(--accent-dark); }
+.inventory-tools .add-btn:hover { background: var(--accent-dark); }
 .inventory-table {
   background: #fff;
   border-radius: 20px;

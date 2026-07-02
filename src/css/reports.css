@@ -28,7 +28,7 @@
   gap: 8px;
   transition: .3s;
 }
-.report-controls button:hover { background: #var(--accent-dark); }
+.report-controls button:hover { background: var(--accent-dark); }
 .report-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

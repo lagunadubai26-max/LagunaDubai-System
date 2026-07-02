@@ -34,7 +34,7 @@
   cursor: pointer; display: flex; align-items: center; gap: 8px;
   transition: .3s;
 }
-.expense-form .add-btn:hover { background: #var(--accent-dark); }
+.expense-form .add-btn:hover { background: var(--accent-dark); }
 .expense-table {
   background: #fff;
   border-radius: 20px;

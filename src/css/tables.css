@@ -21,7 +21,7 @@
   gap: 10px;
   transition: .3s;
 }
-.tables-tools .add-btn:hover { background: #var(--accent-dark); }
+.tables-tools .add-btn:hover { background: var(--accent-dark); }
 .tables-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

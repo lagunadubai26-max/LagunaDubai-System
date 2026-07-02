@@ -21,7 +21,8 @@ const DB = {
     async save(list) { DB.set('attendance', list); },
     async today() { if (DB_MODE === 'api') { const a = await API.attendance.today(); return Array.isArray(a) && a.length ? a : DB.attendance.local().filter(aa => new Date(aa.date).toDateString() === new Date().toDateString()); } return DB.attendance.local().filter(aa => new Date(aa.date).toDateString() === new Date().toDateString()); },
     async checkIn(employeeId, name, job) { if (DB_MODE === 'api') return await API.attendance.checkIn(employeeId, name, job); const list = DB.attendance.local(); const id = Date.now().toString(36); list.push({ id, employeeId, name, job, date: new Date().toISOString(), checkIn: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), checkOut: null, status: 'present' }); DB.set('attendance', list); },
-    async checkOut(id) { if (DB_MODE === 'api') await API.attendance.checkOut(id); const list = DB.attendance.local(); const item = list.find(a => a.id === id); if (item) { item.checkOut = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }); DB.set('attendance', list); } }
+    async checkOut(id) { if (DB_MODE === 'api') await API.attendance.checkOut(id); const list = DB.attendance.local(); const item = list.find(a => a.id === id); if (item) { item.checkOut = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }); DB.set('attendance', list); } },
+    async remove(id) { if (DB_MODE === 'api') await API.attendance.remove(id); DB.set('attendance', DB.attendance.local().filter(a => a.id !== id)); }
   },
   invoices: {
     async all() { if (DB_MODE === 'api') { const a = await API.invoices.all(); return Array.isArray(a) && a.length ? a : DB.invoices.local(); } return DB.invoices.local(); },

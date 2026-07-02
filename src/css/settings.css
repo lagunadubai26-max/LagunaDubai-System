@@ -61,7 +61,7 @@
   gap: 10px;
   transition: .3s;
 }
-.save-settings:hover { background: #var(--accent-dark); }
+.save-settings:hover { background: var(--accent-dark); }
 .reset-btn {
   background: #E74C3C;
   color: #fff;

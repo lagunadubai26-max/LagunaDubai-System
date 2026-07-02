@@ -20,7 +20,7 @@ document.getElementById('resetData').onclick = async () => {
   if (!confirm('هل تريد مسح كل البيانات؟ هذا الإجراء لا يمكن التراجع عنه!')) return;
   if (!confirm('تأكيد: مسح كل البيانات من سحابة Supabase؟')) return;
   if (!confirm('مسح نهائي؟ سيتم حذف كل الفواتير والطلبات والموظفين!')) return;
-  const tables = ['invoices', 'returns', 'attendance', 'expenses', 'customers', 'inventory', 'settings', 'employees'];
+  const tables = ['invoices', 'returns', 'attendance', 'expenses', 'customers', 'inventory', 'settings', 'employees', 'products', 'cafe_tables'];
   for (const t of tables) {
     const all = await SUPABASE.get(t, { params: { select: 'id' } }) || [];
     for (const row of all) {
