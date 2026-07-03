@@ -15,9 +15,28 @@ const tableBody = document.querySelector('.invoice-table');
   } catch(e) { console.warn('[debug] parse error:', e); }
 })();
 
+(function() {
+  const bar = document.createElement('div');
+  bar.id = 'debugBar';
+  bar.style.cssText = 'background:#fef2f2;color:#dc2626;padding:8px 16px;border-radius:8px;margin-bottom:12px;font-size:13px;display:none';
+  const target = document.querySelector('.filter-box') || document.querySelector('.invoice-stats');
+  if (target) target.parentNode.insertBefore(bar, target);
+})();
+
 async function render() {
   invoices = await DB.invoices.all() || [];
   console.log('[invoices] loaded:', invoices.length, 'invoices', invoices.map(i => ({ id: i.id, customer: i.customer, total: i.total, paid: i.paid })));
+
+  const debugBar = document.getElementById('debugBar');
+  if (debugBar) {
+    debugBar.style.display = 'block';
+    debugBar.style.background = invoices.length === 0 ? '#fef2f2' : '#f0fdf4';
+    debugBar.style.color = invoices.length === 0 ? '#dc2626' : '#059669';
+    debugBar.textContent = invoices.length === 0
+      ? '⚠ localStorage فاضي (0 فاتورة). افتح F12 → Console وشوف الـ debug logs.'
+      : '✓ تم تحميل ' + invoices.length + ' فاتورة';
+  }
+
   const existing = tableBody.querySelectorAll('.invoice-row');
   existing.forEach(r => r.remove());
 

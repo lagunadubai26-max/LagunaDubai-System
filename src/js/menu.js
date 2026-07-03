@@ -235,33 +235,39 @@ checkoutBtn.addEventListener("click", () => {
 });
 
 document.getElementById('confirmCheckout').onclick = async () => {
-  const custType = document.getElementById('checkoutCustomerType').value;
-  let customer, totalAmount;
-  if (custType === 'special') {
-    customer = document.getElementById('checkoutSpecialName').value.trim() || 'عميل خاص';
-    totalAmount = Number(document.getElementById('checkoutSpecialPrice').value);
-    if (!totalAmount || totalAmount <= 0) return alert('يرجى إدخال السعر المخصص للعميل الخاص');
-  } else {
-    customer = 'نقدي';
-    totalAmount = window._checkoutTotal;
-  }
-  const method = document.getElementById('checkoutMethod').value;
-  const items = window._checkoutItems;
-  const serviceAmount = window._checkoutService || 0;
-  const table = tableNum ? 'طاولة ' + tableNum : null;
-  const paid = Math.min(totalAmount, Math.max(0, Number(document.getElementById('checkoutPaid').value) || totalAmount));
-  const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, remaining: totalAmount - paid, serviceAmount, paymentMethod: method, status: paid >= totalAmount ? 'paid' : 'pending' });
-  if (custType === 'special') {
-    const existing = (await DB.customers.all() || []).find(c => c.name === customer);
-    if (existing) {
-      await DB.customers.update(existing.id, { visits: (existing.visits || 0) + 1, totalSpent: (existing.totalSpent || 0) + totalAmount, lastVisit: new Date().toISOString() });
+  try {
+    const custType = document.getElementById('checkoutCustomerType').value;
+    let customer, totalAmount;
+    if (custType === 'special') {
+      customer = document.getElementById('checkoutSpecialName').value.trim() || 'عميل خاص';
+      totalAmount = Number(document.getElementById('checkoutSpecialPrice').value);
+      if (!totalAmount || totalAmount <= 0) return alert('يرجى إدخال السعر المخصص للعميل الخاص');
     } else {
-      await DB.customers.add({ name: customer, phone: '', totalSpent: totalAmount, visits: 1, lastVisit: new Date().toISOString() });
+      customer = 'نقدي';
+      totalAmount = window._checkoutTotal;
     }
+    const method = document.getElementById('checkoutMethod').value;
+    const items = window._checkoutItems;
+    const serviceAmount = window._checkoutService || 0;
+    const table = tableNum ? 'طاولة ' + tableNum : null;
+    const paid = Math.min(totalAmount, Math.max(0, Number(document.getElementById('checkoutPaid').value) || totalAmount));
+    const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, remaining: totalAmount - paid, serviceAmount, paymentMethod: method, status: paid >= totalAmount ? 'paid' : 'pending' });
+    console.log('[checkout] invoice saved:', inv ? inv.id : 'null');
+    if (custType === 'special') {
+      const existing = (await DB.customers.all() || []).find(c => c.name === customer);
+      if (existing) {
+        await DB.customers.update(existing.id, { visits: (existing.visits || 0) + 1, totalSpent: (existing.totalSpent || 0) + totalAmount, lastVisit: new Date().toISOString() });
+      } else {
+        await DB.customers.add({ name: customer, phone: '', totalSpent: totalAmount, visits: 1, lastVisit: new Date().toISOString() });
+      }
+    }
+    document.getElementById('checkoutModal').classList.remove('show');
+    alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''}\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه`);
+    clearOrder();
+  } catch (e) {
+    console.error('[checkout] error:', e);
+    alert('حدث خطأ أثناء إنشاء الفاتورة: ' + e.message);
   }
-  document.getElementById('checkoutModal').classList.remove('show');
-  alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''}\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه`);
-  clearOrder();
 };
 document.getElementById('cancelCheckout').onclick = () => {
   document.getElementById('checkoutModal').classList.remove('show');
