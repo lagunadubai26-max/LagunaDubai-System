@@ -28,6 +28,7 @@ app.use(express.json());
 app.use(express.static(STATIC_DIR));
 
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/public', require('./routes/public'));
 app.use('/api/employees', authenticate, adminOnly, require('./routes/employees'));
 app.use('/api/attendance', authenticate, require('./routes/attendance'));
 app.use('/api/invoices', authenticate, require('./routes/invoices'));

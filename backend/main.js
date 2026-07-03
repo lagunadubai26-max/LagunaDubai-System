@@ -30,6 +30,7 @@ function startServer() {
   srv.use(express.static(STATIC_DIR));
 
   srv.use('/api/auth', require('./routes/auth'));
+  srv.use('/api/public', require('./routes/public'));
   srv.use('/api/employees', authenticate, adminOnly, require('./routes/employees'));
   srv.use('/api/attendance', authenticate, require('./routes/attendance'));
   srv.use('/api/invoices', authenticate, require('./routes/invoices'));

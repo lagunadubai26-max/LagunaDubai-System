@@ -44,8 +44,10 @@ db.exec(`
     date TEXT NOT NULL,
     items TEXT DEFAULT '[]',
     total REAL DEFAULT 0,
+    serviceAmount REAL DEFAULT 0,
     status TEXT DEFAULT 'paid',
-    paymentMethod TEXT DEFAULT 'Cash'
+    paymentMethod TEXT DEFAULT 'Cash',
+    "table" TEXT
   );
 
   CREATE TABLE IF NOT EXISTS returns (
@@ -99,6 +101,9 @@ db.exec(`
 `);
 
 function seed() {
+  try { db.prepare("ALTER TABLE invoices ADD COLUMN serviceAmount REAL DEFAULT 0").run(); } catch {}
+  try { db.prepare('ALTER TABLE invoices ADD COLUMN "table" TEXT').run(); } catch {}
+
   const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
   if (userCount === 0) {
     const insert = db.prepare('INSERT INTO users (id, username, password, name, role) VALUES (?, ?, ?, ?, ?)');
