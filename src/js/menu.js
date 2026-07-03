@@ -1,5 +1,7 @@
 let total = 0;
 let serviceTaxRate = 0;
+let checkoutProcessing = false;
+const COOLDOWN_MS = 5000;
 const urlParams = new URLSearchParams(window.location.search);
 const tableNum = urlParams.get('table');
 const hasService = urlParams.get('service') === '1';
@@ -384,6 +386,26 @@ window.calcRemaining = function() {
 document.getElementById('checkoutPaid').addEventListener('input', window.calcRemaining);
 
 document.getElementById('confirmCheckout').onclick = async () => {
+  if (checkoutProcessing) return;
+  if (isCustomer && tableNum) {
+    const lastKey = 'laguna_last_order_t' + tableNum;
+    const lastTime = Number(localStorage.getItem(lastKey)) || 0;
+    if (Date.now() - lastTime < COOLDOWN_MS) {
+      const remaining = Math.ceil((COOLDOWN_MS - (Date.now() - lastTime)) / 1000);
+      return alert('يرجى الانتظار ' + remaining + ' ثوانٍ قبل إرسال طلب جديد');
+    }
+    localStorage.setItem(lastKey, Date.now());
+  }
+  checkoutProcessing = true;
+  document.getElementById('confirmCheckout').disabled = true;
+  document.getElementById('confirmCheckout').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري...';
+
+  const resetCheckout = () => {
+    checkoutProcessing = false;
+    document.getElementById('confirmCheckout').disabled = false;
+    document.getElementById('confirmCheckout').innerHTML = 'تأكيد الدفع';
+  };
+
   try {
     syncSheetNotesToOrderBox();
     const custType = document.getElementById('checkoutCustomerType').value;
@@ -391,7 +413,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     if (custType === 'special') {
       customer = document.getElementById('checkoutSpecialName').value.trim() || 'عميل خاص';
       totalAmount = Number(document.getElementById('checkoutSpecialPrice').value);
-      if (!totalAmount || totalAmount <= 0) return alert('يرجى إدخال السعر المخصص للعميل الخاص');
+      if (!totalAmount || totalAmount <= 0) { resetCheckout(); return alert('يرجى إدخال السعر المخصص للعميل الخاص'); }
     } else {
       customer = 'نقدي';
       totalAmount = window._checkoutTotal;
@@ -480,6 +502,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     console.error('[checkout] error:', e);
     alert('حدث خطأ أثناء إنشاء الفاتورة: ' + e.message);
   }
+  resetCheckout();
 };
 document.getElementById('cancelCheckout').onclick = () => {
   document.getElementById('checkoutModal').classList.remove('show');

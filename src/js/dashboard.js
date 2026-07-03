@@ -5,7 +5,8 @@ async function updateDashboard() {
   const totalOrders = invoices.reduce((s, i) => s + (i.items ? i.items.reduce((a, b) => a + Number(b.qty || 0), 0) : 0), 0);
 
   document.getElementById('totalSales').textContent = totalSales.toLocaleString() + ' جنيه';
-  document.getElementById('salesStatus').textContent = 'إجمالي';
+  const salesStatus = document.getElementById('salesStatus');
+  if (salesStatus) salesStatus.textContent = 'إجمالي';
   document.getElementById('totalInvoices').textContent = invoices.length;
   document.getElementById('totalCustomers').textContent = customers || '0';
   document.getElementById('totalOrders').textContent = totalOrders || '0';
