@@ -94,12 +94,12 @@ const DB = {
     local() { try { return JSON.parse(localStorage.getItem('laguna_invoices')) || []; } catch { return []; } },
     async all() {
       const local = DB.invoices.local();
-      if (DB_MODE !== 'local') DB.syncFromAPI('invoices', local, d => DB.set('invoices', d), () => API.invoices.all());
-      return local;
+      if (DB_MODE !== 'local') await DB.syncFromAPI('invoices', local, d => DB.set('invoices', d), () => API.invoices.all());
+      return DB.invoices.local();
     },
     async add(inv) {
+      inv.id = 'INV-' + Date.now().toString(36).toUpperCase();
       const list = DB.invoices.local();
-      inv.id = 'INV-' + String(list.length + 1).padStart(4, '0');
       if (DB_MODE !== 'local') {
         const apiInv = { 
           ...inv, 
