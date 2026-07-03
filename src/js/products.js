@@ -95,10 +95,23 @@ document.getElementById('prodImageFile').onchange = function() {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
-    document.getElementById('prodImage').value = e.target.result;
-    const preview = document.getElementById('prodImagePreview');
-    preview.style.display = 'block';
-    preview.querySelector('img').src = e.target.result;
+    const img = new Image();
+    img.onload = function() {
+      const maxW = 400;
+      const scale = Math.min(1, maxW / img.width);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const compressed = c.toDataURL('image/jpeg', 0.6);
+      document.getElementById('prodImage').value = compressed;
+      const preview = document.getElementById('prodImagePreview');
+      preview.style.display = 'block';
+      preview.querySelector('img').src = compressed;
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 };
