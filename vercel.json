@@ -1,3 +1,6 @@
 {
-  "rootDirectory": "src"
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/src/$1" }
+  ]
 }
