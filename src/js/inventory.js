@@ -90,6 +90,18 @@ document.getElementById('closeInvModal').onclick = () => modal.classList.remove(
 searchInput.addEventListener('keyup', render);
 catFilter.addEventListener('change', render);
 
+// --- Toast ---
+function showToast(message, type) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation' };
+  toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.success}"></i><span>${message}</span>`;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
+}
+
 // --- Weekly Inventory ---
 const weeklyInvBtn = document.getElementById('weeklyInvBtn');
 const weeklyInvModal = document.getElementById('weeklyInvModal');
@@ -128,6 +140,7 @@ saveWeeklyInv.onclick = async () => {
       itemId, itemName: item.name, weekKey, date: dateStr,
       systemQty: item.quantity, actualQty, minQty: item.minQuantity
     });
+    await DB.inventory.update(itemId, { quantity: actualQty });
     if (actualQty < item.minQuantity) {
       lowStockItems.push(item.name);
     }
@@ -135,9 +148,10 @@ saveWeeklyInv.onclick = async () => {
 
   weeklyInvModal.classList.remove('show');
   if (lowStockItems.length > 0) {
-    alert('⚠️ تنبيه: الأصناف التالية أقل من الحد الأدنى:\n' + lowStockItems.map(n => '• ' + n).join('\n'));
+    showToast('تم حفظ الجرد الأسبوعي', 'success');
+    lowStockItems.forEach(name => showToast('تنبيه: ' + name + ' أقل من الحد الأدنى', 'warning'));
   } else {
-    alert('✓ تم حفظ الجرد الأسبوعي بنجاح');
+    showToast('✓ تم حفظ الجرد الأسبوعي بنجاح', 'success');
   }
   render();
 };
