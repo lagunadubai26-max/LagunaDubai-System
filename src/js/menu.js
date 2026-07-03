@@ -153,7 +153,7 @@ function attachAddToCart() {
           <div class="order-top"><span class="name">${name}</span><button class="note-btn"><i class="fa-solid fa-pen"></i></button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
           <div class="price">${price} جنيه</div>
           <div class="item-note" style="display:none"><input class="note-input" placeholder="إضافة (قهوة محوج، بدون سكر...)" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;background:#fafaf9;margin-bottom:8px"></div>
-          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"> +حليب 5 ج.م</label></div>`;
+          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +حليب 5 ج.م</label></div>`;
         document.querySelector(".order-box .order-list").appendChild(item);
       }
       total += price;
