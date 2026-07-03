@@ -5,7 +5,7 @@ async function render() {
   expenses = await DB.expenses.all() || [];
   expList.innerHTML = '';
   const total = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const todayTotal = expenses.filter(e => new Date(e.date).toDateString() === new Date().toDateString()).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const todayTotal = expenses.filter(e => e.date && new Date(e.date).toDateString() === new Date().toDateString()).reduce((s, e) => s + Number(e.amount || 0), 0);
 
   document.getElementById('expTotal').textContent = total.toLocaleString() + ' ج.م';
   document.getElementById('expToday').textContent = todayTotal.toLocaleString() + ' ج.م';

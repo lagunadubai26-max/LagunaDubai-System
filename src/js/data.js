@@ -91,8 +91,8 @@ const DB = {
       return o;
     },
     async save(data) {
+      const existing = await FB.getCollection('settings');
       for (const [key, value] of Object.entries(data)) {
-        const existing = await FB.getCollection('settings');
         const found = existing.find(s => s.key === key);
         if (found) await FB.updateDoc('settings', found.id, { value });
         else await FB.addDoc('settings', { key, value });

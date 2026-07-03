@@ -30,11 +30,46 @@ function getTotalWithService() {
   return total;
 }
 
+function syncSheetNotesToOrderBox() {
+  const sheetList = document.getElementById('sheetOrderList');
+  if (!sheetList) return;
+  sheetList.querySelectorAll('.order-item').forEach(el => {
+    const ni = el.querySelector('.note-input');
+    if (!ni || !ni.value) return;
+    const nm = el.querySelector('.name');
+    if (!nm) return;
+    document.querySelectorAll('.order-box .order-list .order-item').forEach(oe => {
+      const on = oe.querySelector('.name');
+      if (on && on.innerText === nm.innerText) {
+        const oi = oe.querySelector('.note-input');
+        if (oi) oi.value = ni.value;
+      }
+    });
+  });
+}
+
 function syncOrderSheet() {
   const orderList = document.querySelector('.order-box .order-list');
   const sheetList = document.getElementById('sheetOrderList');
   const sheetTotal = document.getElementById('sheetTotal');
-  if (orderList && sheetList) sheetList.innerHTML = orderList.innerHTML;
+  const sheetNoteSave = [];
+  if (orderList && sheetList) {
+    sheetList.querySelectorAll('.order-item').forEach(el => {
+      const ni = el.querySelector('.note-input');
+      if (ni && ni.value) {
+        const nm = el.querySelector('.name');
+        if (nm) sheetNoteSave.push({ name: nm.innerText, note: ni.value });
+      }
+    });
+    sheetList.innerHTML = orderList.innerHTML;
+    sheetNoteSave.forEach(({ name, note }) => {
+      sheetList.querySelectorAll('.order-item .name').forEach(n => {
+        if (n.innerText === name) {
+          n.closest('.order-item').querySelector('.note-input').value = note;
+        }
+      });
+    });
+  }
   const displayTotal = getTotalWithService();
   if (sheetTotal) sheetTotal.textContent = displayTotal + ' جنيه' + (serviceTaxRate > 0 ? ' (شامل ' + serviceTaxRate + '% خدمة)' : '');
   let count = 0;
@@ -319,6 +354,7 @@ document.getElementById('checkoutSpecialPrice').addEventListener('input', functi
   const val = Number(this.value) || 0;
   window._checkoutTotal = val;
   document.getElementById('checkoutTotal').textContent = val + ' جنيه';
+  document.getElementById('checkoutPaid').value = val;
   window.calcRemaining();
 });
 
@@ -349,6 +385,7 @@ document.getElementById('checkoutPaid').addEventListener('input', window.calcRem
 
 document.getElementById('confirmCheckout').onclick = async () => {
   try {
+    syncSheetNotesToOrderBox();
     const custType = document.getElementById('checkoutCustomerType').value;
     let customer, totalAmount;
     if (custType === 'special') {

@@ -1,4 +1,4 @@
-const BASE = window.location.origin + '/LagunaDubai-System/src/menu.html';
+const BASE = 'menu.html';
 const container = document.getElementById('qrContent');
 
 function renderCard(t, section) {
