@@ -76,7 +76,7 @@ async function render() {
     const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
     const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '—';
     const paid = inv.paid ?? inv.total;
-    const remaining = inv.remaining ?? 0;
+    const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
     row.innerHTML = `
       <span>${inv.id}</span><span>${inv.customer}</span><span>${dateStr}</span>
       <span>${Number(inv.total).toLocaleString()} ج.م</span>
@@ -111,7 +111,7 @@ function attachActions() {
       let items = '';
       if (inv.items) inv.items.forEach(item => { items += `\n• ${item.name} x${item.qty} = ${item.qty * item.price} ج.م${item.note ? ' (' + item.note + ')' : ''}`; });
       const paid = inv.paid ?? inv.total;
-      const remaining = inv.remaining ?? 0;
+      const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
       alert(`رقم الفاتورة: ${inv.id}\nالعميل: ${inv.customer}\nالتاريخ: ${new Date(inv.date).toLocaleDateString('ar-EG')}\nطريقة الدفع: ${inv.paymentMethod || 'كاش'}${items ? '\n\nالمنتجات:' + items : ''}\n\nالإجمالي: ${Number(inv.total).toLocaleString()} ج.م\nالمدفوع: ${Number(paid).toLocaleString()} ج.م\nالباقي: ${Number(remaining).toLocaleString()} ج.م\nالحالة: ${inv.status}`);
     };
   });
@@ -123,7 +123,7 @@ function attachActions() {
       let itemsHtml = '';
       if (inv.items) inv.items.forEach(item => { itemsHtml += `<tr><td>${item.name}${item.note ? '<br><small style="color:#888">' + item.note + '</small>' : ''}</td><td>${item.qty}</td><td>${item.price} ج.م</td><td>${item.qty * item.price} ج.م</td></tr>`; });
       const paid = inv.paid ?? inv.total;
-      const remaining = inv.remaining ?? 0;
+      const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
       w.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${inv.id}</title><style>body{font-family: 'Cairo', sans-serif;padding:40px;}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{padding:12px;border:1px solid #ddd;text-align:center}th{background:#1c1917;color:#fff}h1{color:#1c1917;text-align:center}.total{text-align:left;font-size:20px;font-weight:bold;color:#d97706;margin-top:20px}</style></head><body><h1>Laguna Cafe</h1><h3 style="text-align:center;color:#777">${inv.id}</h3><p><strong>العميل:</strong> ${inv.customer}</p><p><strong>التاريخ:</strong> ${new Date(inv.date).toLocaleDateString('ar-EG')}</p><p><strong>طريقة الدفع:</strong> ${inv.paymentMethod || 'كاش'}</p><table><thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table><p class="total">الإجمالي: ${Number(inv.total).toLocaleString()} ج.م</p><p style="text-align:left;font-size:16px;color:#059669"><strong>المدفوع:</strong> ${Number(paid).toLocaleString()} ج.م</p>${remaining > 0 ? `<p style="text-align:left;font-size:16px;color:#dc2626"><strong>الباقي:</strong> ${Number(remaining).toLocaleString()} ج.م</p>` : ''}<p style="text-align:center;color:#888;margin-top:40px;border-top:1px solid #eee;padding-top:20px;">شكراً لزيارتكم Laguna Cafe</p><script>window.print();window.close();<\/script></body></html>`);
       w.document.close();
     };
@@ -132,12 +132,12 @@ function attachActions() {
     btn.onclick = async () => {
       const inv = invoices.find(i => i.id === btn.dataset.id);
       if (!inv) return;
-      const remaining = inv.remaining || 0;
+      const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - (inv.paid ?? 0));
       const name = prompt(`المبلغ المتبقي: ${remaining} ج.م\nأدخل المبلغ الذي تم تحصيله:`, remaining);
       if (!name) return;
       const paidNow = Math.min(remaining, Math.max(0, Number(name) || 0));
-      const newPaid = (inv.paid || 0) + paidNow;
-      const newRemaining = (inv.total || 0) - newPaid;
+      const newPaid = (inv.paid ?? 0) + paidNow;
+      const newRemaining = (inv.total ?? 0) - newPaid;
       await DB.invoices.update(inv.id, { paid: newPaid, remaining: newRemaining, status: newRemaining <= 0 ? 'paid' : 'pending' });
       render();
     };

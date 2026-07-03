@@ -109,11 +109,9 @@ const DB = {
           date: inv.date,
           items: JSON.stringify(inv.items),
           total: inv.total,
-          paid: inv.paid ?? 0,
-          remaining: inv.remaining ?? 0,
           serviceAmount: inv.serviceAmount || 0,
           status: inv.status,
-          paymentMethod: inv.paymentMethod
+          paymentmethod: inv.paymentMethod
         };
         try {
           const result = await SUPABASE.post('invoices', apiInv);
