@@ -1,31 +1,5 @@
 const DB_MODE = 'hybrid';
 
-const BASE_URL = window.location.origin;
-
-async function postToBackend(data) {
-  try {
-    const res = await fetch(BASE_URL + '/api/public/invoices', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return await res.json();
-  } catch (e) {
-    console.warn('[data] postToBackend error:', e.message);
-    return null;
-  }
-}
-
-async function getFromBackend() {
-  try {
-    const res = await fetch(BASE_URL + '/api/public/invoices');
-    return await res.json();
-  } catch (e) {
-    console.warn('[data] getFromBackend error:', e.message);
-    return [];
-  }
-}
-
 const DB = {
   mode: DB_MODE,
   async get(key, defaults) {
@@ -123,26 +97,7 @@ const DB = {
     local() { try { return JSON.parse(localStorage.getItem('laguna_invoices')) || []; } catch { return []; } },
     async all() {
       const local = DB.invoices.local();
-      if (DB_MODE !== 'local') {
-        await DB.syncFromAPI('invoices', local, d => DB.set('invoices', d), () => API.invoices.all());
-        try {
-          const backendInvs = await getFromBackend();
-          if (Array.isArray(backendInvs)) {
-            const existing = DB.invoices.local();
-            const existingIds = new Set(existing.map(i => i.id));
-            let added = 0;
-            backendInvs.forEach(bi => {
-              if (!existingIds.has(bi.id)) {
-                existing.unshift({ ...bi, _synced: true });
-                added++;
-              }
-            });
-            if (added > 0) DB.set('invoices', existing);
-          }
-        } catch (e) {
-          console.warn('[data] invoices.all backend fetch error:', e.message);
-        }
-      }
+      if (DB_MODE !== 'local') await DB.syncFromAPI('invoices', local, d => DB.set('invoices', d), () => API.invoices.all());
       return DB.invoices.local();
     },
     async add(inv) {
@@ -151,24 +106,26 @@ const DB = {
       let synced = false;
       let errorMsg = '';
       if (DB_MODE !== 'local') {
+        const apiInv = { 
+          id: inv.id,
+          customer: inv.customer,
+          date: inv.date,
+          items: JSON.stringify(inv.items),
+          total: inv.total,
+          serviceAmount: inv.serviceAmount || 0,
+          status: inv.status,
+          paymentmethod: inv.paymentMethod
+        };
         try {
-          const backendPayload = {
-            id: inv.id, customer: inv.customer, date: inv.date,
-            items: inv.items, total: inv.total,
-            serviceAmount: inv.serviceAmount || 0,
-            status: inv.status, paymentMethod: inv.paymentMethod,
-            table: inv.table || null
-          };
-          const result = await postToBackend(backendPayload);
-          const syncedObj = Array.isArray(result) ? result[0] : result;
-          synced = syncedObj && syncedObj.id === inv.id;
+          const result = await SUPABASE.post('invoices', apiInv);
+          synced = Array.isArray(result) && result.length > 0;
           if (!synced) {
-            errorMsg = 'فشل الاتصال بالسيرفر';
-            console.warn('[sync] invoices.add backend returned:', result);
+            errorMsg = typeof LAST_POST_ERROR !== 'undefined' && LAST_POST_ERROR ? LAST_POST_ERROR : (result === null ? 'تعذر الاتصال بالخادم (تأكد من الإنترنت)' : 'استجابة غير متوقعة من الخادم');
+            console.warn('[sync] invoices.add(' + inv.id + ') not synced:', errorMsg, 'result:', result);
           }
         } catch (e) {
-          errorMsg = e.message || 'خطأ في الاتصال';
-          console.warn('[sync] invoices.add error:', e.message);
+          errorMsg = e.message || 'خطأ غير متوقع';
+          console.warn('[sync] invoices.add(' + inv.id + ') error:', errorMsg);
         }
       }
       inv._synced = synced;
