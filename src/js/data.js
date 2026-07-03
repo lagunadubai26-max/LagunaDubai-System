@@ -15,8 +15,6 @@ const DB = {
       if (Array.isArray(data)) {
         const parsed = data.map(d => {
           const row = { ...d, items: typeof d.items === 'string' ? JSON.parse(d.items) : d.items };
-          if (row.paymentmethod && !row.paymentMethod) row.paymentMethod = row.paymentmethod;
-          delete row.paymentmethod;
           return row;
         });
         const existing = JSON.parse(localStorage.getItem('laguna_' + table)) || [];
@@ -108,7 +106,6 @@ const DB = {
         const apiInv = { 
           id: inv.id,
           customer: inv.customer,
-          table: inv.table || null,
           date: inv.date,
           items: JSON.stringify(inv.items),
           total: inv.total,
@@ -116,8 +113,7 @@ const DB = {
           remaining: inv.remaining ?? 0,
           serviceAmount: inv.serviceAmount || 0,
           status: inv.status,
-          paymentMethod: inv.paymentMethod,
-          paymentmethod: inv.paymentMethod
+          paymentMethod: inv.paymentMethod
         };
         try {
           const r = await API.invoices.add(apiInv);
@@ -135,7 +131,6 @@ const DB = {
       if (DB_MODE !== 'local') {
         const apiData = { 
           customer: data.customer,
-          table: data.table || null,
           date: data.date,
           items: data.items ? (typeof data.items === 'string' ? data.items : JSON.stringify(data.items)) : undefined,
           total: data.total,
@@ -143,8 +138,7 @@ const DB = {
           remaining: data.remaining,
           serviceAmount: data.serviceAmount,
           status: data.status,
-          paymentMethod: data.paymentMethod,
-          paymentmethod: data.paymentMethod
+          paymentMethod: data.paymentMethod
         };
         Object.keys(apiData).forEach(k => apiData[k] === undefined && delete apiData[k]);
         try { await API.invoices.update(id, apiData); } catch {}

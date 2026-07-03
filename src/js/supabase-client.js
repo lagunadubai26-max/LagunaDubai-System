@@ -27,9 +27,16 @@ const SUPABASE = (() => {
         headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
         body: JSON.stringify(body)
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const text = await res.text();
+        console.warn('[supabase] POST ' + table + ' failed:', res.status, text.slice(0,200));
+        return null;
+      }
       return await res.json();
-    } catch { return null; }
+    } catch (e) {
+      console.warn('[supabase] POST ' + table + ' error:', e.message);
+      return null;
+    }
   }
 
   async function put(table, body, opts = {}) {
