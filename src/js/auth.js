@@ -1,4 +1,4 @@
-;(() => {
+;(async () => {
   const stored = sessionStorage.getItem('laguna_user');
   if (stored) try { const u = JSON.parse(stored); if (u && u.id) { window.location.href = 'index.html'; return; } } catch {}
 
@@ -20,21 +20,17 @@
       tab.classList.add('active');
       document.getElementById('adminForm').style.display = tab.dataset.tab === 'admin' ? 'block' : 'none';
       document.getElementById('employeeForm').style.display = tab.dataset.tab === 'employee' ? 'block' : 'none';
-      hideError(errorEl);
-      hideError(empErrorEl);
+      hideError(errorEl); hideError(empErrorEl);
     });
   });
 
-  async function loadEmployees() {
-    const all = await DB.employees.all() || [];
-    all.forEach(emp => {
-      const opt = document.createElement('option');
-      opt.value = emp.id;
-      opt.textContent = emp.name + (emp.job ? ' (' + emp.job + ')' : '');
-      employeeSelect.appendChild(opt);
-    });
-  }
-  loadEmployees();
+  const employees = await DB.employees.all() || [];
+  employees.forEach(emp => {
+    const opt = document.createElement('option');
+    opt.value = emp.id;
+    opt.textContent = emp.name + (emp.job ? ' (' + emp.job + ')' : '');
+    employeeSelect.appendChild(opt);
+  });
 
   function setLoading(btn, loading) {
     btn.disabled = loading;
@@ -48,19 +44,11 @@
     const p = password.value.trim();
     if (!u || !p) { showError(errorEl, 'يرجى إدخال اسم المستخدم وكلمة المرور'); return; }
     setLoading(loginBtn, true);
-    const users = DB.users.local() || [];
+    const users = await DB.users.all() || [];
     const user = users.find(x => x.username === u && x.password === p);
     if (user) {
       sessionStorage.setItem('laguna_token', user.id);
       sessionStorage.setItem('laguna_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
-      window.location.href = 'index.html';
-      return;
-    }
-    const apiUsers = await DB.users.all() || [];
-    const apiUser = apiUsers.find(x => x.username === u && x.password === p);
-    if (apiUser) {
-      sessionStorage.setItem('laguna_token', apiUser.id);
-      sessionStorage.setItem('laguna_user', JSON.stringify({ id: apiUser.id, username: apiUser.username, name: apiUser.name, role: apiUser.role }));
       window.location.href = 'index.html';
     } else {
       showError(errorEl, 'اسم المستخدم أو كلمة المرور غير صحيحة');
@@ -74,19 +62,11 @@
     const pin = employeePin.value.trim();
     if (!empId || !pin) { showError(empErrorEl, 'يرجى اختيار اسمك وإدخال الرقم السري'); return; }
     setLoading(empLoginBtn, true);
-    const employees = DB.employees.local() || [];
-    const emp = employees.find(x => x.id === empId && String(x.pin) === pin);
+    const allEmps = await DB.employees.all() || [];
+    const emp = allEmps.find(x => x.id === empId && String(x.pin) === pin);
     if (emp) {
       sessionStorage.setItem('laguna_token', emp.id);
       sessionStorage.setItem('laguna_user', JSON.stringify({ id: emp.id, username: emp.name, name: emp.name, role: 'Employee' }));
-      window.location.href = 'index.html';
-      return;
-    }
-    const apiEmps = await DB.employees.all() || [];
-    const apiEmp = apiEmps.find(x => x.id === empId && String(x.pin) === pin);
-    if (apiEmp) {
-      sessionStorage.setItem('laguna_token', apiEmp.id);
-      sessionStorage.setItem('laguna_user', JSON.stringify({ id: apiEmp.id, username: apiEmp.name, name: apiEmp.name, role: 'Employee' }));
       window.location.href = 'index.html';
     } else {
       showError(empErrorEl, 'الرقم السري خطأ');

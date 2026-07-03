@@ -269,12 +269,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
       }
     }
     document.getElementById('checkoutModal').classList.remove('show');
-    const syncMsg = inv && inv._synced !== undefined
-      ? (inv._synced
-        ? '\n✓ متزامن مع الخادم'
-        : '\n⚠ فشل التزامن: ' + (inv._syncError || 'تعذر الاتصال بالخادم'))
-      : '';
-    alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''}\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه` + syncMsg);
+    alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''}\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه`);
     clearOrder();
   } catch (e) {
     console.error('[checkout] error:', e);

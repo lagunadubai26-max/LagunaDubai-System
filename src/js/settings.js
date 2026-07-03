@@ -20,19 +20,16 @@ document.getElementById('saveSettings').onclick = async () => {
 
 document.getElementById('resetData').onclick = async () => {
   if (!confirm('هل تريد مسح كل البيانات؟ هذا الإجراء لا يمكن التراجع عنه!')) return;
-  if (!confirm('تأكيد: مسح كل البيانات من سحابة Supabase؟')) return;
+  if (!confirm('تأكيد: مسح كل البيانات من Firebase؟')) return;
   if (!confirm('مسح نهائي؟ سيتم حذف كل الفواتير والطلبات والموظفين!')) return;
-  const tables = ['invoices', 'returns', 'attendance', 'expenses', 'customers', 'inventory', 'settings', 'employees', 'products', 'cafe_tables'];
+  const tables = ['invoices', 'returns', 'attendance', 'expenses', 'customers', 'inventory', 'settings', 'employees', 'users', 'products', 'tables_'];
   for (const t of tables) {
-    const all = await SUPABASE.get(t, { params: { select: 'id' } }) || [];
+    const all = await FB.getCollection(t) || [];
     for (const row of all) {
-      await SUPABASE.del(t, { params: { id: `eq.${row.id}` } });
+      await FB.removeDoc(t, row.id);
     }
   }
-  const keys = Object.keys(localStorage).filter(k => k.startsWith('laguna_'));
-  keys.forEach(k => localStorage.removeItem(k));
-  DB.seed();
-  alert('تم مسح كل البيانات من Supabase والجهاز');
+  alert('تم مسح كل البيانات من Firebase');
   location.reload();
 };
 

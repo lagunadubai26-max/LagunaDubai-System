@@ -3,55 +3,8 @@ const searchInput = document.querySelector('.filter-box input');
 const statusSelect = document.querySelector('.filter-box select');
 const tableBody = document.querySelector('.invoice-table');
 
-// --- Debug: dump localStorage on load ---
-(function debug() {
-  try {
-    const raw = localStorage.getItem('laguna_invoices');
-    console.log('[debug] laguna_invoices raw:', raw ? raw.slice(0,200) : '(null)');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      console.log('[debug] parsed count:', Array.isArray(parsed) ? parsed.length : 'not array');
-    }
-  } catch(e) { console.warn('[debug] parse error:', e); }
-})();
-
-(function() {
-  const bar = document.createElement('div');
-  bar.id = 'debugBar';
-  bar.style.cssText = 'background:#fef2f2;color:#dc2626;padding:8px 16px;border-radius:8px;margin-bottom:12px;font-size:13px;display:none';
-  const target = document.querySelector('.filter-box') || document.querySelector('.invoice-stats');
-  if (target) target.parentNode.insertBefore(bar, target);
-})();
-
 async function render() {
   invoices = await DB.invoices.all() || [];
-  console.log('[invoices] loaded:', invoices.length, 'invoices', invoices.map(i => ({ id: i.id, customer: i.customer, total: i.total, paid: i.paid })));
-
-  const debugBar = document.getElementById('debugBar');
-  if (debugBar) {
-    if (invoices.length === 0) {
-      const raw = localStorage.getItem('laguna_invoices');
-      debugBar.style.display = 'block';
-      if (!raw || raw === '[]') {
-        debugBar.style.background = '#fef2f2';
-        debugBar.style.color = '#dc2626';
-        debugBar.textContent = !raw
-          ? '⚠ localStorage فاضي (0 فاتورة). ارجع لصفحة المنيو واطلب أولاً.'
-          : '⚠ localStorage فاضي [] — لا توجد فواتير على هذا الجهاز. لو طلبت من الموبايل، تأكد من ظهور "✓ متزامن مع الخادم" في alert الدفع.';
-      } else {
-        debugBar.style.background = '#fff7ed';
-        debugBar.style.color = '#c2410c';
-        debugBar.textContent = '⚠ البيانات تالفة (الراو: ' + raw.slice(0,100) + '...)';
-      }
-    } else {
-      const unsynced = invoices.filter(i => i._synced === false);
-      debugBar.style.display = 'block';
-      debugBar.style.background = unsynced.length > 0 ? '#fff7ed' : '#f0fdf4';
-      debugBar.style.color = unsynced.length > 0 ? '#c2410c' : '#059669';
-      debugBar.textContent = '✓ تم تحميل ' + invoices.length + ' فاتورة';
-      if (unsynced.length > 0) debugBar.textContent += ' (' + unsynced.length + ' غير متزامنة مع الخادم)';
-    }
-  }
 
   const existing = tableBody.querySelectorAll('.invoice-row');
   existing.forEach(r => r.remove());
@@ -59,7 +12,6 @@ async function render() {
   const val = searchInput ? searchInput.value.toLowerCase() : '';
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
 
-  console.log('[invoices] filter input:', val, filterStatus);
   const filtered = invoices.filter(inv => {
     if (!inv || !inv.id || typeof inv.id !== 'string' || !inv.customer) { console.warn('[invoices] skipped malformed:', inv); return false; }
     const matchSearch = inv.id.toLowerCase().includes(val) || inv.customer.toLowerCase().includes(val);
@@ -68,7 +20,6 @@ async function render() {
     return matchSearch && matchStatus;
   });
 
-  console.log('[invoices] filtered count:', filtered.length);
   filtered.forEach(inv => {
     const row = document.createElement('div');
     row.className = 'invoice-row';
@@ -184,3 +135,7 @@ if (searchInput) searchInput.addEventListener('keyup', render);
 if (statusSelect) statusSelect.addEventListener('change', render);
 
 render();
+
+FB.onCollection('invoices', () => {
+  render();
+});
