@@ -27,24 +27,29 @@ const SUPABASE = (() => {
     }
   }
 
-  async function post(table, body) {
-    try {
-      const res = await load(`${URL}/rest/v1/${table}`, {
-        method: 'POST',
-        headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        console.warn('[supabase] POST ' + table + ' failed:', res.status, text.slice(0,200));
-        return null;
-      }
-      return await res.json();
-    } catch (e) {
-      console.warn('[supabase] POST ' + table + ' error:', e.message);
+let LAST_POST_ERROR = null;
+
+async function post(table, body) {
+  LAST_POST_ERROR = null;
+  try {
+    const res = await load(`${URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      LAST_POST_ERROR = res.status + ': ' + text.slice(0,200);
+      console.warn('[supabase] POST ' + table + ' failed:', LAST_POST_ERROR);
       return null;
     }
+    return await res.json();
+  } catch (e) {
+    LAST_POST_ERROR = e.message;
+    console.warn('[supabase] POST ' + table + ' error:', e.message);
+    return null;
   }
+}
 
   async function put(table, body, opts = {}) {
     const p = new URLSearchParams(opts.params || {});
