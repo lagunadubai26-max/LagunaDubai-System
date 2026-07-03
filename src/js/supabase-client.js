@@ -1,7 +1,7 @@
 const SUPABASE = (() => {
   const URL = 'https://szkmzvtsplinzrxxwpbu.supabase.co';
   const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6a216dnRzcGxpbnpyeHh3cGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzQ5MzQsImV4cCI6MjA5ODUxMDkzNH0.OIf-aqZLYxDCK9pkmBiEyMSv610U7tuEflQFmDSdyMk';
-  const TIMEOUT = 4000;
+  const TIMEOUT = 10000;
 
   function load(url, opts) {
     const ctrl = new AbortController();
@@ -45,8 +45,8 @@ async function post(table, body) {
     }
     return await res.json();
   } catch (e) {
-    LAST_POST_ERROR = e.message;
-    console.warn('[supabase] POST ' + table + ' error:', e.message);
+    LAST_POST_ERROR = e.message || e.name || 'تعذر الاتصال بالخادم (تأكد من اتصال الإنترنت)';
+    console.warn('[supabase] POST ' + table + ' error:', e.message || e.name);
     return null;
   }
 }
