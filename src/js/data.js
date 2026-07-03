@@ -103,6 +103,7 @@ const DB = {
     async add(inv) {
       inv.id = 'INV-' + Date.now().toString(36).toUpperCase();
       const list = DB.invoices.local();
+      let synced = false;
       if (DB_MODE !== 'local') {
         const apiInv = { 
           id: inv.id,
@@ -120,16 +121,14 @@ const DB = {
         };
         try {
           const r = await API.invoices.add(apiInv);
-          console.log('[sync] invoices.add(' + inv.id + '):', r ? 'OK' : 'FAILED(null)');
+          synced = !!r;
         } catch (e) {
           console.warn('[sync] invoices.add(' + inv.id + ') error:', e.message);
         }
-      } else {
-        console.log('[sync] local mode, skip Supabase');
       }
+      inv._synced = synced;
       list.unshift(inv);
       DB.set('invoices', list);
-      console.log('[sync] invoices saved locally:', inv.id, 'count:', list.length);
       return inv;
     },
     async update(id, data) {

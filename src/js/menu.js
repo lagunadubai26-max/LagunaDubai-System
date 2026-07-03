@@ -262,7 +262,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
       }
     }
     document.getElementById('checkoutModal').classList.remove('show');
-    alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''}\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه`);
+    const syncMsg = inv && inv._synced !== undefined ? (inv._synced ? '\n✓ متزامن مع الخادم' : '\n⚠ لم يتم التزامن مع الخادم — قد لا تظهر الفاتورة للأجهزة الأخرى') : '';
+    alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''}\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه` + syncMsg);
     clearOrder();
   } catch (e) {
     console.error('[checkout] error:', e);

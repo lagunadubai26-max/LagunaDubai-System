@@ -29,12 +29,22 @@ async function render() {
 
   const debugBar = document.getElementById('debugBar');
   if (debugBar) {
-    debugBar.style.display = 'block';
-    debugBar.style.background = invoices.length === 0 ? '#fef2f2' : '#f0fdf4';
-    debugBar.style.color = invoices.length === 0 ? '#dc2626' : '#059669';
-    debugBar.textContent = invoices.length === 0
-      ? '⚠ localStorage فاضي (0 فاتورة). افتح F12 → Console وشوف الـ debug logs.'
-      : '✓ تم تحميل ' + invoices.length + ' فاتورة';
+    if (invoices.length === 0) {
+      const raw = localStorage.getItem('laguna_invoices');
+      debugBar.style.display = 'block';
+      debugBar.style.background = !raw ? '#fef2f2' : '#fff7ed';
+      debugBar.style.color = !raw ? '#dc2626' : '#c2410c';
+      debugBar.textContent = !raw
+        ? '⚠ localStorage فاضي (0 فاتورة). تأكد من إنشاء الفاتورة أولاً.'
+        : '⚠ localStorage موجود لكن 0 فاتورة — البيانات تالفة أو غير متوقعة (الراو: ' + raw.slice(0,100) + '...)';
+    } else {
+      const unsynced = invoices.filter(i => i._synced === false);
+      debugBar.style.display = 'block';
+      debugBar.style.background = unsynced.length > 0 ? '#fff7ed' : '#f0fdf4';
+      debugBar.style.color = unsynced.length > 0 ? '#c2410c' : '#059669';
+      debugBar.textContent = '✓ تم تحميل ' + invoices.length + ' فاتورة';
+      if (unsynced.length > 0) debugBar.textContent += ' (' + unsynced.length + ' غير متزامنة مع الخادم)';
+    }
   }
 
   const existing = tableBody.querySelectorAll('.invoice-row');
