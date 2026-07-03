@@ -51,7 +51,7 @@ async function render() {
     cards[1].textContent = invoices.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
     cards[2].textContent = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').length;
     cards[3].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
-    cards[4].textContent = invoices.reduce((s, i) => s + Number(i.paid ?? i.total ?? 0), 0).toLocaleString() + ' ج.م';
+    cards[4].textContent = invoices.reduce((s, i) => s + (i.paid !== undefined ? Number(i.paid) : (i.status === 'paid' || i.status === 'مدفوعة' ? Number(i.total || 0) : 0)), 0).toLocaleString() + ' ج.م';
   }
   attachActions();
 }
