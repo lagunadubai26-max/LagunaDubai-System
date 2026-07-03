@@ -1,6 +1,7 @@
 let total = 0;
 let serviceTaxRate = 0;
 let checkoutProcessing = false;
+let syncingMilkState = false;
 const COOLDOWN_MS = 5000;
 const urlParams = new URLSearchParams(window.location.search);
 const tableNum = urlParams.get('table');
@@ -68,10 +69,12 @@ function syncOrderSheet() {
       }
     });
     sheetList.innerHTML = orderList.innerHTML;
+    syncingMilkState = true;
     sheetList.querySelectorAll('.order-item').forEach(el => {
       const ck = el.querySelector('.milk-check');
       if (ck) ck.checked = el.dataset.hasMilk === 'true';
     });
+    syncingMilkState = false;
     sheetNoteSave.forEach(({ name, note }) => {
       sheetList.querySelectorAll('.order-item .name').forEach(n => {
         if (n.innerText === name) {
@@ -148,7 +151,9 @@ function attachAddToCart() {
           let qty = parseInt(qtyEl.innerText);
           qty++;
           qtyEl.innerText = qty;
-          item.querySelector(".price").innerText = (qty * price) + " جنيه";
+          const effective = price + (item.dataset.hasMilk === 'true' ? 5 : 0);
+          item.querySelector(".price").innerText = (qty * effective) + " جنيه";
+          total += effective;
           found = true;
         }
       });
@@ -184,30 +189,8 @@ function formatItemPrice(itemEl) {
 }
 
 function handleOrderClick(e) {
-  const btn = e.target.closest('.plus, .minus, .delete, .note-btn, .milk-toggle');
+  const btn = e.target.closest('.plus, .minus, .delete, .note-btn');
   if (!btn) return;
-  if (btn.classList.contains('milk-toggle')) {
-    const clickedItem = btn.closest('.order-item');
-    const nameEl = clickedItem.querySelector('.name');
-    if (!nameEl) return;
-    const name = nameEl.innerText;
-    let targetItem = null;
-    document.querySelectorAll('.order-box .order-list .order-item').forEach(el => {
-      const n = el.querySelector('.name');
-      if (n && n.innerText === name) targetItem = el;
-    });
-    if (!targetItem) return;
-    targetItem.dataset.hasMilk = targetItem.dataset.hasMilk === 'true' ? 'false' : 'true';
-    const base = parseInt(targetItem.dataset.price);
-    const milk = targetItem.dataset.hasMilk === 'true';
-    const qty = parseInt(targetItem.querySelector('.qty').innerText);
-    const effective = milk ? base + 5 : base;
-    total += (milk ? 1 : -1) * 5 * qty;
-    targetItem.querySelector('.price').innerText = formatItemPrice(targetItem);
-    document.querySelector('.total strong').innerText = total + ' جنيه';
-    syncOrderSheet();
-    return;
-  }
   if (btn.classList.contains('note-btn')) {
     const item = btn.closest('.order-item');
     if (!item) return;
@@ -259,6 +242,35 @@ function handleOrderClick(e) {
 
 document.querySelector('.order-box .order-list').addEventListener('click', handleOrderClick);
 document.getElementById('sheetOrderList').addEventListener('click', handleOrderClick);
+
+function handleMilkChange(e) {
+  if (syncingMilkState) return;
+  const ck = e.target;
+  if (!ck.classList.contains('milk-check')) return;
+  const item = ck.closest('.order-item');
+  if (!item) return;
+  const isSheet = !!item.closest('#sheetOrderList');
+  const name = item.querySelector('.name')?.innerText;
+  if (!name) return;
+  const targetItem = isSheet
+    ? Array.from(document.querySelectorAll('.order-box .order-list .order-item')).find(el =>
+        el.querySelector('.name')?.innerText === name
+      )
+    : item;
+  if (!targetItem) return;
+  targetItem.dataset.hasMilk = ck.checked ? 'true' : 'false';
+  const base = parseInt(targetItem.dataset.price);
+  const qty = parseInt(targetItem.querySelector('.qty').innerText);
+  total += (ck.checked ? 1 : -1) * 5 * qty;
+  targetItem.querySelector('.price').innerText = formatItemPrice(targetItem);
+  document.querySelector('.total strong').innerText = total + ' جنيه';
+  syncOrderSheet();
+}
+
+const orderList = document.querySelector('.order-box .order-list');
+if (orderList) orderList.addEventListener('change', handleMilkChange);
+const sheetList = document.getElementById('sheetOrderList');
+if (sheetList) sheetList.addEventListener('change', handleMilkChange);
 
 function attachCategoryFilter() {
   const catButtons = document.querySelectorAll(".category-btn");
