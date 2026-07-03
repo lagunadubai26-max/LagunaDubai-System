@@ -1,6 +1,6 @@
 // Firebase configuration
 // 1. Go to https://console.firebase.google.com
-// 2. Create project → Firestore Database → Enable (start in test mode)
+// 2. Create project → Firestore Database → Enable (use rules from firestore.rules in repo)
 // 3. Authentication → Sign-in method → Anonymous → Enable
 // 4. Project Settings → Web app → Register → Copy config below
 

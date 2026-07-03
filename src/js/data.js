@@ -146,6 +146,8 @@ const DB = {
   },
 
   async seed() {
+    const settings = await this.settings.get();
+    if (settings._seeded) return;
     const users = await this.users.all();
     if (users.length === 0) {
       await this.users.add({ id: 'u1', username: 'admin', password: 'admin123', name: 'أحمد علي', role: 'Administrator' });
@@ -227,5 +229,6 @@ const DB = {
       }
     }
     await this.migrateProductDescriptions();
+    await this.settings.save({ _seeded: true });
   }
 };

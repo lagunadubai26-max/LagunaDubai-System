@@ -20,7 +20,11 @@ if (isCustomer) {
   if (remSec) remSec.style.display = 'none';
 }
 (async () => {
-  await DB.seed();
+  try {
+    await DB.seed();
+  } catch (e) {
+    console.error('[menu] seed error:', e);
+  }
   if (hasService) {
     const settings = await DB.settings.get();
     serviceTaxRate = settings.serviceTax || 10;

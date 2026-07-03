@@ -206,7 +206,11 @@ searchInput.addEventListener('keyup', render);
 catFilter.addEventListener('change', render);
 
 (async () => {
-  await DB.seed();
+  try {
+    await DB.seed();
+  } catch (e) {
+    console.error('[products] seed error:', e);
+  }
   await loadCategories();
   render();
 })();
