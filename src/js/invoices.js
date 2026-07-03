@@ -30,9 +30,11 @@ async function render() {
     const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
     row.innerHTML = `
       <span>${inv.id}</span><span>${inv.customer}</span><span>${dateStr}</span>
+      <span>${inv.table || ''}</span>
       <span>${Number(inv.total).toLocaleString()} ج.م</span>
       <span style="font-size:12px;color:${remaining > 0 ? '#dc2626' : '#059669'}">${remaining > 0 ? 'باقي ' + Number(remaining).toLocaleString() : 'مدفوع كامل'}</span>
       <span class="${stCls}">${stTxt}</span>
+      <span style="font-size:11px;color:${inv.printed ? '#059669' : '#a8a29e'}">${inv.printed ? '✓ مطبوعة' : '—'}</span>
       <div class="actions">
         ${remaining > 0 ? `<button class="pay-btn" data-id="${inv.id}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
         <button class="toggle-status-btn" data-id="${inv.id}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
@@ -64,13 +66,14 @@ function attachActions() {
       const paid = inv.paid ?? inv.total;
       const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
       const change = inv.change || 0;
-      alert(`رقم الفاتورة: ${inv.id}\nالعميل: ${inv.customer}\nالتاريخ: ${new Date(inv.date).toLocaleDateString('ar-EG')}\nطريقة الدفع: ${inv.paymentMethod || 'كاش'}${items ? '\n\nالمنتجات:' + items : ''}\n\nالإجمالي: ${Number(inv.total).toLocaleString()} ج.م\nالمدفوع: ${Number(paid).toLocaleString()} ج.م\n${change > 0 ? 'الباقي للعميل: ' + Number(change).toLocaleString() + ' ج.م\n' : ''}${remaining > 0 ? 'المتبقي: ' + Number(remaining).toLocaleString() + ' ج.م\n' : ''}الحالة: ${inv.status}`);
+      alert(`رقم الفاتورة: ${inv.id}\nالعميل: ${inv.customer}\n${inv.table ? 'الطاولة: ' + inv.table + '\n' : ''}التاريخ: ${new Date(inv.date).toLocaleDateString('ar-EG')}\nطريقة الدفع: ${inv.paymentMethod || 'كاش'}${items ? '\n\nالمنتجات:' + items : ''}\n\nالإجمالي: ${Number(inv.total).toLocaleString()} ج.م\nالمدفوع: ${Number(paid).toLocaleString()} ج.م\n${change > 0 ? 'الباقي للعميل: ' + Number(change).toLocaleString() + ' ج.م\n' : ''}${remaining > 0 ? 'المتبقي: ' + Number(remaining).toLocaleString() + ' ج.م\n' : ''}الحالة: ${inv.status}`);
     };
   });
   document.querySelectorAll('.print-btn').forEach(btn => {
     btn.onclick = async () => {
       const inv = invoices.find(i => i.id === btn.dataset.id);
       if (!inv) return;
+      if (inv.printed && !confirm('الفاتورة مطبوعة من قبل.\nهل تريد إعادة الطباعة؟')) return;
       if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
         try {
           await Promise.all([
@@ -78,6 +81,8 @@ function attachActions() {
             PRINTER.printKitchenOrder(inv),
             PRINTER.openDrawer()
           ]);
+          if (!inv.printed) await DB.invoices.update(inv.id, { printed: true });
+          render();
           return;
         } catch (e) {
           console.warn('[printer] print failed, falling back to browser print:', e);

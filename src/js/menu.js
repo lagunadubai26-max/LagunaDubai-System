@@ -391,6 +391,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
           for (let i = 0; i < copies; i++) await PRINTER.printReceipt(inv);
           if (paid >= totalAmount) await PRINTER.openDrawer();
           if (autoPrintKitchen) await PRINTER.printKitchenOrder(inv);
+          await DB.invoices.update(inv.id, { printed: true });
         } catch (e) {
           console.warn('[printer] error:', e);
           if (confirm('حدث خطأ في الطباعة.\nهل تريد طباعة الفاتورة عبر المتصفح؟')) {
