@@ -180,6 +180,61 @@ if (statusSelect) statusSelect.addEventListener('change', render);
 
 render();
 
-FB.onCollection('invoices', () => {
-  render();
+FB.onCollection('invoices', (data) => {
+  invoices = data;
+  renderWithData();
+}).catch(e => {
+  console.warn('[invoices] onSnapshot error, using fallback:', e);
+  setInterval(render, 15000);
 });
+
+function renderWithData() {
+  const existing = tableBody.querySelectorAll('.invoice-row');
+  existing.forEach(r => r.remove());
+
+  const val = searchInput ? searchInput.value.toLowerCase() : '';
+  const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
+
+  const filtered = invoices.filter(inv => {
+    if (!inv || !inv.id || typeof inv.id !== 'string' || !inv.customer) { console.warn('[invoices] skipped malformed:', inv); return false; }
+    const matchSearch = inv.id.toLowerCase().includes(val) || inv.customer.toLowerCase().includes(val);
+    const st = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
+    const matchStatus = filterStatus === 'كل الحالات' || st === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  filtered.forEach(inv => {
+    const row = document.createElement('div');
+    row.className = 'invoice-row';
+    const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
+    const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
+    const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '—';
+    const paid = inv.paid ?? inv.total;
+    const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
+    row.innerHTML = `
+      <span>${inv.id}</span><span>${inv.customer}</span><span>${dateStr}</span>
+      <span>${inv.table || ''}</span>
+      <span>${Number(inv.total).toLocaleString()} ج.م</span>
+      <span style="font-size:12px;color:${remaining > 0 ? '#dc2626' : '#059669'}">${remaining > 0 ? 'باقي ' + Number(remaining).toLocaleString() : 'مدفوع كامل'}</span>
+      <span class="${stCls}">${stTxt}</span>
+      <span style="font-size:11px;color:${inv.printed ? '#059669' : '#a8a29e'}">${inv.printed ? '✓ مطبوعة' : '—'}</span>
+      <div class="actions">
+        ${remaining > 0 ? `<button class="pay-btn" data-id="${inv.id}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
+        <button class="toggle-status-btn" data-id="${inv.id}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
+        <button class="view-btn" data-id="${inv.id}"><i class="fa-solid fa-eye"></i></button>
+        <button class="print-btn" data-id="${inv.id}"><i class="fa-solid fa-print"></i></button>
+        <button class="delete-btn" data-id="${inv.id}"><i class="fa-solid fa-trash"></i></button>
+      </div>`;
+    tableBody.appendChild(row);
+  });
+
+  const cards = document.querySelectorAll('.invoice-stats .stat-card h2');
+  if (cards.length >= 5) {
+    cards[0].textContent = invoices.length;
+    cards[1].textContent = invoices.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
+    cards[2].textContent = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').length;
+    cards[3].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
+    cards[4].textContent = invoices.reduce((s, i) => s + (i.paid !== undefined ? Number(i.paid) : (i.status === 'paid' || i.status === 'مدفوعة' ? Number(i.total || 0) : 0)), 0).toLocaleString() + ' ج.م';
+  }
+  attachActions();
+}
