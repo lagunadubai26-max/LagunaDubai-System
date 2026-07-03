@@ -160,7 +160,8 @@ const DB = {
             table: inv.table || null
           };
           const result = await postToBackend(backendPayload);
-          synced = result && result.id === inv.id;
+          const syncedObj = Array.isArray(result) ? result[0] : result;
+          synced = syncedObj && syncedObj.id === inv.id;
           if (!synced) {
             errorMsg = 'فشل الاتصال بالسيرفر';
             console.warn('[sync] invoices.add backend returned:', result);
