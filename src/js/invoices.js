@@ -12,6 +12,7 @@ async function render() {
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
 
   const filtered = invoices.filter(inv => {
+    if (!inv || !inv.id || typeof inv.id !== 'string' || !inv.customer) return false;
     const matchSearch = inv.id.toLowerCase().includes(val) || inv.customer.toLowerCase().includes(val);
     const st = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
     const matchStatus = filterStatus === 'كل الحالات' || st === filterStatus;
@@ -24,8 +25,8 @@ async function render() {
     const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
     const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
     const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '—';
-    const paid = inv.paid || inv.total;
-    const remaining = inv.remaining || 0;
+    const paid = inv.paid ?? inv.total;
+    const remaining = inv.remaining ?? 0;
     row.innerHTML = `
       <span>${inv.id}</span><span>${inv.customer}</span><span>${dateStr}</span>
       <span>${Number(inv.total).toLocaleString()} ج.م</span>
@@ -45,7 +46,7 @@ async function render() {
   if (cards.length >= 5) {
     cards[0].textContent = invoices.length;
     cards[1].textContent = invoices.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
-    cards[2].textContent = invoices.reduce((s, i) => s + Number(i.paid || i.total || 0), 0).toLocaleString() + ' ج.م';
+    cards[2].textContent = invoices.reduce((s, i) => s + Number(i.paid ?? i.total ?? 0), 0).toLocaleString() + ' ج.م';
     cards[3].textContent = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').length;
     cards[4].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
   }
@@ -59,8 +60,8 @@ function attachActions() {
       if (!inv) return;
       let items = '';
       if (inv.items) inv.items.forEach(item => { items += `\n• ${item.name} x${item.qty} = ${item.qty * item.price} ج.م${item.note ? ' (' + item.note + ')' : ''}`; });
-      const paid = inv.paid || inv.total;
-      const remaining = inv.remaining || 0;
+      const paid = inv.paid ?? inv.total;
+      const remaining = inv.remaining ?? 0;
       alert(`رقم الفاتورة: ${inv.id}\nالعميل: ${inv.customer}\nالتاريخ: ${new Date(inv.date).toLocaleDateString('ar-EG')}\nطريقة الدفع: ${inv.paymentMethod || 'كاش'}${items ? '\n\nالمنتجات:' + items : ''}\n\nالإجمالي: ${Number(inv.total).toLocaleString()} ج.م\nالمدفوع: ${Number(paid).toLocaleString()} ج.م\nالباقي: ${Number(remaining).toLocaleString()} ج.م\nالحالة: ${inv.status}`);
     };
   });
@@ -71,8 +72,8 @@ function attachActions() {
       const w = window.open('', '_blank');
       let itemsHtml = '';
       if (inv.items) inv.items.forEach(item => { itemsHtml += `<tr><td>${item.name}${item.note ? '<br><small style="color:#888">' + item.note + '</small>' : ''}</td><td>${item.qty}</td><td>${item.price} ج.م</td><td>${item.qty * item.price} ج.م</td></tr>`; });
-      const paid = inv.paid || inv.total;
-      const remaining = inv.remaining || 0;
+      const paid = inv.paid ?? inv.total;
+      const remaining = inv.remaining ?? 0;
       w.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${inv.id}</title><style>body{font-family: 'Cairo', sans-serif;padding:40px;}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{padding:12px;border:1px solid #ddd;text-align:center}th{background:#1c1917;color:#fff}h1{color:#1c1917;text-align:center}.total{text-align:left;font-size:20px;font-weight:bold;color:#d97706;margin-top:20px}</style></head><body><h1>Laguna Cafe</h1><h3 style="text-align:center;color:#777">${inv.id}</h3><p><strong>العميل:</strong> ${inv.customer}</p><p><strong>التاريخ:</strong> ${new Date(inv.date).toLocaleDateString('ar-EG')}</p><p><strong>طريقة الدفع:</strong> ${inv.paymentMethod || 'كاش'}</p><table><thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table><p class="total">الإجمالي: ${Number(inv.total).toLocaleString()} ج.م</p><p style="text-align:left;font-size:16px;color:#059669"><strong>المدفوع:</strong> ${Number(paid).toLocaleString()} ج.م</p>${remaining > 0 ? `<p style="text-align:left;font-size:16px;color:#dc2626"><strong>الباقي:</strong> ${Number(remaining).toLocaleString()} ج.م</p>` : ''}<p style="text-align:center;color:#888;margin-top:40px;border-top:1px solid #eee;padding-top:20px;">شكراً لزيارتكم Laguna Cafe</p><script>window.print();window.close();<\/script></body></html>`);
       w.document.close();
     };

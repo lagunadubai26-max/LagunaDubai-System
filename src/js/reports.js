@@ -29,6 +29,9 @@ async function render() {
   document.getElementById('reportReturns').textContent = totalReturns.toLocaleString() + ' ج.م';
   document.getElementById('reportExpenses').textContent = totalExpenses.toLocaleString() + ' ج.م';
   document.getElementById('reportNetProfit').textContent = netProfit.toLocaleString() + ' ج.م';
+  const specialInvoices = invoices.filter(i => i.customer && i.customer !== 'نقدي');
+  const specialTotal = specialInvoices.reduce((s, i) => s + Number(i.total ?? 0), 0);
+  document.getElementById('reportSpecialCustomers').textContent = specialTotal.toLocaleString() + ' ج.م';
 
   drawSalesChart(invoices);
   drawPaymentChart(invoices);
