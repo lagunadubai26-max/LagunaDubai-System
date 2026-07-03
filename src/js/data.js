@@ -131,15 +131,10 @@ const DB = {
     async update(id, data) {
       if (DB_MODE !== 'local') {
         const apiData = { 
-          customer: data.customer,
           date: data.date,
           items: data.items ? (typeof data.items === 'string' ? data.items : JSON.stringify(data.items)) : undefined,
           total: data.total,
-          paid: data.paid,
-          remaining: data.remaining,
-          serviceAmount: data.serviceAmount,
-          status: data.status,
-          paymentmethod: data.paymentMethod
+          status: data.status
         };
         Object.keys(apiData).forEach(k => apiData[k] === undefined && delete apiData[k]);
         try { await API.invoices.update(id, apiData); } catch {}
