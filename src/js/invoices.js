@@ -32,11 +32,17 @@ async function render() {
     if (invoices.length === 0) {
       const raw = localStorage.getItem('laguna_invoices');
       debugBar.style.display = 'block';
-      debugBar.style.background = !raw ? '#fef2f2' : '#fff7ed';
-      debugBar.style.color = !raw ? '#dc2626' : '#c2410c';
-      debugBar.textContent = !raw
-        ? '⚠ localStorage فاضي (0 فاتورة). تأكد من إنشاء الفاتورة أولاً.'
-        : '⚠ localStorage موجود لكن 0 فاتورة — البيانات تالفة أو غير متوقعة (الراو: ' + raw.slice(0,100) + '...)';
+      if (!raw || raw === '[]') {
+        debugBar.style.background = '#fef2f2';
+        debugBar.style.color = '#dc2626';
+        debugBar.textContent = !raw
+          ? '⚠ localStorage فاضي (0 فاتورة). ارجع لصفحة المنيو واطلب أولاً.'
+          : '⚠ localStorage فاضي [] — لا توجد فواتير على هذا الجهاز. لو طلبت من الموبايل، تأكد من ظهور "✓ متزامن مع الخادم" في alert الدفع.';
+      } else {
+        debugBar.style.background = '#fff7ed';
+        debugBar.style.color = '#c2410c';
+        debugBar.textContent = '⚠ البيانات تالفة (الراو: ' + raw.slice(0,100) + '...)';
+      }
     } else {
       const unsynced = invoices.filter(i => i._synced === false);
       debugBar.style.display = 'block';

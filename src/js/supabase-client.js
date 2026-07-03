@@ -15,9 +15,16 @@ const SUPABASE = (() => {
       const res = await load(`${URL}/rest/v1/${table}?${p}`, {
         headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const text = await res.text();
+        console.warn('[supabase] GET ' + table + ' failed:', res.status, text.slice(0,200));
+        return null;
+      }
       return await res.json();
-    } catch { return null; }
+    } catch (e) {
+      console.warn('[supabase] GET ' + table + ' error:', e.message);
+      return null;
+    }
   }
 
   async function post(table, body) {

@@ -116,8 +116,9 @@ const DB = {
           paymentMethod: inv.paymentMethod
         };
         try {
-          const r = await API.invoices.add(apiInv);
-          synced = !!r;
+          const result = await SUPABASE.post('invoices', apiInv);
+          synced = Array.isArray(result) && result.length > 0;
+          if (!synced) console.warn('[sync] invoices.add(' + inv.id + ') Supabase returned:', result);
         } catch (e) {
           console.warn('[sync] invoices.add(' + inv.id + ') error:', e.message);
         }
