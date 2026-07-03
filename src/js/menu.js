@@ -37,7 +37,6 @@ function syncOrderSheet() {
   const badge = document.getElementById('cartBadge');
   if (badge) badge.textContent = count;
   if (count > 0) badge && (badge.style.display = 'flex'); else badge && (badge.style.display = 'none');
-  updateButtons();
 }
 
 async function loadProducts() {
@@ -100,58 +99,48 @@ function attachAddToCart() {
       }
       total += price;
       document.querySelector(".total strong").innerText = total + " جنيه";
-      updateButtons();
       syncOrderSheet();
     });
   });
 }
 
-function updateButtons() {
-  document.querySelectorAll(".plus").forEach(btn => {
-    btn.onclick = function () {
-      const item = this.closest(".order-item");
-      const qty = item.querySelector(".qty");
-      let q = parseInt(qty.innerText);
-      q++;
-      qty.innerText = q;
-      const price = parseInt(item.dataset.price);
-      item.querySelector(".price").innerText = (q * price) + " جنيه";
-      total += price;
-      document.querySelector(".total strong").innerText = total + " جنيه";
-      syncOrderSheet();
-    };
-  });
-  document.querySelectorAll(".minus").forEach(btn => {
-    btn.onclick = function () {
-      const item = this.closest(".order-item");
-      const qty = item.querySelector(".qty");
-      let q = parseInt(qty.innerText);
-      if (q > 1) {
-        q--;
-        qty.innerText = q;
-        const price = parseInt(item.dataset.price);
-        item.querySelector(".price").innerText = (q * price) + " جنيه";
-        total -= price;
-        document.querySelector(".total strong").innerText = total + " جنيه";
-        syncOrderSheet();
-      }
-    };
-  });
-  document.querySelectorAll(".delete").forEach(btn => {
-    btn.onclick = function () {
-      const item = this.closest(".order-item");
-      const qty = parseInt(item.querySelector(".qty").innerText);
-      const price = parseInt(item.dataset.price);
-      total -= qty * price;
-      document.querySelector(".total strong").innerText = total + " جنيه";
-      item.remove();
-      if (document.querySelectorAll(".order-list .order-item").length === 0) {
-        document.querySelector(".order-list").innerHTML = `<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>`;
-      }
-      syncOrderSheet();
-    };
-  });
+function handleOrderClick(e) {
+  const btn = e.target.closest('.plus, .minus, .delete');
+  if (!btn) return;
+  const item = btn.closest('.order-item');
+  if (!item) return;
+  if (btn.classList.contains('plus')) {
+    const qty = item.querySelector('.qty');
+    let q = parseInt(qty.innerText);
+    q++;
+    qty.innerText = q;
+    const price = parseInt(item.dataset.price);
+    item.querySelector('.price').innerText = (q * price) + ' جنيه';
+    total += price;
+  } else if (btn.classList.contains('minus')) {
+    const qtyEl = item.querySelector('.qty');
+    let q = parseInt(qtyEl.innerText);
+    if (q <= 1) return;
+    q--;
+    qtyEl.innerText = q;
+    const price = parseInt(item.dataset.price);
+    item.querySelector('.price').innerText = (q * price) + ' جنيه';
+    total -= price;
+  } else if (btn.classList.contains('delete')) {
+    const qty = parseInt(item.querySelector('.qty').innerText);
+    const price = parseInt(item.dataset.price);
+    total -= qty * price;
+    item.remove();
+    if (document.querySelectorAll('.order-list .order-item, #sheetOrderList .order-item').length === 0) {
+      document.querySelector('.order-list').innerHTML = '<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>';
+    }
+  }
+  document.querySelector('.total strong').innerText = total + ' جنيه';
+  syncOrderSheet();
 }
+
+document.querySelector('.order-list').addEventListener('click', handleOrderClick);
+document.getElementById('sheetOrderList').addEventListener('click', handleOrderClick);
 
 function attachCategoryFilter() {
   const catButtons = document.querySelectorAll(".category-btn");
