@@ -18,6 +18,7 @@ if (isCustomer) {
   if (remSec) remSec.style.display = 'none';
 }
 (async () => {
+  await DB.seed();
   if (hasService) {
     const settings = await DB.settings.get();
     serviceTaxRate = settings.serviceTax || 10;

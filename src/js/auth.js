@@ -1,4 +1,6 @@
 ;(async () => {
+  await DB.seed();
+
   const stored = sessionStorage.getItem('laguna_user');
   if (stored) try { const u = JSON.parse(stored); if (u && u.id) { window.location.href = 'index.html'; return; } } catch {}
 

@@ -11,7 +11,7 @@ const DB = {
   invoices: {
     async all() { return await FB.getCollection('invoices'); },
     async add(inv) {
-      inv.id = 'INV-' + Date.now().toString(36).toUpperCase();
+      if (!inv.id) inv.id = 'INV-' + Date.now().toString(36).toUpperCase();
       return await FB.addDoc('invoices', inv);
     },
     async update(id, data) { await FB.updateDoc('invoices', id, data); },
@@ -20,7 +20,7 @@ const DB = {
 
   employees: {
     async all() { return await FB.getCollection('employees'); },
-    async add(emp) { emp.id = Date.now().toString(36); return await FB.addDoc('employees', emp); },
+    async add(emp) { if (!emp.id) emp.id = Date.now().toString(36); return await FB.addDoc('employees', emp); },
     async update(id, data) { await FB.updateDoc('employees', id, data); },
     async remove(id) { await FB.removeDoc('employees', id); }
   },
@@ -32,7 +32,7 @@ const DB = {
       const today = new Date().toISOString().slice(0, 10);
       return all.filter(a => a.date && a.date.slice(0, 10) === today);
     },
-    async add(rec) { rec.id = Date.now().toString(36); return await FB.addDoc('attendance', rec); },
+    async add(rec) { if (!rec.id) rec.id = Date.now().toString(36); return await FB.addDoc('attendance', rec); },
     async update(id, data) { await FB.updateDoc('attendance', id, data); },
     async remove(id) { await FB.removeDoc('attendance', id); },
     async checkIn(employeeId, name, job) {
@@ -46,33 +46,33 @@ const DB = {
 
   returns: {
     async all() { return await FB.getCollection('returns'); },
-    async add(r) { r.id = Date.now().toString(36); return await FB.addDoc('returns', r); },
+    async add(r) { if (!r.id) r.id = Date.now().toString(36); return await FB.addDoc('returns', r); },
     async update(id, data) { await FB.updateDoc('returns', id, data); },
     async remove(id) { await FB.removeDoc('returns', id); }
   },
 
   tables: {
     async all() { return await FB.getCollection('tables_'); },
-    async add(t) { t.id = Date.now().toString(36); return await FB.addDoc('tables_', t); },
+    async add(t) { if (!t.id) t.id = Date.now().toString(36); return await FB.addDoc('tables_', t); },
     async update(id, data) { await FB.updateDoc('tables_', id, data); },
     async remove(id) { await FB.removeDoc('tables_', id); }
   },
 
   expenses: {
     async all() { return await FB.getCollection('expenses'); },
-    async add(e) { e.id = Date.now().toString(36); return await FB.addDoc('expenses', e); },
+    async add(e) { if (!e.id) e.id = Date.now().toString(36); return await FB.addDoc('expenses', e); },
     async remove(id) { await FB.removeDoc('expenses', id); }
   },
 
   customers: {
     async all() { return await FB.getCollection('customers'); },
-    async add(c) { c.id = Date.now().toString(36); return await FB.addDoc('customers', c); },
+    async add(c) { if (!c.id) c.id = Date.now().toString(36); return await FB.addDoc('customers', c); },
     async update(id, data) { await FB.updateDoc('customers', id, data); }
   },
 
   inventory: {
     async all() { return await FB.getCollection('inventory'); },
-    async add(item) { item.id = Date.now().toString(36); return await FB.addDoc('inventory', item); },
+    async add(item) { if (!item.id) item.id = Date.now().toString(36); return await FB.addDoc('inventory', item); },
     async update(id, data) { await FB.updateDoc('inventory', id, data); },
     async remove(id) { await FB.removeDoc('inventory', id); }
   },
@@ -96,12 +96,12 @@ const DB = {
 
   users: {
     async all() { return await FB.getCollection('users'); },
-    async add(u) { u.id = Date.now().toString(36); return await FB.addDoc('users', u); }
+    async add(u) { return await FB.addDoc('users', u); }
   },
 
   products: {
     async all() { return await FB.getCollection('products'); },
-    async add(p) { p.id = Date.now().toString(36); return await FB.addDoc('products', p); },
+    async add(p) { if (!p.id) p.id = Date.now().toString(36); return await FB.addDoc('products', p); },
     async update(id, data) { await FB.updateDoc('products', id, data); },
     async remove(id) { await FB.removeDoc('products', id); }
   },
@@ -151,5 +151,3 @@ const DB = {
     }
   }
 };
-
-DB.seed();
