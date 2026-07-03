@@ -11,8 +11,15 @@ const DB = {
   async syncFromAPI(table, local, setFn, apiFn) {
     try {
       const data = await apiFn();
-      if (Array.isArray(data) && data.length) {
-        setFn(data);
+      if (Array.isArray(data)) {
+        const existing = JSON.parse(localStorage.getItem('laguna_' + table)) || [];
+        const merged = [...existing];
+        for (const item of data) {
+          const idx = merged.findIndex(m => m.id === item.id);
+          if (idx > -1) merged[idx] = item;
+          else merged.push(item);
+        }
+        setFn(merged);
       }
     } catch {}
   },
