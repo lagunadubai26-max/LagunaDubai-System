@@ -73,9 +73,27 @@ function attachActions() {
       const inv = invoices.find(i => i.id === btn.dataset.id);
       if (!inv) return;
       const isPaid = inv.status === 'paid' || inv.status === 'مدفوعة';
-      const newStatus = isPaid ? 'returned' : 'paid';
       if (!confirm(isPaid ? 'تحويل الفاتورة إلى مرتجع؟' : 'تحويل الفاتورة إلى مدفوعة؟')) return;
-      await DB.invoices.update(inv.id, { status: newStatus });
+      if (isPaid) {
+        if (inv.items && inv.items.length) {
+          for (const item of inv.items) {
+            await DB.returns.add({
+              id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+              invoice: inv.id,
+              product: item.name,
+              qty: item.qty,
+              amount: item.qty * item.price,
+              date: new Date().toISOString(),
+              status: 'pending'
+            });
+          }
+        }
+        await DB.invoices.update(inv.id, { status: 'returned' });
+      } else {
+        const existing = (await DB.returns.all() || []).filter(r => r.invoice === inv.id);
+        for (const r of existing) await DB.returns.remove(r.id);
+        await DB.invoices.update(inv.id, { status: 'paid' });
+      }
       render();
     };
   });
