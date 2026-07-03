@@ -3,6 +3,18 @@ const searchInput = document.querySelector('.filter-box input');
 const statusSelect = document.querySelector('.filter-box select');
 const tableBody = document.querySelector('.invoice-table');
 
+// --- Debug: dump localStorage on load ---
+(function debug() {
+  try {
+    const raw = localStorage.getItem('laguna_invoices');
+    console.log('[debug] laguna_invoices raw:', raw ? raw.slice(0,200) : '(null)');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      console.log('[debug] parsed count:', Array.isArray(parsed) ? parsed.length : 'not array');
+    }
+  } catch(e) { console.warn('[debug] parse error:', e); }
+})();
+
 async function render() {
   invoices = await DB.invoices.all() || [];
   console.log('[invoices] loaded:', invoices.length, 'invoices', invoices.map(i => ({ id: i.id, customer: i.customer, total: i.total, paid: i.paid })));
