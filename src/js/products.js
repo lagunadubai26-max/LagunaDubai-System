@@ -11,7 +11,7 @@ const categoryNames = {
   coffee: 'قهوة', hot: 'مشروبات ساخنة', ice: 'آيس كوفي', matcha: 'ماتشا',
   frappe: 'فرابيه', smoothie: 'سموزي', milkshake: 'ميلك شيك', yogurt: 'زبادي',
   juice: 'عصائر فريش', cocktail: 'كوكتيلات', mojito: 'موهيتو', cans: 'كانز',
-  desserts: 'حلويات'
+  desserts: 'حلويات', waffle: 'وافل', dessert: 'حلويات', fruit: 'سلطة فواكه', icefruit: 'آيس كريم'
 };
 
 async function render() {
@@ -57,6 +57,14 @@ function attachEvents() {
       document.getElementById('prodCategoryModal').value = p.category;
       document.getElementById('prodPrice').value = p.price;
       document.getElementById('prodImage').value = p.image || '';
+      document.getElementById('prodImageFile').value = '';
+      if (p.image) {
+        const preview = document.getElementById('prodImagePreview');
+        preview.style.display = 'block';
+        preview.querySelector('img').src = p.image;
+      } else {
+        document.getElementById('prodImagePreview').style.display = 'none';
+      }
       document.getElementById('prodAvailable').checked = p.available;
       modal.classList.add('show');
     };
@@ -69,15 +77,34 @@ function attachEvents() {
   });
 }
 
-document.getElementById('addProdBtn').onclick = () => {
-  editProdId = null;
-  document.getElementById('prodModalTitle').textContent = 'إضافة منتج';
+function resetProductForm() {
   document.getElementById('prodName').value = '';
   document.getElementById('prodNameEn').value = '';
   document.getElementById('prodCategoryModal').value = 'coffee';
   document.getElementById('prodPrice').value = '';
   document.getElementById('prodImage').value = '';
+  document.getElementById('prodImageFile').value = '';
+  document.getElementById('prodImagePreview').style.display = 'none';
   document.getElementById('prodAvailable').checked = true;
+}
+
+document.getElementById('prodImageFile').onchange = function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('prodImage').value = e.target.result;
+    const preview = document.getElementById('prodImagePreview');
+    preview.style.display = 'block';
+    preview.querySelector('img').src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+document.getElementById('addProdBtn').onclick = () => {
+  editProdId = null;
+  document.getElementById('prodModalTitle').textContent = 'إضافة منتج';
+  resetProductForm();
   modal.classList.add('show');
 };
 

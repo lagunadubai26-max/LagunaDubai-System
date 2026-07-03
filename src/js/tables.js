@@ -9,7 +9,11 @@ const tableService = document.getElementById('tableService');
 const saveBtn = document.getElementById('saveTable');
 
 async function render() {
-  tables = await DB.tables.all() || [];
+  tables = (await DB.tables.all() || []).sort((a, b) => {
+    const na = parseInt(a.name.replace(/\D/g, '')) || 0;
+    const nb = parseInt(b.name.replace(/\D/g, '')) || 0;
+    return na - nb;
+  });
   grid.innerHTML = '';
   const statusMap = { available: 'متاحة', occupied: 'مشغولة', reserved: 'محجوزة' };
   const colorMap = { available: '#15B66D', occupied: '#E74C3C', reserved: '#F4A825' };
