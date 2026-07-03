@@ -49,9 +49,9 @@ async function render() {
   if (cards.length >= 5) {
     cards[0].textContent = invoices.length;
     cards[1].textContent = invoices.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
-    cards[2].textContent = invoices.reduce((s, i) => s + Number(i.paid ?? i.total ?? 0), 0).toLocaleString() + ' ج.م';
-    cards[3].textContent = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').length;
-    cards[4].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
+    cards[2].textContent = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').length;
+    cards[3].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
+    cards[4].textContent = invoices.reduce((s, i) => s + Number(i.paid ?? i.total ?? 0), 0).toLocaleString() + ' ج.م';
   }
   attachActions();
 }
