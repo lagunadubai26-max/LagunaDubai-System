@@ -111,11 +111,12 @@ function attachAddToCart() {
         const item = document.createElement("div");
         item.className = "order-item";
         item.dataset.price = price;
+        item.dataset.hasMilk = 'false';
         item.innerHTML = `
           <div class="order-top"><span class="name">${name}</span><button class="note-btn"><i class="fa-solid fa-pen"></i></button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
           <div class="price">${price} جنيه</div>
           <div class="item-note" style="display:none"><input class="note-input" placeholder="إضافة (قهوة محوج، بدون سكر...)" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;background:#fafaf9;margin-bottom:8px"></div>
-          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div></div>`;
+          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"> +حليب 5 ج.م</label></div>`;
         document.querySelector(".order-box .order-list").appendChild(item);
       }
       total += price;
@@ -125,9 +126,43 @@ function attachAddToCart() {
   });
 }
 
+function getItemPrice(itemEl) {
+  return parseInt(itemEl.dataset.price) + (itemEl.dataset.hasMilk === 'true' ? 5 : 0);
+}
+
+function formatItemPrice(itemEl) {
+  const base = parseInt(itemEl.dataset.price);
+  const milk = itemEl.dataset.hasMilk === 'true';
+  const qty = parseInt(itemEl.querySelector('.qty').innerText);
+  const effective = milk ? base + 5 : base;
+  return (qty * effective) + ' جنيه' + (milk ? ' (مع حليب)' : '');
+}
+
 function handleOrderClick(e) {
-  const btn = e.target.closest('.plus, .minus, .delete, .note-btn');
+  const btn = e.target.closest('.plus, .minus, .delete, .note-btn, .milk-check');
   if (!btn) return;
+  if (btn.classList.contains('milk-check')) {
+    const clickedItem = btn.closest('.order-item');
+    const nameEl = clickedItem.querySelector('.name');
+    if (!nameEl) return;
+    const name = nameEl.innerText;
+    let targetItem = null;
+    document.querySelectorAll('.order-box .order-list .order-item').forEach(el => {
+      const n = el.querySelector('.name');
+      if (n && n.innerText === name) targetItem = el;
+    });
+    if (!targetItem) return;
+    targetItem.dataset.hasMilk = targetItem.dataset.hasMilk === 'true' ? 'false' : 'true';
+    const base = parseInt(targetItem.dataset.price);
+    const milk = targetItem.dataset.hasMilk === 'true';
+    const qty = parseInt(targetItem.querySelector('.qty').innerText);
+    const effective = milk ? base + 5 : base;
+    total += (milk ? 1 : -1) * 5 * qty;
+    targetItem.querySelector('.price').innerText = formatItemPrice(targetItem);
+    document.querySelector('.total strong').innerText = total + ' جنيه';
+    syncOrderSheet();
+    return;
+  }
   if (btn.classList.contains('note-btn')) {
     const item = btn.closest('.order-item');
     if (!item) return;
@@ -152,22 +187,22 @@ function handleOrderClick(e) {
     let q = parseInt(qty.innerText);
     q++;
     qty.innerText = q;
-    const price = parseInt(targetItem.dataset.price);
-    targetItem.querySelector('.price').innerText = (q * price) + ' جنيه';
-    total += price;
+    const effective = getItemPrice(targetItem);
+    targetItem.querySelector('.price').innerText = (q * effective) + ' جنيه';
+    total += effective;
   } else if (btn.classList.contains('minus')) {
     const qtyEl = targetItem.querySelector('.qty');
     let q = parseInt(qtyEl.innerText);
     if (q <= 1) return;
     q--;
     qtyEl.innerText = q;
-    const price = parseInt(targetItem.dataset.price);
-    targetItem.querySelector('.price').innerText = (q * price) + ' جنيه';
-    total -= price;
+    const effective = getItemPrice(targetItem);
+    targetItem.querySelector('.price').innerText = (q * effective) + ' جنيه';
+    total -= effective;
   } else if (btn.classList.contains('delete')) {
     const qty = parseInt(targetItem.querySelector('.qty').innerText);
-    const price = parseInt(targetItem.dataset.price);
-    total -= qty * price;
+    const effective = getItemPrice(targetItem);
+    total -= qty * effective;
     targetItem.remove();
     if (!document.querySelector('.order-box .order-list .order-item .name')) {
       document.querySelector('.order-box .order-list').innerHTML = '<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>';
@@ -238,7 +273,9 @@ checkoutBtn.addEventListener("click", () => {
     const priceText = itemEl.dataset.price;
     const noteInput = itemEl.querySelector('.note-input');
     const note = noteInput ? noteInput.value.trim() : '';
-    if (priceText) items.push({ name: el.innerText, qty, price: parseInt(priceText), note });
+    const hasMilk = itemEl.dataset.hasMilk === 'true';
+    const effectivePrice = parseInt(priceText) + (hasMilk ? 5 : 0);
+    if (priceText) items.push({ name: el.innerText, qty, price: effectivePrice, note, hasMilk });
   });
   if (items.length === 0) return alert("الطلب فارغ، أضف منتجات أولاً");
   const totalAmount = items.reduce((s, i) => s + i.qty * i.price, 0);
@@ -281,7 +318,27 @@ document.getElementById('confirmCheckout').onclick = async () => {
       }
     }
     document.getElementById('checkoutModal').classList.remove('show');
-    alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''}\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه`);
+    if (inv && inv.id) {
+      const msg = `تم إنشاء الفاتورة ${inv.id}\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${paid} ج.م\nالباقي: ${totalAmount - paid} ج.م`;
+      if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
+        alert(msg);
+        try {
+          await PRINTER.printReceipt(inv);
+          if (paid >= totalAmount) await PRINTER.openDrawer();
+        } catch (e) {
+          console.warn('[printer] error:', e);
+          if (confirm('حدث خطأ في الطباعة عبر USB.\nهل تريد طباعة الفاتورة عبر المتصفح؟')) {
+            printReceipt(inv);
+          }
+        }
+      } else {
+        if (confirm(msg + '\n\nهل تريد طباعة الفاتورة؟')) {
+          printReceipt(inv);
+        }
+      }
+    } else {
+      alert(`تم إنشاء الفاتورة\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه`);
+    }
     clearOrder();
   } catch (e) {
     console.error('[checkout] error:', e);
@@ -310,3 +367,43 @@ if (cartFloat && cartSheet) {
 }
 
 loadProducts();
+
+function printReceipt(inv) {
+  const w = window.open('', '_blank');
+  let itemsHtml = '';
+  if (inv.items) inv.items.forEach(item => {
+    const milkTxt = item.hasMilk ? ' +حليب' : '';
+    const noteTxt = item.note ? '<br><small>' + item.note + '</small>' : '';
+    itemsHtml += `<tr><td class="item-name">${item.name}${milkTxt}${noteTxt}</td><td class="item-qty">${item.qty}</td><td class="item-price">${item.qty * item.price} ج.م</td></tr>`;
+  });
+  const paid = inv.paid ?? inv.total;
+  const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
+  const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG');
+  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${inv.id}</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Courier New',monospace;font-size:12px;padding:8px;width:58mm;color:#000}
+.header{text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed #000}
+.header h2{font-size:16px;font-weight:700;margin-bottom:2px}
+.header p{font-size:11px;color:#555}
+.receipt-table{width:100%;border-collapse:collapse;margin:6px 0}
+.receipt-table th,.receipt-table td{padding:3px 2px;text-align:center;font-size:11px}
+.receipt-table th{border-bottom:1px solid #000}
+.receipt-table td{border-bottom:1px dotted #ccc}
+.receipt-table .item-name{text-align:right}
+.receipt-table .item-qty{text-align:center}
+.receipt-table .item-price{text-align:left}
+.summary{margin:6px 0;padding:4px 0;border-top:1px dashed #000}
+.summary .line{display:flex;justify-content:space-between;font-size:11px;padding:1px 0}
+.summary .total{font-size:15px;font-weight:700;border-top:1px solid #000;padding-top:4px;margin-top:2px}
+.footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:10px;color:#555}
+@media print{@page{margin:0;size:58mm auto}}
+</style></head><body>
+<div class="header"><h2>☕ Laguna Cafe</h2><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
+<table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th class="item-qty">الكمية</th><th class="item-price">الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+<div class="summary"><div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
+<div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${remaining > 0 ? `<div class="line"><span>الباقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}
+<div class="line total"><span>${remaining > 0 ? 'معلق' : 'مدفوع'}</span><span>${inv.paymentMethod || 'كاش'}</span></div></div>
+<div class="footer">شكراً لزيارتكم<br>Laguna Cafe ☕</div>
+<script>window.print();window.close();<\/script></body></html>`);
+  w.document.close();
+}

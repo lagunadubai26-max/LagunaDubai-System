@@ -98,6 +98,20 @@
         <label>تنبيه المخزون المنخفض (أقل من)</label>
         <input type="number" id="lowStockAlert" min="0">
       </div>
+      <div class="settings-card" id="printerCard">
+        <h3><i class="fa-solid fa-print"></i>الطابعة الحرارية + درج الكاشير</h3>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Connect USB thermal printer via WebUSB (Chrome/Edge on desktop) to print receipts and auto-open cash drawer.</p>
+        <div id="printerStatus" style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:#f5f5f4;border-radius:10px;font-size:14px">
+          <span id="printerIcon" style="color:#aaa"><i class="fa-solid fa-plug"></i></span>
+          <span id="printerText" style="color:#888">الطابعة غير متصلة</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="add-btn" id="connectPrinterBtn"><i class="fa-solid fa-usb"></i> توصيل الطابعة</button>
+          <button class="add-btn" id="testPrinterBtn" style="background:#059669" disabled><i class="fa-solid fa-flask"></i> اختبار الطباعة</button>
+          <button class="add-btn" id="openDrawerBtn" style="background:#d97706" disabled><i class="fa-solid fa-cash-register"></i> فتح الدرج</button>
+          <button class="cancel-btn" id="disconnectPrinterBtn" style="display:none"><i class="fa-solid fa-unlink"></i> فصل</button>
+        </div>
+      </div>
       <div class="settings-card">
         <h3><i class="fa-solid fa-user-shield"></i>إدارة الحسابات</h3>
         <label>اسم المستخدم الجديد</label>
@@ -126,6 +140,7 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/firebase-client.js"></script>
 <script src="js/data.js"></script>
+<script src="js/printer.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/role.js?v=3"></script>
 </body>

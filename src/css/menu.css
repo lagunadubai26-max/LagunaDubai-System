@@ -150,3 +150,12 @@
 .checkout-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(217,119,6,.12)}
 .confirm-box .confirm-btn{background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff}
 .confirm-box .confirm-btn:hover{opacity:.9}
+
+.milk-toggle {
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;color:#666;cursor:pointer;
+  user-select:none;
+}
+.milk-toggle input[type=checkbox] {
+  width:16px;height:16px;accent-color:var(--accent);cursor:pointer;
+}

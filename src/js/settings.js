@@ -49,3 +49,66 @@ document.getElementById('addUserBtn').onclick = async () => {
 };
 
 load();
+
+// --- Printer ---
+function updatePrinterUI() {
+  const connected = PRINTER.isConnected();
+  document.getElementById('printerIcon').innerHTML = connected ? '<i class="fa-solid fa-check-circle" style="color:#059669"></i>' : '<i class="fa-solid fa-plug" style="color:#aaa"></i>';
+  document.getElementById('printerText').textContent = connected ? '✓ الطابعة متصلة' : 'الطابعة غير متصلة';
+  document.getElementById('printerText').style.color = connected ? '#059669' : '#888';
+  document.getElementById('connectPrinterBtn').textContent = connected ? 'تغيير الطابعة' : 'توصيل الطابعة';
+  document.getElementById('testPrinterBtn').disabled = !connected;
+  document.getElementById('openDrawerBtn').disabled = !connected;
+  document.getElementById('disconnectPrinterBtn').style.display = connected ? 'inline-flex' : 'none';
+}
+
+document.getElementById('connectPrinterBtn').onclick = async () => {
+  try {
+    const result = await PRINTER.connect();
+    if (result === false) {
+      alert('لم يتم العثور على طابعة. تأكد من توصيل الطابعة بالUSB وحاول مرة أخرى.');
+      return;
+    }
+    updatePrinterUI();
+    alert('✓ تم توصيل الطابعة بنجاح');
+  } catch (e) {
+    if (e.name === 'NotFoundError') return;
+    alert('خطأ في توصيل الطابعة: ' + e.message);
+  }
+};
+
+document.getElementById('disconnectPrinterBtn').onclick = async () => {
+  await PRINTER.disconnect();
+  updatePrinterUI();
+};
+
+document.getElementById('testPrinterBtn').onclick = async () => {
+  try {
+    await PRINTER.print(PRINTER.escposInit());
+    await PRINTER.print(PRINTER.escposBold(true));
+    await PRINTER.print(PRINTER.escposText('      Laguna Cafe'));
+    await PRINTER.print(PRINTER.escposBold(false));
+    await PRINTER.print(PRINTER.escposText(''));
+    await PRINTER.print(PRINTER.escposText('اختبار الطباعة'));
+    await PRINTER.print(PRINTER.escposText('Print Test'));
+    await PRINTER.print(PRINTER.escposText(''));
+    await PRINTER.print(PRINTER.escposText(new Date().toLocaleString('ar-EG')));
+    await PRINTER.print(PRINTER.escposText(''));
+    await PRINTER.print(PRINTER.escposText('✓ تم بنجاح'));
+    await PRINTER.print(PRINTER.escposCut());
+    alert('✓ تمت طباعة الاختبار بنجاح');
+  } catch (e) {
+    alert('خطأ في الطباعة: ' + e.message);
+  }
+};
+
+document.getElementById('openDrawerBtn').onclick = async () => {
+  try {
+    await PRINTER.openDrawer();
+    alert('✓ تم فتح درج الكاشير');
+  } catch (e) {
+    alert('خطأ في فتح الدرج: ' + e.message);
+  }
+};
+
+updatePrinterUI();
