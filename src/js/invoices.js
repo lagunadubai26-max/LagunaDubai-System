@@ -5,20 +5,23 @@ const tableBody = document.querySelector('.invoice-table');
 
 async function render() {
   invoices = await DB.invoices.all() || [];
+  console.log('[invoices] loaded:', invoices.length, 'invoices', invoices.map(i => ({ id: i.id, customer: i.customer, total: i.total, paid: i.paid })));
   const existing = tableBody.querySelectorAll('.invoice-row');
   existing.forEach(r => r.remove());
 
   const val = searchInput ? searchInput.value.toLowerCase() : '';
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
 
+  console.log('[invoices] filter input:', val, filterStatus);
   const filtered = invoices.filter(inv => {
-    if (!inv || !inv.id || typeof inv.id !== 'string' || !inv.customer) return false;
+    if (!inv || !inv.id || typeof inv.id !== 'string' || !inv.customer) { console.warn('[invoices] skipped malformed:', inv); return false; }
     const matchSearch = inv.id.toLowerCase().includes(val) || inv.customer.toLowerCase().includes(val);
     const st = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
     const matchStatus = filterStatus === 'كل الحالات' || st === filterStatus;
     return matchSearch && matchStatus;
   });
 
+  console.log('[invoices] filtered count:', filtered.length);
   filtered.forEach(inv => {
     const row = document.createElement('div');
     row.className = 'invoice-row';
