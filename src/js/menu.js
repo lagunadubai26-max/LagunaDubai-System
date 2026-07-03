@@ -48,12 +48,23 @@ function syncOrderSheet() {
 }
 
 async function loadProducts() {
+  const categories = await DB.categories.all() || [];
+  categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  const menuCategories = document.getElementById('menuCategories');
+  if (menuCategories) {
+    menuCategories.innerHTML = '<button class="category-btn active" data-category="all">الكل</button>';
+    categories.forEach(c => {
+      menuCategories.innerHTML += `<button class="category-btn" data-category="${c.slug}">${c.name}</button>`;
+    });
+  }
+
   const products = await DB.products.all() || [];
   const container = document.querySelector('.products');
   if (!container) return;
   container.innerHTML = '';
 
-  const categoryOrder = ['coffee','hot','ice','matcha','frappe','smoothie','milkshake','yogurt','juice','cocktail','mojito','cans','desserts'];
+  const categoryOrder = categories.map(c => c.slug);
   products.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category));
   products.forEach(p => {
     if (!p.available) return;

@@ -1,4 +1,6 @@
 let products = [];
+let categories = [];
+let catMap = {};
 let editProdId = null;
 let deleteTargetId = null;
 const prodList = document.getElementById('prodList');
@@ -7,11 +9,60 @@ const catFilter = document.getElementById('prodCategory');
 const modal = document.getElementById('prodModal');
 const deleteModal = document.getElementById('deleteProdModal');
 
-const categoryNames = {
-  coffee: 'قهوة', hot: 'مشروبات ساخنة', ice: 'آيس كوفي', matcha: 'ماتشا',
-  frappe: 'فرابيه', smoothie: 'سموزي', milkshake: 'ميلك شيك', yogurt: 'زبادي',
-  juice: 'عصائر فريش', cocktail: 'كوكتيلات', mojito: 'موهيتو', cans: 'كانز',
-  desserts: 'حلويات', waffle: 'وافل', dessert: 'حلويات', fruit: 'سلطة فواكه', icefruit: 'آيس كريم'
+async function loadCategories() {
+  categories = await DB.categories.all() || [];
+  categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+  catMap = {};
+  categories.forEach(c => catMap[c.slug] = c.name);
+  populateCategoryDropdowns();
+  renderCategoryList();
+}
+
+function populateCategoryDropdowns() {
+  catFilter.innerHTML = '<option value="all">كل الأقسام</option>';
+  const modalSelect = document.getElementById('prodCategoryModal');
+  modalSelect.innerHTML = '';
+  categories.forEach(c => {
+    catFilter.innerHTML += `<option value="${c.slug}">${c.name}</option>`;
+    modalSelect.innerHTML += `<option value="${c.slug}">${c.name}</option>`;
+  });
+}
+
+function renderCategoryList() {
+  const catList = document.getElementById('catList');
+  if (!catList) return;
+  catList.innerHTML = '';
+  categories.forEach(c => {
+    const tag = document.createElement('span');
+    tag.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:6px 12px;font-size:13px';
+    tag.innerHTML = `${c.name} <button data-id="${c.id}" class="del-cat-btn" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;padding:0"><i class="fa-solid fa-xmark"></i></button>`;
+    catList.appendChild(tag);
+  });
+  document.querySelectorAll('.del-cat-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      const cat = categories.find(c => c.id === id);
+      const inUse = products.some(p => p.category === cat.slug);
+      if (inUse) return alert('لا يمكن حذف هذا القسم لسه فيه منتجات. نقل المنتجات لقسم تاني الأول.');
+      if (!confirm('حذف قسم "' + cat.name + '"؟')) return;
+      await DB.categories.remove(id);
+      await loadCategories();
+      render();
+    };
+  });
+}
+
+document.getElementById('addCatBtn').onclick = async () => {
+  const slug = document.getElementById('newCatSlug').value.trim();
+  const name = document.getElementById('newCatName').value.trim();
+  if (!slug || !name) return alert('ادخل الاسم الإنجليزي والعربي');
+  if (categories.find(c => c.slug === slug)) return alert('القسم ده موجود بالفعل');
+  const maxOrder = categories.reduce((m, c) => Math.max(m, c.order || 0), 0);
+  await DB.categories.add({ slug, name, order: maxOrder + 1 });
+  document.getElementById('newCatSlug').value = '';
+  document.getElementById('newCatName').value = '';
+  await loadCategories();
+  render();
 };
 
 async function render() {
@@ -28,7 +79,7 @@ async function render() {
     row.className = 'table-row';
     row.innerHTML = `
       <div><img class="thumb" src="${p.image || ''}" alt="${p.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽</text></svg>'"></div>
-      <span>${p.name}</span><span>${categoryNames[p.category] || p.category}</span>
+      <span>${p.name}</span><span>${catMap[p.category] || p.category}</span>
       <span>${p.price} ج.م</span>
       <span class="status ${stCls}">${stTxt}</span>
       <div class="actions">
@@ -39,7 +90,7 @@ async function render() {
   });
 
   document.getElementById('prodTotal').textContent = products.length;
-  document.getElementById('prodCategories').textContent = new Set(products.map(p => p.category)).size;
+  document.getElementById('prodCategories').textContent = categories.length;
   document.getElementById('prodActive').textContent = products.filter(p => p.available).length;
   document.getElementById('prodInactive').textContent = products.filter(p => !p.available).length;
   attachEvents();
@@ -81,7 +132,6 @@ function attachEvents() {
 function resetProductForm() {
   document.getElementById('prodName').value = '';
   document.getElementById('prodNameEn').value = '';
-  document.getElementById('prodCategoryModal').value = 'coffee';
   document.getElementById('prodPrice').value = '';
   document.getElementById('prodDesc').value = '';
   document.getElementById('prodImage').value = '';
@@ -155,4 +205,8 @@ document.getElementById('confirmDelete').onclick = async () => {
 searchInput.addEventListener('keyup', render);
 catFilter.addEventListener('change', render);
 
-render();
+(async () => {
+  await DB.seed();
+  await loadCategories();
+  render();
+})();

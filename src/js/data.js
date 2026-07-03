@@ -94,6 +94,13 @@ const DB = {
     }
   },
 
+  categories: {
+    async all() { return await FB.getCollection('categories'); },
+    async add(c) { if (!c.id) c.id = Date.now().toString(36); return await FB.addDoc('categories', c); },
+    async update(id, data) { await FB.updateDoc('categories', id, data); },
+    async remove(id) { await FB.removeDoc('categories', id); }
+  },
+
   users: {
     async all() { return await FB.getCollection('users'); },
     async add(u) { return await FB.addDoc('users', u); }
@@ -110,6 +117,28 @@ const DB = {
     const users = await this.users.all();
     if (users.length === 0) {
       await this.users.add({ id: 'u1', username: 'admin', password: 'admin123', name: 'أحمد علي', role: 'Administrator' });
+    }
+
+    const cats = await this.categories.all();
+    if (cats.length === 0) {
+      const defaults = [
+        { slug: 'coffee', name: 'قهوة', order: 1 },
+        { slug: 'hot', name: 'مشروبات ساخنة', order: 2 },
+        { slug: 'ice', name: 'آيس كوفي', order: 3 },
+        { slug: 'matcha', name: 'ماتشا', order: 4 },
+        { slug: 'frappe', name: 'فرابيه', order: 5 },
+        { slug: 'smoothie', name: 'سموزي', order: 6 },
+        { slug: 'milkshake', name: 'ميلك شيك', order: 7 },
+        { slug: 'yogurt', name: 'زبادي', order: 8 },
+        { slug: 'juice', name: 'عصائر فريش', order: 9 },
+        { slug: 'cocktail', name: 'كوكتيلات', order: 10 },
+        { slug: 'mojito', name: 'موهيتو', order: 11 },
+        { slug: 'cans', name: 'كانز', order: 12 },
+        { slug: 'desserts', name: 'حلويات', order: 13 }
+      ];
+      for (const c of defaults) {
+        await this.categories.add(c);
+      }
     }
 
     const employees = await this.employees.all();
