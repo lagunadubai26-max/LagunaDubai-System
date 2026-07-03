@@ -20,6 +20,12 @@ function renderCard(t, section) {
 async function render() {
   container.innerHTML = '<div class="qr-loading"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</div>';
   const tables = await DB.tables.all() || [];
+  const tables = await DB.tables.all() || [];
+  tables.sort((a, b) => {
+    const na = parseInt(a.name.replace(/\D/g, '')) || 0;
+    const nb = parseInt(b.name.replace(/\D/g, '')) || 0;
+    return na - nb;
+  });
   container.innerHTML = '';
 
   const regularTables = tables.filter(t => !t.hasService);
