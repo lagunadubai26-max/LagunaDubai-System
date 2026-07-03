@@ -12,9 +12,10 @@ const DB = {
     try {
       const data = await apiFn();
       if (Array.isArray(data)) {
+        const parsed = data.map(d => ({ ...d, items: typeof d.items === 'string' ? JSON.parse(d.items) : d.items }));
         const existing = JSON.parse(localStorage.getItem('laguna_' + table)) || [];
         const merged = [...existing];
-        for (const item of data) {
+        for (const item of parsed) {
           const idx = merged.findIndex(m => m.id === item.id);
           if (idx > -1) merged[idx] = item;
           else merged.push(item);
@@ -94,7 +95,10 @@ const DB = {
     async add(inv) {
       const list = DB.invoices.local();
       inv.id = 'INV-' + String(list.length + 1).padStart(4, '0');
-      if (DB_MODE !== 'local') try { await API.invoices.add(inv); } catch {}
+      if (DB_MODE !== 'local') {
+        const apiInv = { ...inv, items: JSON.stringify(inv.items) };
+        try { await API.invoices.add(apiInv); } catch {}
+      }
       list.unshift(inv);
       DB.set('invoices', list);
       return inv;
