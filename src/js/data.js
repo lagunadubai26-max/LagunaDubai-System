@@ -117,8 +117,13 @@ const DB = {
           paymentmethod: inv.paymentMethod
         };
         try {
-          const result = await SUPABASE.post('invoices', apiInv);
-          synced = Array.isArray(result) && result.length > 0;
+          let result = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            if (attempt > 0) await new Promise(r => setTimeout(r, 1500));
+            result = await SUPABASE.post('invoices', apiInv);
+            synced = Array.isArray(result) && result.length > 0;
+            if (synced) break;
+          }
           if (!synced) {
             errorMsg = typeof LAST_POST_ERROR !== 'undefined' && LAST_POST_ERROR ? LAST_POST_ERROR : (result === null ? 'تعذر الاتصال بالخادم (تأكد من الإنترنت)' : 'استجابة غير متوقعة من الخادم');
             console.warn('[sync] invoices.add(' + inv.id + ') not synced:', errorMsg, 'result:', result);
