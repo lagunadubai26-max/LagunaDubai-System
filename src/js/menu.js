@@ -37,6 +37,7 @@ function syncOrderSheet() {
   const badge = document.getElementById('cartBadge');
   if (badge) badge.textContent = count;
   if (count > 0) badge && (badge.style.display = 'flex'); else badge && (badge.style.display = 'none');
+  updateButtons();
 }
 
 async function loadProducts() {
