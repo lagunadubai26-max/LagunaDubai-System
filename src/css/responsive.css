@@ -75,7 +75,7 @@
 
   /* Invoices */
   .invoice-table { overflow-x: auto; }
-  .invoice-row { min-width: 600px; }
+  .invoice-row { min-width: 700px; }
 
   /* Products page */
   .products-table-wrap { overflow-x: auto; }

@@ -93,8 +93,9 @@ function attachAddToCart() {
         item.className = "order-item";
         item.dataset.price = price;
         item.innerHTML = `
-          <div class="order-top"><span class="name">${name}</span><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
+          <div class="order-top"><span class="name">${name}</span><button class="note-btn"><i class="fa-solid fa-pen"></i></button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
           <div class="price">${price} جنيه</div>
+          <div class="item-note" style="display:none"><input class="note-input" placeholder="إضافة (قهوة محوج، بدون سكر...)" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;background:#fafaf9;margin-bottom:8px"></div>
           <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div></div>`;
         document.querySelector(".order-box .order-list").appendChild(item);
       }
@@ -106,8 +107,15 @@ function attachAddToCart() {
 }
 
 function handleOrderClick(e) {
-  const btn = e.target.closest('.plus, .minus, .delete');
+  const btn = e.target.closest('.plus, .minus, .delete, .note-btn');
   if (!btn) return;
+  if (btn.classList.contains('note-btn')) {
+    const item = btn.closest('.order-item');
+    if (!item) return;
+    const noteDiv = item.querySelector('.item-note');
+    if (noteDiv) noteDiv.style.display = noteDiv.style.display === 'none' ? 'block' : 'none';
+    return;
+  }
   const item = btn.closest('.order-item');
   if (!item) return;
   const nameEl = item.querySelector('.name');
@@ -209,7 +217,9 @@ checkoutBtn.addEventListener("click", () => {
     const itemEl = el.closest(".order-item");
     const qty = parseInt(itemEl.querySelector(".qty").innerText);
     const priceText = itemEl.dataset.price;
-    if (priceText) items.push({ name: el.innerText, qty, price: parseInt(priceText) });
+    const noteInput = itemEl.querySelector('.note-input');
+    const note = noteInput ? noteInput.value.trim() : '';
+    if (priceText) items.push({ name: el.innerText, qty, price: parseInt(priceText), note });
   });
   if (items.length === 0) return alert("الطلب فارغ، أضف منتجات أولاً");
   const totalAmount = items.reduce((s, i) => s + i.qty * i.price, 0);
@@ -242,7 +252,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
   const items = window._checkoutItems;
   const serviceAmount = window._checkoutService || 0;
   const table = tableNum ? 'طاولة ' + tableNum : null;
-  const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, serviceAmount, paymentMethod: method, status: "paid" });
+  const paid = Math.min(totalAmount, Math.max(0, Number(document.getElementById('checkoutPaid').value) || totalAmount));
+  const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, remaining: totalAmount - paid, serviceAmount, paymentMethod: method, status: paid >= totalAmount ? 'paid' : 'pending' });
   if (custType === 'special') {
     const existing = (await DB.customers.all() || []).find(c => c.name === customer);
     if (existing) {
@@ -252,7 +263,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     }
   }
   document.getElementById('checkoutModal').classList.remove('show');
-  alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''} بنجاح بقيمة ${totalAmount} جنيه`);
+  alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''}\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه`);
   clearOrder();
 };
 document.getElementById('cancelCheckout').onclick = () => {
