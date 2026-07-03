@@ -15,6 +15,8 @@ async function getFilteredInvoices() {
 }
 
 let rendering = false;
+let salesChart = null;
+let paymentChart = null;
 
 async function render() {
   if (rendering) return;
@@ -44,9 +46,9 @@ async function render() {
 }
 
 function drawSalesChart(invoices) {
+  if (salesChart) { salesChart.destroy(); salesChart = null; }
   const canvas = document.getElementById('reportSalesChart');
   if (!canvas) return;
-  if (window.reportSalesChart && typeof window.reportSalesChart.destroy === 'function') window.reportSalesChart.destroy();
   const days = {};
   invoices.forEach(inv => {
     if (!inv.date) return;
@@ -55,7 +57,7 @@ function drawSalesChart(invoices) {
   });
   const labels = Object.keys(days).sort();
   const data = labels.map(k => days[k]);
-  window.reportSalesChart = new Chart(canvas, {
+  salesChart = new Chart(canvas, {
     type: 'bar',
     data: { labels, datasets: [{ label: 'المبيعات', data, backgroundColor: '#d97706', borderRadius: 8 }] },
     options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
@@ -63,9 +65,9 @@ function drawSalesChart(invoices) {
 }
 
 function drawPaymentChart(invoices) {
+  if (paymentChart) { paymentChart.destroy(); paymentChart = null; }
   const canvas = document.getElementById('reportPaymentChart');
   if (!canvas) return;
-  if (window.reportPaymentChart && typeof window.reportPaymentChart.destroy === 'function') window.reportPaymentChart.destroy();
   const paymentMap = {};
   invoices.forEach(inv => {
     const method = inv.paymentMethod || 'Cash';
@@ -73,7 +75,7 @@ function drawPaymentChart(invoices) {
   });
   const labels = Object.keys(paymentMap);
   const data = Object.values(paymentMap);
-  window.reportPaymentChart = new Chart(canvas, {
+  paymentChart = new Chart(canvas, {
     type: 'doughnut',
     data: { labels, datasets: [{ data, backgroundColor: ['#d97706', '#059669', '#f59e0b', '#dc2626', '#7c3aed'].slice(0, labels.length) }] },
     options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
