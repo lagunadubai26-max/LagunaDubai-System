@@ -67,7 +67,8 @@ const DB = {
   customers: {
     async all() { return await FB.getCollection('customers'); },
     async add(c) { if (!c.id) c.id = Date.now().toString(36); return await FB.addDoc('customers', c); },
-    async update(id, data) { await FB.updateDoc('customers', id, data); }
+    async update(id, data) { await FB.updateDoc('customers', id, data); },
+    async remove(id) { await FB.removeDoc('customers', id); }
   },
 
   inventory: {
