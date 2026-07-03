@@ -272,7 +272,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     const syncMsg = inv && inv._synced !== undefined
       ? (inv._synced
         ? '\n✓ متزامن مع الخادم'
-        : '\n⚠ فشل التزامن: ' + (typeof LAST_POST_ERROR !== 'undefined' && LAST_POST_ERROR ? LAST_POST_ERROR : 'تعذر الاتصال بالخادم'))
+        : '\n⚠ فشل التزامن: ' + (inv._syncError || 'تعذر الاتصال بالخادم'))
       : '';
     alert(`تم إنشاء الفاتورة ${inv ? inv.id : ''}\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه\nالباقي: ${totalAmount - paid} جنيه` + syncMsg);
     clearOrder();

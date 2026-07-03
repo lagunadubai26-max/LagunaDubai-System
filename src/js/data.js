@@ -104,6 +104,7 @@ const DB = {
       inv.id = 'INV-' + Date.now().toString(36).toUpperCase();
       const list = DB.invoices.local();
       let synced = false;
+      let errorMsg = '';
       if (DB_MODE !== 'local') {
         const apiInv = { 
           id: inv.id,
@@ -119,16 +120,16 @@ const DB = {
           const result = await SUPABASE.post('invoices', apiInv);
           synced = Array.isArray(result) && result.length > 0;
           if (!synced) {
-            console.warn('[sync] invoices.add(' + inv.id + ') Supabase returned:', result);
-            if (result !== null && typeof LAST_POST_ERROR !== 'undefined' && !LAST_POST_ERROR) {
-              LAST_POST_ERROR = 'استجابة غير متوقعة من الخادم (ليست مصفوفة)';
-            }
+            errorMsg = typeof LAST_POST_ERROR !== 'undefined' && LAST_POST_ERROR ? LAST_POST_ERROR : (result === null ? 'تعذر الاتصال بالخادم (تأكد من الإنترنت)' : 'استجابة غير متوقعة من الخادم');
+            console.warn('[sync] invoices.add(' + inv.id + ') not synced:', errorMsg, 'result:', result);
           }
         } catch (e) {
-          console.warn('[sync] invoices.add(' + inv.id + ') error:', e.message);
+          errorMsg = e.message || 'خطأ غير متوقع';
+          console.warn('[sync] invoices.add(' + inv.id + ') error:', errorMsg);
         }
       }
       inv._synced = synced;
+      inv._syncError = errorMsg;
       list.unshift(inv);
       DB.set('invoices', list);
       return inv;

@@ -46,7 +46,7 @@ async function post(table, body) {
     return await res.json();
   } catch (e) {
     LAST_POST_ERROR = e.message || e.name || 'تعذر الاتصال بالخادم (تأكد من اتصال الإنترنت)';
-    console.warn('[supabase] POST ' + table + ' error:', e.message || e.name);
+    console.warn('[supabase] POST ' + table + ' error:', e, LAST_POST_ERROR);
     return null;
   }
 }
