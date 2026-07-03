@@ -232,6 +232,16 @@
 
 </div>
 
+<!-- Success Modal (بدون browser alert/confirm) -->
+<div class="confirm-modal" id="successModal">
+  <div class="confirm-box" style="max-width:420px;text-align:center">
+    <i class="fa-solid fa-circle-check" style="font-size:48px;color:#059669;margin-bottom:12px"></i>
+    <h3 style="margin-bottom:8px" id="successTitle">تم إنشاء الفاتورة</h3>
+    <div id="successDetails" style="font-size:14px;color:var(--primary-light);line-height:1.8;margin-bottom:16px;text-align:right;background:#f8f6f3;border-radius:12px;padding:14px 18px"></div>
+    <div class="confirm-buttons" id="successButtons" style="gap:10px"></div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>

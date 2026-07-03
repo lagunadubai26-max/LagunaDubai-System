@@ -414,36 +414,66 @@ document.getElementById('confirmCheckout').onclick = async () => {
     }
     document.getElementById('checkoutModal').classList.remove('show');
     if (inv && inv.id) {
-      const changeText = change > 0 ? `\nالباقي للعميل: ${change} ج.م` : '';
-      const remainText = inv.remaining > 0 ? `\nالمتبقي: ${inv.remaining} ج.م` : '';
-      const msg = `تم إنشاء الفاتورة ${inv.id}\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${paid} ج.م${changeText}${remainText}`;
+      const isAdmin = !!sessionStorage.getItem('laguna_user');
       const printSettings = (await DB.settings.get()) || {};
       const autoPrintReceipt = printSettings.autoPrintReceipt !== false;
       const autoPrintKitchen = printSettings.autoPrintKitchen !== false;
       const copies = printSettings.printCopies || 1;
       const hasPrinter = typeof PRINTER !== 'undefined' && PRINTER.isConnected();
-      if (hasPrinter && autoPrintReceipt) {
-        alert(msg);
-        try {
-          for (let i = 0; i < copies; i++) await PRINTER.printReceipt(inv);
-          if (paid >= totalAmount) await PRINTER.openDrawer();
-          if (autoPrintKitchen) await PRINTER.printKitchenOrder(inv);
-          await DB.invoices.update(inv.id, { printed: true });
-        } catch (e) {
-          console.warn('[printer] error:', e);
-          if (confirm('حدث خطأ في الطباعة.\nهل تريد طباعة الفاتورة عبر المتصفح؟')) {
-            printReceipt(inv);
-          }
-        }
+
+      if (isCustomer || !isAdmin) {
+        alert(`تم إنشاء الفاتورة ${inv.id}\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${paid} ج.م`);
       } else {
-        if (confirm(msg + '\n\nهل تريد طباعة الفاتورة؟')) {
+        const changeText = change > 0 ? `<span style="color:#059669">الباقي للعميل: ${change} ج.م</span>` : '';
+        const remainText = inv.remaining > 0 ? `<span style="color:#dc2626">المتبقي: ${inv.remaining} ج.م</span>` : '';
+        const itemsList = inv.items && inv.items.length
+          ? inv.items.map(it => `${it.name} x${it.qty} = ${it.qty * it.price} ج.م${it.hasMilk ? ' +حليب' : ''}${it.note ? ' (' + it.note + ')' : ''}`).join('<br>') + '<hr style="margin:8px 0;border:none;border-top:1px dashed #ddd">'
+          : '';
+        document.getElementById('successDetails').innerHTML = `
+          <div style="font-size:11px;color:#888;margin-bottom:4px">#${inv.id}</div>
+          ${itemsList}
+          <div style="display:flex;justify-content:space-between;margin:2px 0"><span>الإجمالي</span><span>${totalAmount} ج.م</span></div>
+          <div style="display:flex;justify-content:space-between;margin:2px 0"><span>المدفوع</span><span>${paid} ج.م</span></div>
+          ${inv.change > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#059669"><span>الباقي للعميل</span><span>${inv.change} ج.م</span></div>` : ''}
+          ${inv.remaining > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626"><span>المتبقي</span><span>${inv.remaining} ج.م</span></div>` : ''}
+        `.trim();
+
+        const btnContainer = document.getElementById('successButtons');
+        btnContainer.innerHTML = '';
+        const printBtn = document.createElement('button');
+        printBtn.style.cssText = 'flex:1;height:44px;border-radius:12px;font-size:14px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;border:none;cursor:pointer';
+        printBtn.innerHTML = '<i class="fa-solid fa-print"></i> طباعة الفاتورة';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.style.cssText = 'flex:1;height:44px;border-radius:12px;font-size:14px;font-weight:600;background:#f5f5f4;color:var(--primary);border:none;cursor:pointer';
+        closeBtn.textContent = 'إغلاق';
+
+        btnContainer.appendChild(closeBtn);
+        btnContainer.appendChild(printBtn);
+
+        document.getElementById('successModal').classList.add('show');
+
+        printBtn.onclick = async () => {
+          document.getElementById('successModal').classList.remove('show');
           printReceipt(inv);
+        };
+        const hideSuccess = () => document.getElementById('successModal').classList.remove('show');
+        closeBtn.onclick = hideSuccess;
+
+        if (hasPrinter && autoPrintReceipt) {
+          try {
+            for (let i = 0; i < copies; i++) await PRINTER.printReceipt(inv);
+            if (paid >= totalAmount) await PRINTER.openDrawer();
+            if (autoPrintKitchen) await PRINTER.printKitchenOrder(inv);
+            await DB.invoices.update(inv.id, { printed: true });
+          } catch (e) {
+            console.warn('[printer] error:', e);
+            printBtn.textContent = 'إعادة الطباعة';
+          }
         }
       }
     } else {
-      const changeText = change > 0 ? `\nالباقي للعميل: ${change} ج.م` : '';
-      const remainText = (totalAmount - paid) > 0 ? `\nالمتبقي: ${totalAmount - paid} ج.م` : '';
-      alert(`تم إنشاء الفاتورة\nالإجمالي: ${totalAmount} جنيه\nالمدفوع: ${paid} جنيه${changeText}${remainText}`);
+      alert(`تم إنشاء الفاتورة\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${paid} ج.م`);
     }
     clearOrder();
   } catch (e) {
