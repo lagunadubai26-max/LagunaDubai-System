@@ -104,6 +104,16 @@ function attachAddToCart() {
   });
 }
 
+function updateAllItems() {
+  const orderList = document.querySelector('.order-box .order-list');
+  const sheetList = document.getElementById('sheetOrderList');
+  const source = orderList && orderList.querySelector('.order-item .name') ? orderList : (sheetList && sheetList.querySelector('.order-item .name') ? sheetList : null);
+  if (!source) return;
+  [orderList, sheetList].forEach(el => {
+    if (el && el !== source) el.innerHTML = source.innerHTML;
+  });
+}
+
 function handleOrderClick(e) {
   const btn = e.target.closest('.plus, .minus, .delete');
   if (!btn) return;
@@ -131,11 +141,13 @@ function handleOrderClick(e) {
     const price = parseInt(item.dataset.price);
     total -= qty * price;
     item.remove();
-    if (document.querySelectorAll('.order-list .order-item, #sheetOrderList .order-item').length === 0) {
+    if (!document.querySelector('.order-item .name')) {
       document.querySelector('.order-list').innerHTML = '<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>';
+      document.getElementById('sheetOrderList').innerHTML = '<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>';
     }
   }
   document.querySelector('.total strong').innerText = total + ' جنيه';
+  updateAllItems();
   syncOrderSheet();
 }
 
