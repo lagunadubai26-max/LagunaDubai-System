@@ -41,7 +41,7 @@ window.PRINTER = (() => {
     const parts = [];
     parts.push(escposInit());
     parts.push(escposCmd(0x1B, 0x21, 0x30));
-    parts.push(escposText('☕ Laguna Cafe'));
+    parts.push(escposText('☕ LagunaDubai'));
     parts.push(escposCmd(0x1B, 0x21, 0x00));
     parts.push(escposText(''));
     parts.push(escposBold(true));
@@ -84,8 +84,10 @@ window.PRINTER = (() => {
   function buildKitchenOrderData(inv) {
     const parts = [];
     parts.push(escposInit());
+    parts.push(escposText('☕ LagunaDubai'));
+    parts.push(escposText(''));
     parts.push(escposBold(true));
-    parts.push(escposText('    ** طلب مطبخ **'));
+    parts.push(escposText('** طلب مطبخ **'));
     parts.push(escposBold(false));
     parts.push(escposText(''));
     const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-SA') : '';
