@@ -12,7 +12,12 @@ const DB = {
     try {
       const data = await apiFn();
       if (Array.isArray(data)) {
-        const parsed = data.map(d => ({ ...d, items: typeof d.items === 'string' ? JSON.parse(d.items) : d.items }));
+        const parsed = data.map(d => {
+          const row = { ...d, items: typeof d.items === 'string' ? JSON.parse(d.items) : d.items };
+          if (row.paymentmethod && !row.paymentMethod) row.paymentMethod = row.paymentmethod;
+          delete row.paymentmethod;
+          return row;
+        });
         const existing = JSON.parse(localStorage.getItem('laguna_' + table)) || [];
         const merged = [...existing];
         for (const item of parsed) {
@@ -96,7 +101,12 @@ const DB = {
       const list = DB.invoices.local();
       inv.id = 'INV-' + String(list.length + 1).padStart(4, '0');
       if (DB_MODE !== 'local') {
-        const apiInv = { ...inv, items: JSON.stringify(inv.items) };
+        const apiInv = { 
+          ...inv, 
+          items: JSON.stringify(inv.items),
+          paymentmethod: inv.paymentMethod,
+          paymentMethod: undefined 
+        };
         try { await API.invoices.add(apiInv); } catch {}
       }
       list.unshift(inv);
@@ -104,7 +114,10 @@ const DB = {
       return inv;
     },
     async update(id, data) {
-      if (DB_MODE !== 'local') try { await API.invoices.update(id, data); } catch {}
+      if (DB_MODE !== 'local') {
+        const apiData = { ...data, paymentmethod: data.paymentMethod, paymentMethod: undefined };
+        try { await API.invoices.update(id, apiData); } catch {}
+      }
       const list = DB.invoices.local();
       const idx = list.findIndex(i => i.id === id);
       if (idx > -1) { list[idx] = { ...list[idx], ...data }; DB.set('invoices', list); }
