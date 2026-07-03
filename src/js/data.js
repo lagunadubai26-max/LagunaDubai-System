@@ -143,7 +143,7 @@ const DB = {
         await this.products.update(p.id, { description: desc });
       }
     }
-  }
+  },
 
   async seed() {
     const users = await this.users.all();

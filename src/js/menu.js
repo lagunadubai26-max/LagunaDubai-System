@@ -176,9 +176,9 @@ function formatItemPrice(itemEl) {
 }
 
 function handleOrderClick(e) {
-  const btn = e.target.closest('.plus, .minus, .delete, .note-btn, .milk-check');
+  const btn = e.target.closest('.plus, .minus, .delete, .note-btn, .milk-toggle');
   if (!btn) return;
-  if (btn.classList.contains('milk-check')) {
+  if (btn.classList.contains('milk-toggle')) {
     const clickedItem = btn.closest('.order-item');
     const nameEl = clickedItem.querySelector('.name');
     if (!nameEl) return;
