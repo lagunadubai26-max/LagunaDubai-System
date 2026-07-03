@@ -15,6 +15,8 @@ const DB = {
       if (Array.isArray(data)) {
         const parsed = data.map(d => {
           const row = { ...d, items: typeof d.items === 'string' ? JSON.parse(d.items) : d.items };
+          if (row.paymentmethod && !row.paymentMethod) row.paymentMethod = row.paymentmethod;
+          delete row.paymentmethod;
           return row;
         });
         const existing = JSON.parse(localStorage.getItem('laguna_' + table)) || [];
@@ -137,7 +139,7 @@ const DB = {
           remaining: data.remaining,
           serviceAmount: data.serviceAmount,
           status: data.status,
-          paymentMethod: data.paymentMethod
+          paymentmethod: data.paymentMethod
         };
         Object.keys(apiData).forEach(k => apiData[k] === undefined && delete apiData[k]);
         try { await API.invoices.update(id, apiData); } catch {}
