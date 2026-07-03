@@ -464,7 +464,7 @@ body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
 .footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:10px;color:#555}
 @media print{@page{margin:0;size:58mm 300mm}}
 </style></head><body>
-<div class="header"><h2>☕ Laguna Cafe</h2><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
+<div class="header"><h2>☕ Laguna Cafe</h2><p style="font-weight:700">** فاتورة كاشير **</p><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
 <table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th>الكمية</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
 <div class="summary"><div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
 <div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${inv.change > 0 ? `<div class="line" style="color:#059669"><span>الباقي للعميل</span><span>${Number(inv.change).toLocaleString()} ج.م</span></div>` : ''}${remaining > 0 ? `<div class="line" style="color:#dc2626"><span>المتبقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}

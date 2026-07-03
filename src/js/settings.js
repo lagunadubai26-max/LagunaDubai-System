@@ -117,9 +117,10 @@ function renderPrinterList() {
 // USB
 document.getElementById('addUsbPrinterBtn').onclick = async () => {
   try {
-    const p = await PRINTER.addPrinter('usb', { name: 'USB Printer' });
+    const forKitchen = confirm('هل هذه طابعة مطبخ؟\nاضغط OK لو طابعة المطبخ، أو Cancel لو طابعة الفواتير');
+    const p = await PRINTER.addPrinter('usb', { name: forKitchen ? 'طابعة المطبخ' : 'طابعة الفواتير', forKitchen });
     renderPrinterList();
-    alert('✓ تم توصيل طابعة USB');
+    alert('✓ تم توصيل ' + (forKitchen ? 'طابعة المطبخ' : 'طابعة الفواتير'));
   } catch (e) {
     if (e.name === 'NotFoundError') return;
     alert('خطأ: ' + e.message);
@@ -156,9 +157,10 @@ document.getElementById('saveWifiBtn').onclick = async () => {
 // Bluetooth
 document.getElementById('addBtPrinterBtn').onclick = async () => {
   try {
-    const p = await PRINTER.addPrinter('bluetooth', { name: 'Bluetooth Printer' });
+    const forKitchen = confirm('هل هذه طابعة مطبخ؟\nاضغط OK لو طابعة المطبخ، أو Cancel لو طابعة الفواتير');
+    const p = await PRINTER.addPrinter('bluetooth', { name: forKitchen ? 'طابعة المطبخ' : 'طابعة Bluetooth', forKitchen });
     renderPrinterList();
-    alert('✓ تم توصيل طابعة Bluetooth');
+    alert('✓ تم توصيل ' + (forKitchen ? 'طابعة المطبخ' : 'طابعة Bluetooth'));
   } catch (e) {
     if (e.name === 'NotFoundError') return;
     alert('خطأ: ' + e.message);

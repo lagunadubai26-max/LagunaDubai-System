@@ -42,6 +42,7 @@ window.PRINTER = (() => {
     parts.push(escposInit());
     parts.push(escposBold(true));
     parts.push(escposText('      Laguna Cafe'));
+    parts.push(escposText('    ** فاتورة كاشير **'));
     parts.push(escposBold(false));
     parts.push(escposText(''));
     const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-SA') : '';
