@@ -9,6 +9,13 @@ if (isCustomer) {
   document.querySelectorAll('.sidebar, #sidebarToggle, .sidebar-overlay').forEach(el => el && (el.style.display = 'none'));
   const mainEl = document.querySelector('.main');
   if (mainEl) { mainEl.style.marginRight = '0'; mainEl.style.width = '100%'; }
+  // Hide admin-only checkout fields
+  const custSec = document.getElementById('checkoutCustomerSection');
+  const paidSec = document.getElementById('checkoutPaidSection');
+  const remSec = document.getElementById('checkoutRemainingSection');
+  if (custSec) custSec.style.display = 'none';
+  if (paidSec) paidSec.style.display = 'none';
+  if (remSec) remSec.style.display = 'none';
 }
 (async () => {
   if (hasService) {

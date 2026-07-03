@@ -159,7 +159,7 @@
     <i class="fa-solid fa-file-invoice"></i>
     <h3 style="text-align:center;">إتمام الطلب</h3>
     <div class="checkout-form" style="margin:20px 0;">
-      <div style="margin-bottom:15px;">
+      <div id="checkoutCustomerSection" style="margin-bottom:15px;">
         <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">نوع العميل</label>
         <select id="checkoutCustomerType" class="checkout-input">
           <option value="regular">عميل عادي</option>
@@ -188,11 +188,11 @@
         <span style="font-size:16px;font-weight:700;color:var(--primary);">الإجمالي</span>
         <span id="checkoutTotal" style="font-size:22px;font-weight:800;color:var(--accent);">0 جنيه</span>
       </div>
-      <div style="margin-bottom:10px;">
+      <div id="checkoutPaidSection" style="margin-bottom:10px;">
         <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">المبلغ المدفوع</label>
         <input type="number" id="checkoutPaid" placeholder="المبلغ المدفوع" class="checkout-input" oninput="calcRemaining()">
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#fef2f2;border-radius:12px;">
+      <div id="checkoutRemainingSection" style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#fef2f2;border-radius:12px;">
         <span style="font-size:15px;font-weight:600;color:var(--danger);">الباقي</span>
         <span id="checkoutRemaining" style="font-size:18px;font-weight:800;color:var(--danger);">0 جنيه</span>
       </div>
