@@ -1,4 +1,4 @@
-const BASE = 'menu.html';
+const BASE = window.location.protocol === 'file:' ? 'menu.html' : window.location.origin + '/LagunaDubai-System/menu.html';
 const container = document.getElementById('qrContent');
 
 function renderCard(t, section) {
