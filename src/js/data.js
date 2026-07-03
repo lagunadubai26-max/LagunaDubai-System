@@ -364,6 +364,31 @@ const DB = {
       });
       DB.set('products', prods);
     }
+    const productDescriptions = {
+      'p88': 'برتقال - جوافه - ليمون - عسل',
+      'p89': 'كيوي - مانجا',
+      'p90': 'مانجو - جوافة - فراولة',
+      'p91': 'فراولة - كيوي - موز - برتقال',
+      'p92': 'موز - ايس كريم - مكسرات - كريمة',
+      'p93': 'اناناس - برتقال - خوخ',
+      'p94': 'مانجو - جوافة - فراولة',
+      'p95': 'صودا - برتقال',
+      'p96': 'صودا - برتقال - رمان سيرم',
+      'p97': 'باشون - بلوشيرم',
+      'p98': 'صودا - بلوبيري',
+      'p99': 'صودا - تفاح اخضر - كولا سيرم',
+      'p100': 'بريل - ليمون - نعناع',
+      'p101': 'اسبيرسو - رد بول',
+    };
+    const prods = DB.products.local();
+    let changed = false;
+    prods.forEach(p => {
+      if (!p.description && productDescriptions[p.id]) {
+        p.description = productDescriptions[p.id];
+        changed = true;
+      }
+    });
+    if (changed) DB.set('products', prods);
   }
 };
 

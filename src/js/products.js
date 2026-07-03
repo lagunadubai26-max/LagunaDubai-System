@@ -56,6 +56,7 @@ function attachEvents() {
       document.getElementById('prodNameEn').value = p.nameEn || '';
       document.getElementById('prodCategoryModal').value = p.category;
       document.getElementById('prodPrice').value = p.price;
+      document.getElementById('prodDesc').value = p.description || '';
       document.getElementById('prodImage').value = p.image || '';
       document.getElementById('prodImageFile').value = '';
       if (p.image) {
@@ -82,6 +83,7 @@ function resetProductForm() {
   document.getElementById('prodNameEn').value = '';
   document.getElementById('prodCategoryModal').value = 'coffee';
   document.getElementById('prodPrice').value = '';
+  document.getElementById('prodDesc').value = '';
   document.getElementById('prodImage').value = '';
   document.getElementById('prodImageFile').value = '';
   document.getElementById('prodImagePreview').style.display = 'none';
@@ -113,13 +115,14 @@ document.getElementById('saveProd').onclick = async () => {
   const nameEn = document.getElementById('prodNameEn').value.trim();
   const category = document.getElementById('prodCategoryModal').value;
   const price = Number(document.getElementById('prodPrice').value);
+  const description = document.getElementById('prodDesc').value.trim();
   const image = document.getElementById('prodImage').value.trim();
   const available = document.getElementById('prodAvailable').checked;
   if (!name || !price) return alert('يرجى إدخال اسم المنتج والسعر');
   if (editProdId) {
-    await DB.products.update(editProdId, { name, nameEn, category, price, image, available });
+    await DB.products.update(editProdId, { name, nameEn, category, price, description, image, available });
   } else {
-    await DB.products.add({ id: Date.now().toString(36), name, nameEn, category, price, image, available });
+    await DB.products.add({ id: Date.now().toString(36), name, nameEn, category, price, description, image, available });
   }
   modal.classList.remove('show');
   render();
