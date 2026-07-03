@@ -467,15 +467,19 @@ document.getElementById('confirmCheckout').onclick = async () => {
       if (isCustomer || !isAdmin) {
         alert(`تم إنشاء الفاتورة ${inv.id}\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${paid} ج.م`);
       } else {
-        const changeText = change > 0 ? `<span style="color:#059669">الباقي للعميل: ${change} ج.م</span>` : '';
-        const remainText = inv.remaining > 0 ? `<span style="color:#dc2626">المتبقي: ${inv.remaining} ج.م</span>` : '';
         const itemsList = inv.items && inv.items.length
-          ? inv.items.map(it => `${it.name} x${it.qty} = ${it.qty * it.price} ج.م${it.hasMilk ? ' +حليب' : ''}${it.note ? ' (' + it.note + ')' : ''}`).join('<br>') + '<hr style="margin:8px 0;border:none;border-top:1px dashed #ddd">'
+          ? '<div style="margin:8px 0">' + inv.items.map(it => {
+              const milkTxt = it.hasMilk ? ' +حليب' : '';
+              const noteTxt = it.note ? ' (' + it.note + ')' : '';
+              return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dotted #eee;font-size:13px"><span>• ${it.name}${milkTxt}${noteTxt} x${it.qty}</span><span>${it.qty * it.price} ج.م</span></div>`;
+            }).join('') + '</div><hr style="margin:8px 0;border:none;border-top:2px dashed #ddd">'
           : '';
         document.getElementById('successDetails').innerHTML = `
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">☕ Laguna Cafe</div>
+          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">** فاتورة كاشير **</div>
           <div style="font-size:11px;color:#888;margin-bottom:4px">#${inv.id}</div>
           ${itemsList}
-          <div style="display:flex;justify-content:space-between;margin:2px 0"><span>الإجمالي</span><span>${totalAmount} ج.م</span></div>
+          <div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:700;font-size:15px;padding-top:4px"><span>الإجمالي</span><span>${totalAmount} ج.م</span></div>
           <div style="display:flex;justify-content:space-between;margin:2px 0"><span>المدفوع</span><span>${paid} ج.م</span></div>
           ${inv.change > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#059669"><span>الباقي للعميل</span><span>${inv.change} ج.م</span></div>` : ''}
           ${inv.remaining > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626"><span>المتبقي</span><span>${inv.remaining} ج.م</span></div>` : ''}

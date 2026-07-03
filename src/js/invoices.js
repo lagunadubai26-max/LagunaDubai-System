@@ -101,22 +101,24 @@ function attachActions() {
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
 .header{text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed #000}
-.header h2{font-size:16px;font-weight:700;margin-bottom:2px}
+.header .logo{font-size:20px;font-weight:700;margin-bottom:4px}
+.header h2{font-size:14px;font-weight:700;margin-bottom:2px}
 .header p{font-size:11px;color:#555}
 .receipt-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
 .receipt-table th,.receipt-table td{padding:3px 2px;text-align:center}
 .receipt-table th{border-bottom:1px solid #000}
 .receipt-table td{border-bottom:1px dotted #ccc}
 .receipt-table .item-name{text-align:right}
-.summary{margin:6px 0;padding:4px 0;border-top:1px dashed #000}
+.summary{margin:6px 0;padding:4px 0}
+.summary .dashed{border-top:1px dashed #000;margin-bottom:4px}
 .summary .line{display:flex;justify-content:space-between;font-size:11px;padding:1px 0}
-.summary .total{font-size:15px;font-weight:700;border-top:1px solid #000;padding-top:4px;margin-top:2px}
+.summary .total{font-size:15px;font-weight:700;border-top:2px solid #000;padding-top:4px;margin-top:4px}
 .footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:10px;color:#555}
 @media print{@page{margin:0;size:58mm 300mm}}
 </style></head><body>
-<div class="header"><h2>☕ Laguna Cafe</h2><p style="font-weight:700">** فاتورة كاشير **</p><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
+<div class="header"><div class="logo">☕ Laguna Cafe</div><h2>** فاتورة كاشير **</h2><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
 <table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
-<div class="summary"><div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
+<div class="summary"><div class="dashed"></div><div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
 <div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${inv.change > 0 ? `<div class="line" style="color:#059669"><span>الباقي للعميل</span><span>${Number(inv.change).toLocaleString()} ج.م</span></div>` : ''}${remaining > 0 ? `<div class="line" style="color:#dc2626"><span>المتبقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}
 <div class="line total"><span>${remaining > 0 ? 'معلق' : 'مدفوع'}</span><span>${inv.paymentMethod || 'كاش'}</span></div></div>
 <div class="footer">شكراً لزيارتكم<br>Laguna Cafe ☕</div>

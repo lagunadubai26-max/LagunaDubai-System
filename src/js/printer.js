@@ -40,9 +40,12 @@ window.PRINTER = (() => {
   function buildReceiptData(inv) {
     const parts = [];
     parts.push(escposInit());
+    parts.push(escposCmd(0x1B, 0x21, 0x30));
+    parts.push(escposText('☕ Laguna Cafe'));
+    parts.push(escposCmd(0x1B, 0x21, 0x00));
+    parts.push(escposText(''));
     parts.push(escposBold(true));
-    parts.push(escposText('      Laguna Cafe'));
-    parts.push(escposText('    ** فاتورة كاشير **'));
+    parts.push(escposText('** فاتورة كاشير **'));
     parts.push(escposBold(false));
     parts.push(escposText(''));
     const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-SA') : '';
@@ -55,7 +58,7 @@ window.PRINTER = (() => {
     if (inv.items) inv.items.forEach(item => {
       const milkTxt = item.hasMilk ? ' +حليب' : '';
       const noteTxt = item.note ? ' (' + item.note + ')' : '';
-      const line = (item.name + milkTxt).substring(0, 22).padEnd(22) + item.qty + 'x' + (item.qty * item.price);
+      const line = ('\u2022 ' + item.name + milkTxt).substring(0, 22).padEnd(22) + item.qty + 'x' + (item.qty * item.price);
       parts.push(escposText(line));
       if (item.note) parts.push(escposText('  ' + item.note));
     });
@@ -63,7 +66,10 @@ window.PRINTER = (() => {
     const paid = inv.paid ?? inv.total;
     const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
     const change = inv.change || 0;
+    parts.push(escposText(''));
+    parts.push(escposBold(true));
     parts.push(escposText('الإجمالي:  ' + (inv.total ?? 0) + ' ج.م'));
+    parts.push(escposBold(false));
     parts.push(escposText('المدفوع:   ' + paid + ' ج.م'));
     if (change > 0) parts.push(escposText('الباقي للعميل: ' + change + ' ج.م'));
     if (remaining > 0) parts.push(escposText('المتبقي:  ' + remaining + ' ج.م'));
