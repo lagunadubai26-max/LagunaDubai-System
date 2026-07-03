@@ -78,6 +78,11 @@ const DB = {
     async remove(id) { await FB.removeDoc('inventory', id); }
   },
 
+  inventory_counts: {
+    async all() { return await FB.getCollection('inventory_counts'); },
+    async add(c) { if (!c.id) c.id = Date.now().toString(36); return await FB.addDoc('inventory_counts', c); },
+  },
+
   settings: {
     async get() {
       const all = await FB.getCollection('settings');

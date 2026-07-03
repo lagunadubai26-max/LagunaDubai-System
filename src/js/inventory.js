@@ -90,4 +90,59 @@ document.getElementById('closeInvModal').onclick = () => modal.classList.remove(
 searchInput.addEventListener('keyup', render);
 catFilter.addEventListener('change', render);
 
+// --- Weekly Inventory ---
+const weeklyInvBtn = document.getElementById('weeklyInvBtn');
+const weeklyInvModal = document.getElementById('weeklyInvModal');
+const weeklyInvList = document.getElementById('weeklyInvList');
+const saveWeeklyInv = document.getElementById('saveWeeklyInv');
+
+weeklyInvBtn.onclick = async () => {
+  inventory = await DB.inventory.all() || [];
+  weeklyInvList.innerHTML = '';
+  inventory.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding:10px;border-bottom:1px solid var(--border)">${item.name}</td>
+      <td style="padding:10px;border-bottom:1px solid var(--border)">${item.quantity}</td>
+      <td style="padding:10px;border-bottom:1px solid var(--border)"><input type="number" class="weekly-qty" data-id="${item.id}" value="${item.quantity}" style="width:70px;padding:6px 10px;border:2px solid var(--border);border-radius:8px;font-size:13px;outline:none"></td>
+      <td style="padding:10px;border-bottom:1px solid var(--border)">${item.minQuantity}</td>`;
+    weeklyInvList.appendChild(tr);
+  });
+  weeklyInvModal.classList.add('show');
+};
+
+saveWeeklyInv.onclick = async () => {
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekKey = weekStart.toISOString().slice(0, 10);
+
+  const lowStockItems = [];
+  const inputs = document.querySelectorAll('.weekly-qty');
+  for (const input of inputs) {
+    const actualQty = Number(input.value);
+    const itemId = input.dataset.id;
+    const item = inventory.find(i => i.id === itemId);
+    if (!item) continue;
+    await DB.inventory_counts.add({
+      itemId, itemName: item.name, weekKey, date: dateStr,
+      systemQty: item.quantity, actualQty, minQty: item.minQuantity
+    });
+    if (actualQty < item.minQuantity) {
+      lowStockItems.push(item.name);
+    }
+  }
+
+  weeklyInvModal.classList.remove('show');
+  if (lowStockItems.length > 0) {
+    alert('⚠️ تنبيه: الأصناف التالية أقل من الحد الأدنى:\n' + lowStockItems.map(n => '• ' + n).join('\n'));
+  } else {
+    alert('✓ تم حفظ الجرد الأسبوعي بنجاح');
+  }
+  render();
+};
+
+document.getElementById('cancelWeeklyInv').onclick = () => weeklyInvModal.classList.remove('show');
+document.getElementById('closeWeeklyInv').onclick = () => weeklyInvModal.classList.remove('show');
+
 render();
