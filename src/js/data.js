@@ -11,6 +11,7 @@ const DB = {
   async syncFromAPI(table, local, setFn, apiFn) {
     try {
       const data = await apiFn();
+      console.log('[sync] ' + table + ' GET:', data ? 'OK count=' + data.length : 'FAILED(null)');
       if (Array.isArray(data)) {
         const parsed = data.map(d => {
           const row = { ...d, items: typeof d.items === 'string' ? JSON.parse(d.items) : d.items };
@@ -24,9 +25,12 @@ const DB = {
           const idx = merged.findIndex(m => m.id === item.id);
           if (idx === -1) merged.push(item);
         }
+        console.log('[sync] ' + table + ' merged:', local.length, 'local +', parsed.length, 'api =', merged.length);
         setFn(merged);
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[sync] ' + table + ' error:', e.message);
+    }
   },
 
   employees: {
@@ -114,10 +118,18 @@ const DB = {
           paymentMethod: inv.paymentMethod,
           paymentmethod: inv.paymentMethod
         };
-        try { await API.invoices.add(apiInv); } catch {}
+        try {
+          const r = await API.invoices.add(apiInv);
+          console.log('[sync] invoices.add(' + inv.id + '):', r ? 'OK' : 'FAILED(null)');
+        } catch (e) {
+          console.warn('[sync] invoices.add(' + inv.id + ') error:', e.message);
+        }
+      } else {
+        console.log('[sync] local mode, skip Supabase');
       }
       list.unshift(inv);
       DB.set('invoices', list);
+      console.log('[sync] invoices saved locally:', inv.id, 'count:', list.length);
       return inv;
     },
     async update(id, data) {
