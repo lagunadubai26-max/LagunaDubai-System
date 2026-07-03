@@ -12,7 +12,6 @@ function getNextId() {
 
 async function syncToSupabase(invoice) {
   try {
-    const fetch = globalThis.fetch || (await import('node-fetch')).default;
     const res = await fetch(`${SUPABASE_URL}/rest/v1/invoices`, {
       method: 'POST',
       headers: {
@@ -45,13 +44,13 @@ async function syncToSupabase(invoice) {
 
 router.post('/', async (req, res) => {
   try {
-    const { customer, items, total, serviceAmount, status, paymentMethod, table, date } = req.body;
-    const id = getNextId();
+    const { id: clientId, customer, items, total, serviceAmount, status, paymentMethod, table, date } = req.body;
+    const id = clientId || getNextId();
     const itemsJson = JSON.stringify(items || []);
     const now = date || new Date().toISOString();
     const customerName = customer || (table ? 'طاولة ' + table.replace('طاولة ', '') : 'نقدي');
 
-    db.prepare(`INSERT INTO invoices (id, customer, date, items, total, serviceAmount, status, paymentMethod, "table")
+    db.prepare(`INSERT OR REPLACE INTO invoices (id, customer, date, items, total, serviceAmount, status, paymentMethod, "table")
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(id, customerName, now, itemsJson, total || 0, serviceAmount || 0, status || 'paid', paymentMethod || 'Cash', table || null);
 

@@ -1,15 +1,16 @@
 services:
   - type: web
-    name: laguna-cafe
+    name: laguna-dubai-system
     runtime: node
-    repo: https://github.com/YOUR_USERNAME/laguna-cafe
+    repo: https://github.com/adhamkhaled1510/LagunaDubai-System
     plan: free
     region: frankfurt
-    buildCommand: npm install
-    startCommand: npm start
+    startCommand: node backend/server.js
     envVars:
       - key: JWT_SECRET
         generateValue: true
+      - key: DB_PATH
+        value: /data/laguna.db
       - key: PORT
         value: 10000
     disk:
