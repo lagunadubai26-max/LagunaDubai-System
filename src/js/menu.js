@@ -226,16 +226,13 @@ checkoutBtn.addEventListener("click", () => {
   const serviceAmount = serviceTaxRate > 0 ? Math.round(totalAmount * serviceTaxRate / 100) : 0;
   const grandTotal = totalAmount + serviceAmount;
   document.getElementById('checkoutTotal').textContent = grandTotal + ' جنيه' + (serviceTaxRate > 0 ? ' (الخدمة ' + serviceAmount + ' ج.م)' : '');
+  document.getElementById('checkoutPaid').value = grandTotal;
+  calcRemaining();
   document.getElementById('checkoutModal').classList.add('show');
   window._checkoutItems = items;
   window._checkoutTotal = grandTotal;
   window._checkoutService = serviceAmount;
 });
-
-document.getElementById('checkoutCustomerType').onchange = () => {
-  const isSpecial = document.getElementById('checkoutCustomerType').value === 'special';
-  document.getElementById('checkoutSpecialFields').style.display = isSpecial ? 'block' : 'none';
-};
 
 document.getElementById('confirmCheckout').onclick = async () => {
   const custType = document.getElementById('checkoutCustomerType').value;

@@ -155,57 +155,63 @@
 
 <!-- Checkout Modal -->
 <div class="confirm-modal" id="checkoutModal">
-  <div class="confirm-box" style="width:420px;">
-    <i class="fa-solid fa-file-invoice" style="color:var(--accent);"></i>
-    <h3>إتمام الطلب</h3>
-    <div style="text-align:right;padding:10px 0;">
-      <label style="display:block;margin-bottom:8px;font-weight:600;color:var(--primary-light);">نوع العميل</label>
-      <select id="checkoutCustomerType" style="width:100%;height:48px;border:2px solid #e0e0e0;border-radius:12px;padding:0 15px;font-size:16px;font-family:'Cairo',sans-serif;outline:none;margin-bottom:12px;">
-        <option value="regular">عميل عادي</option>
-        <option value="special">عميل خاص</option>
-      </select>
-      <div id="checkoutSpecialFields" style="display:none">
-        <label style="display:block;margin-bottom:8px;font-weight:600;color:var(--primary-light);">اسم العميل الخاص</label>
-        <input type="text" id="checkoutSpecialName" placeholder="اسم العميل" style="width:100%;height:48px;border:2px solid #e0e0e0;border-radius:12px;padding:0 15px;font-size:16px;font-family:'Cairo',sans-serif;outline:none;margin-bottom:12px;">
-        <label style="display:block;margin-bottom:8px;font-weight:600;color:var(--primary-light);">السعر المخصص (إجمالي)</label>
-        <input type="number" id="checkoutSpecialPrice" placeholder="0" style="width:100%;height:48px;border:2px solid #e0e0e0;border-radius:12px;padding:0 15px;font-size:16px;font-family:'Cairo',sans-serif;outline:none;margin-bottom:12px;">
+  <div class="confirm-box" style="width:440px;text-align:right;">
+    <i class="fa-solid fa-file-invoice"></i>
+    <h3 style="text-align:center;">إتمام الطلب</h3>
+    <div class="checkout-form" style="margin:20px 0;">
+      <div style="margin-bottom:15px;">
+        <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">نوع العميل</label>
+        <select id="checkoutCustomerType" class="checkout-input">
+          <option value="regular">عميل عادي</option>
+          <option value="special">عميل خاص</option>
+        </select>
       </div>
-      <label style="display:block;margin-bottom:8px;font-weight:600;color:var(--primary-light);">طريقة الدفع</label>
-      <select id="checkoutMethod" style="width:100%;height:48px;border:2px solid #e0e0e0;border-radius:12px;padding:0 15px;font-size:16px;font-family:'Cairo',sans-serif;outline:none;margin-bottom:15px;">
-        <option value="Cash">كاش</option>
-        <option value="Visa">فيزا</option>
-        <option value="Wallet">محفظة</option>
-      </select>
-      <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;color:var(--primary-light);padding:10px 0;border-top:1px solid #eee;">
-        <span>الإجمالي:</span>
-        <span id="checkoutTotal" style="color:var(--accent);">0 جنيه</span>
-      </div>
-      <div style="margin-top:10px;">
-        <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">المدفوع</label>
-        <input type="number" id="checkoutPaid" placeholder="المبلغ المدفوع" style="width:100%;height:44px;border:2px solid #e0e0e0;border-radius:12px;padding:0 15px;font-size:16px;font-family:'Cairo',sans-serif;outline:none;" oninput="calcRemaining(this.value)">
-        <div style="display:flex;justify-content:space-between;font-size:15px;padding:8px 4px 0;color:var(--muted);">
-          <span>الباقي:</span>
-          <span id="checkoutRemaining" style="color:var(--danger);font-weight:700;">0 جنيه</span>
+      <div id="checkoutSpecialFields" style="display:none;margin-bottom:15px;">
+        <div style="margin-bottom:12px;">
+          <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">اسم العميل الخاص</label>
+          <input type="text" id="checkoutSpecialName" placeholder="اسم العميل" class="checkout-input">
+        </div>
+        <div>
+          <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">السعر المخصص (إجمالي)</label>
+          <input type="number" id="checkoutSpecialPrice" placeholder="0" class="checkout-input">
         </div>
       </div>
-      <script>
-      function calcRemaining(paidStr) {
-        const totalText = document.getElementById('checkoutTotal').textContent;
-        const match = totalText.match(/[\d,]+/);
-        const total = match ? Number(match[0].replace(/,/g,'')) : 0;
-        const paid = Number(paidStr) || 0;
-        document.getElementById('checkoutRemaining').textContent = Math.max(0, total - paid) + ' جنيه';
-      }
-      </script>
-        <div style="display:flex;justify-content:space-between;font-size:15px;padding:8px 4px 0;color:var(--muted);">
-          <span>الباقي:</span>
-          <span id="checkoutRemaining" style="color:var(--danger);font-weight:700;">0 جنيه</span>
-        </div>
+      <div style="margin-bottom:15px;">
+        <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">طريقة الدفع</label>
+        <select id="checkoutMethod" class="checkout-input">
+          <option value="Cash">كاش</option>
+          <option value="Visa">فيزا</option>
+          <option value="Wallet">محفظة</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:#f8f6f3;border-radius:12px;margin-bottom:15px;">
+        <span style="font-size:16px;font-weight:700;color:var(--primary);">الإجمالي</span>
+        <span id="checkoutTotal" style="font-size:22px;font-weight:800;color:var(--accent);">0 جنيه</span>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">المبلغ المدفوع</label>
+        <input type="number" id="checkoutPaid" placeholder="المبلغ المدفوع" class="checkout-input" oninput="calcRemaining()">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#fef2f2;border-radius:12px;">
+        <span style="font-size:15px;font-weight:600;color:var(--danger);">الباقي</span>
+        <span id="checkoutRemaining" style="font-size:18px;font-weight:800;color:var(--danger);">0 جنيه</span>
       </div>
     </div>
-    <div class="confirm-buttons">
-      <button class="cancel-btn" id="cancelCheckout">إلغاء</button>
-      <button class="confirm-btn" id="confirmCheckout" style="background:#18b86b;">تأكيد</button>
+    <script>
+    function calcRemaining() {
+      const totalText = document.getElementById('checkoutTotal').textContent;
+      const match = totalText.match(/[\d,]+/);
+      const total = match ? Number(match[0].replace(/,/g,'')) : 0;
+      const paid = Number(document.getElementById('checkoutPaid').value) || 0;
+      document.getElementById('checkoutRemaining').textContent = Math.max(0, total - paid) + ' جنيه';
+    }
+    document.getElementById('checkoutCustomerType').onchange = function() {
+      document.getElementById('checkoutSpecialFields').style.display = this.value === 'special' ? 'block' : 'none';
+    };
+    </script>
+    <div class="confirm-buttons" style="margin-top:20px;gap:12px;">
+      <button class="cancel-btn" id="cancelCheckout" style="flex:1;height:48px;border-radius:12px;font-size:16px;font-weight:600;background:#f5f5f4;color:var(--primary);border:none;cursor:pointer;">إلغاء</button>
+      <button class="confirm-btn" id="confirmCheckout" style="flex:1;height:48px;border-radius:12px;font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;border:none;cursor:pointer;">تأكيد الدفع</button>
     </div>
   </div>
 </div>
