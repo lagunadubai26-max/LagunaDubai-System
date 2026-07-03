@@ -281,13 +281,45 @@ checkoutBtn.addEventListener("click", () => {
   const totalAmount = items.reduce((s, i) => s + i.qty * i.price, 0);
   const serviceAmount = serviceTaxRate > 0 ? Math.round(totalAmount * serviceTaxRate / 100) : 0;
   const grandTotal = totalAmount + serviceAmount;
+  // Reset checkout form
+  document.getElementById('checkoutCustomerType').value = 'regular';
+  document.getElementById('checkoutSpecialFields').style.display = 'none';
+  document.getElementById('checkoutSpecialName').value = '';
+  document.getElementById('checkoutSpecialPrice').value = '';
   document.getElementById('checkoutTotal').textContent = grandTotal + ' جنيه' + (serviceTaxRate > 0 ? ' (الخدمة ' + serviceAmount + ' ج.م)' : '');
   document.getElementById('checkoutPaid').value = grandTotal;
-  calcRemaining();
-  document.getElementById('checkoutModal').classList.add('show');
-  window._checkoutItems = items;
+  window._itemsTotal = grandTotal;
   window._checkoutTotal = grandTotal;
+  window._checkoutItems = items;
   window._checkoutService = serviceAmount;
+  window.calcRemaining();
+  document.getElementById('checkoutModal').classList.add('show');
+});
+
+// Customer type toggle — show/hide special fields and update total
+document.getElementById('checkoutCustomerType').onchange = function() {
+  const isSpecial = this.value === 'special';
+  document.getElementById('checkoutSpecialFields').style.display = isSpecial ? 'block' : 'none';
+  if (isSpecial) {
+    const val = Number(document.getElementById('checkoutSpecialPrice').value);
+    if (val > 0) {
+      window._checkoutTotal = val;
+      document.getElementById('checkoutTotal').textContent = val + ' جنيه';
+    }
+  } else {
+    window._checkoutTotal = window._itemsTotal;
+    document.getElementById('checkoutTotal').textContent = window._itemsTotal + ' جنيه';
+  }
+  window.calcRemaining();
+};
+
+// Special price input — update total dynamically
+document.getElementById('checkoutSpecialPrice').addEventListener('input', function() {
+  if (document.getElementById('checkoutCustomerType').value !== 'special') return;
+  const val = Number(this.value) || 0;
+  window._checkoutTotal = val;
+  document.getElementById('checkoutTotal').textContent = val + ' جنيه';
+  window.calcRemaining();
 });
 
 // Calculate remaining/change in checkout modal
