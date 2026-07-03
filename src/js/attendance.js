@@ -1,12 +1,4 @@
 const table = document.querySelector(".attendance-table");
-const addBtn = document.querySelector(".add-employee-btn");
-const modal = document.getElementById("employeeModal");
-const employeeName = document.getElementById("employeeName");
-const employeeJob = document.getElementById("employeeJob");
-const employeeCancel = document.getElementById("cancelEmployee");
-const employeeSave = document.getElementById("saveEmployee");
-const closeBtn = document.getElementById("closeEmployeeModal");
-let editRow = null;
 
 // Details Modal Elements
 const detailsModal = document.getElementById("employeeDetailsModal");
@@ -76,8 +68,6 @@ function attachEvents(employees, todayRecords) {
     const checkBtn = row.querySelector(".check-btn");
     if (checkBtn && !checkBtn.disabled) {
       checkBtn.onclick = async () => {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
         await DB.attendance.checkIn(emp.id, emp.name, emp.job || '');
         render();
       };
@@ -151,37 +141,13 @@ async function showEmployeeDetails(emp) {
   detailsModal.classList.add("show");
 }
 
-function openModal() { modal.classList.add("show"); }
-function closeModal() { modal.classList.remove("show"); }
 function closeDetails() { detailsModal.classList.remove("show"); }
 
-if (employeeCancel) employeeCancel.addEventListener("click", closeModal);
-if (closeBtn) closeBtn.addEventListener("click", closeModal);
 if (closeDetailsModal) closeDetailsModal.addEventListener("click", closeDetails);
 if (closeDetailsBtn) closeDetailsBtn.addEventListener("click", closeDetails);
 
 window.addEventListener("click", function (e) { 
-  if (e.target === modal) closeModal(); 
   if (e.target === detailsModal) closeDetails();
 });
-
-employeeSave.onclick = async function () {
-  const name = employeeName.value.trim();
-  const job = employeeJob.value.trim();
-  if (!name || !job) return;
-  
-  await DB.employees.add({ name, job, phone: '', salary: '', hireDate: new Date().toISOString().slice(0, 10), status: 'active' });
-  closeModal();
-  render();
-};
-
-if (addBtn) {
-  addBtn.onclick = () => {
-    editRow = null;
-    employeeName.value = "";
-    employeeJob.value = "";
-    openModal();
-  };
-}
 
 render();
