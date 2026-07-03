@@ -68,6 +68,10 @@ function syncOrderSheet() {
       }
     });
     sheetList.innerHTML = orderList.innerHTML;
+    sheetList.querySelectorAll('.order-item').forEach(el => {
+      const ck = el.querySelector('.milk-check');
+      if (ck) ck.checked = el.dataset.hasMilk === 'true';
+    });
     sheetNoteSave.forEach(({ name, note }) => {
       sheetList.querySelectorAll('.order-item .name').forEach(n => {
         if (n.innerText === name) {
@@ -307,6 +311,7 @@ clearYesBtn.addEventListener("click", () => {
 
 const checkoutBtn = document.querySelector(".checkout");
 checkoutBtn.addEventListener("click", () => {
+  syncSheetNotesToOrderBox();
   const items = [];
   document.querySelectorAll(".order-box .order-list .order-item .name").forEach(el => {
     const itemEl = el.closest(".order-item");
