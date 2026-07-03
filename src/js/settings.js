@@ -5,6 +5,11 @@ async function load() {
   document.getElementById('taxRate').value = settings.taxRate || 14;
   document.getElementById('serviceTax').value = settings.serviceTax || 10;
   document.getElementById('lowStockAlert').value = settings.lowStockAlert || 5;
+  document.getElementById('autoPrintReceipt').checked = settings.autoPrintReceipt !== false;
+  document.getElementById('autoPrintKitchen').checked = settings.autoPrintKitchen !== false;
+  document.getElementById('printCopies').value = settings.printCopies || 1;
+  document.getElementById('wsProxyUrl').value = settings.wsProxyUrl || 'ws://localhost:9090';
+  if (settings.wsProxyUrl) localStorage.setItem('laguna_printer_proxy', settings.wsProxyUrl);
 }
 
 document.getElementById('saveSettings').onclick = async () => {
@@ -13,8 +18,14 @@ document.getElementById('saveSettings').onclick = async () => {
     currency: document.getElementById('currency').value,
     taxRate: Number(document.getElementById('taxRate').value),
     serviceTax: Number(document.getElementById('serviceTax').value),
-    lowStockAlert: Number(document.getElementById('lowStockAlert').value)
+    lowStockAlert: Number(document.getElementById('lowStockAlert').value),
+    autoPrintReceipt: document.getElementById('autoPrintReceipt').checked,
+    autoPrintKitchen: document.getElementById('autoPrintKitchen').checked,
+    printCopies: Number(document.getElementById('printCopies').value) || 1,
+    wsProxyUrl: document.getElementById('wsProxyUrl').value || 'ws://localhost:9090'
   });
+  const proxyUrl = document.getElementById('wsProxyUrl').value || 'ws://localhost:9090';
+  localStorage.setItem('laguna_printer_proxy', proxyUrl);
   alert('تم حفظ الإعدادات بنجاح');
 };
 
@@ -50,65 +61,109 @@ document.getElementById('addUserBtn').onclick = async () => {
 
 load();
 
-// --- Printer ---
-function updatePrinterUI() {
-  const connected = PRINTER.isConnected();
-  document.getElementById('printerIcon').innerHTML = connected ? '<i class="fa-solid fa-check-circle" style="color:#059669"></i>' : '<i class="fa-solid fa-plug" style="color:#aaa"></i>';
-  document.getElementById('printerText').textContent = connected ? '✓ الطابعة متصلة' : 'الطابعة غير متصلة';
-  document.getElementById('printerText').style.color = connected ? '#059669' : '#888';
-  document.getElementById('connectPrinterBtn').textContent = connected ? 'تغيير الطابعة' : 'توصيل الطابعة';
-  document.getElementById('testPrinterBtn').disabled = !connected;
-  document.getElementById('openDrawerBtn').disabled = !connected;
-  document.getElementById('disconnectPrinterBtn').style.display = connected ? 'inline-flex' : 'none';
+// --- Printers ---
+function renderPrinterList() {
+  const list = document.getElementById('printerList');
+  list.innerHTML = '';
+  const printers = PRINTER.getPrinters();
+  if (printers.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:16px">لا توجد طابعات متصلة</p>';
+    return;
+  }
+  printers.forEach(p => {
+    const types = { usb: '<i class="fa-solid fa-usb"></i> USB', wifi: '<i class="fa-solid fa-wifi"></i> WiFi', bluetooth: '<i class="fa-solid fa-bluetooth-b"></i> Bluetooth' };
+    const badge = p.forKitchen ? '<span style="background:#d97706;color:#fff;font-size:11px;padding:2px 10px;border-radius:20px;margin-right:8px">مطبخ</span>' : '<span style="background:#059669;color:#fff;font-size:11px;padding:2px 10px;border-radius:20px;margin-right:8px">فاتورة</span>';
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f5f5f4;border-radius:10px;margin-bottom:8px';
+    div.innerHTML = `
+      <div>
+        <strong style="font-size:14px">${p.name}</strong> ${badge}<br>
+        <span style="font-size:12px;color:#888">${types[p.type] || p.type}</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="test-prn" data-id="${p.id}" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px"><i class="fa-solid fa-flask"></i></button>
+        <button class="drawer-prn" data-id="${p.id}" style="background:#d97706;color:#fff;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px"><i class="fa-solid fa-cash-register"></i></button>
+        <button class="remove-prn" data-id="${p.id}" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px"><i class="fa-solid fa-trash"></i></button>
+      </div>`;
+    list.appendChild(div);
+  });
+  // Attach events
+  list.querySelectorAll('.test-prn').forEach(btn => {
+    btn.onclick = async () => {
+      try {
+        const d = PRINTER.buildReceiptData({ id: 'TEST', date: new Date().toISOString(), customer: 'اختبار', items: [{ name: 'اختبار طباعة', qty: 1, price: 10 }], total: 10, paid: 10, paymentMethod: 'كاش' });
+        await PRINTER.printTo(btn.dataset.id, d);
+        alert('✓ تمت طباعة الاختبار');
+      } catch (e) { alert('خطأ: ' + e.message); }
+    };
+  });
+  list.querySelectorAll('.drawer-prn').forEach(btn => {
+    btn.onclick = async () => {
+      try {
+        await PRINTER.openDrawer(btn.dataset.id);
+        alert('✓ تم فتح الدرج');
+      } catch (e) { alert('خطأ: ' + e.message); }
+    };
+  });
+  list.querySelectorAll('.remove-prn').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('حذف هذه الطابعة؟')) return;
+      await PRINTER.removePrinter(btn.dataset.id);
+      renderPrinterList();
+    };
+  });
 }
 
-document.getElementById('connectPrinterBtn').onclick = async () => {
+// USB
+document.getElementById('addUsbPrinterBtn').onclick = async () => {
   try {
-    const result = await PRINTER.connect();
-    if (result === false) {
-      alert('لم يتم العثور على طابعة. تأكد من توصيل الطابعة بالUSB وحاول مرة أخرى.');
-      return;
-    }
-    updatePrinterUI();
-    alert('✓ تم توصيل الطابعة بنجاح');
+    const p = await PRINTER.addPrinter('usb', { name: 'USB Printer' });
+    renderPrinterList();
+    alert('✓ تم توصيل طابعة USB');
   } catch (e) {
     if (e.name === 'NotFoundError') return;
-    alert('خطأ في توصيل الطابعة: ' + e.message);
+    alert('خطأ: ' + e.message);
   }
 };
 
-document.getElementById('disconnectPrinterBtn').onclick = async () => {
-  await PRINTER.disconnect();
-  updatePrinterUI();
+// WiFi form toggle
+document.getElementById('addWifiPrinterBtn').onclick = () => {
+  document.getElementById('wifiForm').style.display = 'block';
 };
-
-document.getElementById('testPrinterBtn').onclick = async () => {
+document.getElementById('cancelWifiBtn').onclick = () => {
+  document.getElementById('wifiForm').style.display = 'none';
+};
+document.getElementById('saveWifiBtn').onclick = async () => {
+  const name = document.getElementById('wifiName').value.trim() || 'WiFi Printer';
+  const host = document.getElementById('wifiHost').value.trim();
+  const port = parseInt(document.getElementById('wifiPort').value) || 9100;
+  const forKitchen = document.getElementById('wifiForKitchen').checked;
+  if (!host) return alert('يرجى إدخال عنوان IP الطابعة');
   try {
-    await PRINTER.print(PRINTER.escposInit());
-    await PRINTER.print(PRINTER.escposBold(true));
-    await PRINTER.print(PRINTER.escposText('      Laguna Cafe'));
-    await PRINTER.print(PRINTER.escposBold(false));
-    await PRINTER.print(PRINTER.escposText(''));
-    await PRINTER.print(PRINTER.escposText('اختبار الطباعة'));
-    await PRINTER.print(PRINTER.escposText('Print Test'));
-    await PRINTER.print(PRINTER.escposText(''));
-    await PRINTER.print(PRINTER.escposText(new Date().toLocaleString('ar-EG')));
-    await PRINTER.print(PRINTER.escposText(''));
-    await PRINTER.print(PRINTER.escposText('✓ تم بنجاح'));
-    await PRINTER.print(PRINTER.escposCut());
-    alert('✓ تمت طباعة الاختبار بنجاح');
+    await PRINTER.addPrinter('wifi', { name, host, port, forKitchen });
+    renderPrinterList();
+    document.getElementById('wifiForm').style.display = 'none';
+    document.getElementById('wifiName').value = '';
+    document.getElementById('wifiHost').value = '';
+    document.getElementById('wifiPort').value = '9100';
+    document.getElementById('wifiForKitchen').checked = false;
+    alert('✓ تم توصيل طابعة WiFi');
   } catch (e) {
-    alert('خطأ في الطباعة: ' + e.message);
+    alert('خطأ في توصيل الطابعة: ' + e.message + '\n\nتأكد من تشغيل proxy server: node printer-proxy-server.js');
   }
 };
 
-document.getElementById('openDrawerBtn').onclick = async () => {
+// Bluetooth
+document.getElementById('addBtPrinterBtn').onclick = async () => {
   try {
-    await PRINTER.openDrawer();
-    alert('✓ تم فتح درج الكاشير');
+    const p = await PRINTER.addPrinter('bluetooth', { name: 'Bluetooth Printer' });
+    renderPrinterList();
+    alert('✓ تم توصيل طابعة Bluetooth');
   } catch (e) {
-    alert('خطأ في فتح الدرج: ' + e.message);
+    if (e.name === 'NotFoundError') return;
+    alert('خطأ: ' + e.message);
   }
 };
 
-updatePrinterUI();
+// Restore saved printers on load
+PRINTER.restorePrinters().then(() => renderPrinterList());

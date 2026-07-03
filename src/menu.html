@@ -176,22 +176,15 @@
         <span id="checkoutTotal" style="font-size:22px;font-weight:800;color:var(--accent);">0 جنيه</span>
       </div>
       <div id="checkoutPaidSection" style="margin-bottom:10px;">
-        <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">المبلغ المدفوع</label>
-        <input type="number" id="checkoutPaid" placeholder="المبلغ المدفوع" class="checkout-input" oninput="calcRemaining()">
+        <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">المبلغ المدفوع من الزبون</label>
+        <input type="number" id="checkoutPaid" placeholder="المبلغ المدفوع" class="checkout-input">
       </div>
-      <div id="checkoutRemainingSection" style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#fef2f2;border-radius:12px;">
-        <span style="font-size:15px;font-weight:600;color:var(--danger);">الباقي</span>
-        <span id="checkoutRemaining" style="font-size:18px;font-weight:800;color:var(--danger);">0 جنيه</span>
+      <div id="checkoutRemainingSection" style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-radius:12px;">
+        <span id="checkoutRemainingLabel" style="font-size:15px;font-weight:600;">الباقي للعميل</span>
+        <span id="checkoutRemaining" style="font-size:18px;font-weight:800;">0 جنيه</span>
       </div>
     </div>
     <script>
-    function calcRemaining() {
-      const totalText = document.getElementById('checkoutTotal').textContent;
-      const match = totalText.match(/[\d,]+/);
-      const total = match ? Number(match[0].replace(/,/g,'')) : 0;
-      const paid = Number(document.getElementById('checkoutPaid').value) || 0;
-      document.getElementById('checkoutRemaining').textContent = Math.max(0, total - paid) + ' جنيه';
-    }
     document.getElementById('checkoutCustomerType').onchange = function() {
       document.getElementById('checkoutSpecialFields').style.display = this.value === 'special' ? 'block' : 'none';
     };

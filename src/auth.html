@@ -18,10 +18,7 @@
   <div class="auth-logo-circle"><img src="images/logo.png" alt="Laguna Dubai" style="width:56px;height:56px;border-radius:50%"></div>
   <h1>Laguna Dubai</h1>
   <p>Cafe &amp; Restaurant Management</p>
-  <div class="auth-tabs">
-    <button class="auth-tab active" data-tab="admin">دخول المدير</button>
-    <button class="auth-tab" data-tab="employee">دخول الموظف</button>
-  </div>
+  <div class="auth-tabs" style="display:none"></div>
   <div class="auth-form active" id="adminForm">
     <div class="input-group">
       <label>اسم المستخدم</label>
@@ -35,22 +32,6 @@
     </div>
     <button class="auth-submit" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> دخول</button>
     <p class="auth-error" id="authError"></p>
-  </div>
-  <div class="auth-form" id="employeeForm">
-    <div class="input-group">
-      <label>اختر اسمك</label>
-      <select id="employeeSelect" style="width:100%;height:48px;border:2px solid var(--border);border-radius:12px;padding:0 16px;font-size:15px;font-family:inherit;outline:none;background:#fafaf9">
-        <option value="">— اختر اسمك —</option>
-      </select>
-      <i class="fa-solid fa-user"></i>
-    </div>
-    <div class="input-group">
-      <label>الرقم السري</label>
-      <input type="password" id="employeePin" placeholder="أدخل الرقم السري" maxlength="4">
-      <i class="fa-solid fa-lock"></i>
-    </div>
-    <button class="auth-submit" id="empLoginBtn"><i class="fa-solid fa-right-to-bracket"></i> دخول</button>
-    <p class="auth-error" id="empAuthError"></p>
   </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>

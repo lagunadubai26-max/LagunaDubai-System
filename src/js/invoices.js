@@ -63,7 +63,8 @@ function attachActions() {
       if (inv.items) inv.items.forEach(item => { items += `\n• ${item.name} x${item.qty} = ${item.qty * item.price} ج.م${item.hasMilk ? ' +حليب' : ''}${item.note ? ' (' + item.note + ')' : ''}`; });
       const paid = inv.paid ?? inv.total;
       const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
-      alert(`رقم الفاتورة: ${inv.id}\nالعميل: ${inv.customer}\nالتاريخ: ${new Date(inv.date).toLocaleDateString('ar-EG')}\nطريقة الدفع: ${inv.paymentMethod || 'كاش'}${items ? '\n\nالمنتجات:' + items : ''}\n\nالإجمالي: ${Number(inv.total).toLocaleString()} ج.م\nالمدفوع: ${Number(paid).toLocaleString()} ج.م\nالباقي: ${Number(remaining).toLocaleString()} ج.م\nالحالة: ${inv.status}`);
+      const change = inv.change || 0;
+      alert(`رقم الفاتورة: ${inv.id}\nالعميل: ${inv.customer}\nالتاريخ: ${new Date(inv.date).toLocaleDateString('ar-EG')}\nطريقة الدفع: ${inv.paymentMethod || 'كاش'}${items ? '\n\nالمنتجات:' + items : ''}\n\nالإجمالي: ${Number(inv.total).toLocaleString()} ج.م\nالمدفوع: ${Number(paid).toLocaleString()} ج.م\n${change > 0 ? 'الباقي للعميل: ' + Number(change).toLocaleString() + ' ج.م\n' : ''}${remaining > 0 ? 'المتبقي: ' + Number(remaining).toLocaleString() + ' ج.م\n' : ''}الحالة: ${inv.status}`);
     };
   });
   document.querySelectorAll('.print-btn').forEach(btn => {
@@ -72,13 +73,17 @@ function attachActions() {
       if (!inv) return;
       if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
         try {
-          await PRINTER.printReceipt(inv);
+          await Promise.all([
+            PRINTER.printReceipt(inv),
+            PRINTER.printKitchenOrder(inv),
+            PRINTER.openDrawer()
+          ]);
           return;
         } catch (e) {
-          console.warn('[printer] usb print failed, falling back to browser print:', e);
+          console.warn('[printer] print failed, falling back to browser print:', e);
         }
       }
-      const w = window.open('', '_blank');
+      const w = window.open('', '_blank', 'width=400,height=600');
       let itemsHtml = '';
       if (inv.items) inv.items.forEach(item => {
         const milkTxt = item.hasMilk ? ' +حليب' : '';
@@ -89,31 +94,28 @@ function attachActions() {
       const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : '';
       w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${inv.id}</title><style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Courier New',monospace;font-size:12px;padding:8px;width:58mm;color:#000}
+body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
 .header{text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed #000}
 .header h2{font-size:16px;font-weight:700;margin-bottom:2px}
 .header p{font-size:11px;color:#555}
-.receipt-table{width:100%;border-collapse:collapse;margin:6px 0}
-.receipt-table th,.receipt-table td{padding:3px 2px;text-align:center;font-size:11px}
+.receipt-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
+.receipt-table th,.receipt-table td{padding:3px 2px;text-align:center}
 .receipt-table th{border-bottom:1px solid #000}
 .receipt-table td{border-bottom:1px dotted #ccc}
 .receipt-table .item-name{text-align:right}
-.receipt-table .item-qty{text-align:center}
-.receipt-table .item-price{text-align:left}
 .summary{margin:6px 0;padding:4px 0;border-top:1px dashed #000}
 .summary .line{display:flex;justify-content:space-between;font-size:11px;padding:1px 0}
 .summary .total{font-size:15px;font-weight:700;border-top:1px solid #000;padding-top:4px;margin-top:2px}
 .footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:10px;color:#555}
-@media print{@page{margin:0;size:58mm auto}}
+@media print{@page{margin:0;size:58mm 300mm}}
 </style></head><body>
 <div class="header"><h2>☕ Laguna Cafe</h2><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
-<table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th class="item-qty">الكمية</th><th class="item-price">الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+<table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
 <div class="summary"><div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
-<div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${remaining > 0 ? `<div class="line"><span>الباقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}
+<div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${inv.change > 0 ? `<div class="line" style="color:#059669"><span>الباقي للعميل</span><span>${Number(inv.change).toLocaleString()} ج.م</span></div>` : ''}${remaining > 0 ? `<div class="line" style="color:#dc2626"><span>المتبقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}
 <div class="line total"><span>${remaining > 0 ? 'معلق' : 'مدفوع'}</span><span>${inv.paymentMethod || 'كاش'}</span></div></div>
 <div class="footer">شكراً لزيارتكم<br>Laguna Cafe ☕</div>
 <script>window.print();window.close();<\/script></body></html>`);
-      w.document.close();
     };
   });
   document.querySelectorAll('.pay-btn').forEach(btn => {
