@@ -14,7 +14,11 @@ async function getFilteredInvoices() {
   });
 }
 
+let rendering = false;
+
 async function render() {
+  if (rendering) return;
+  rendering = true;
   const invoices = await getFilteredInvoices();
   const expenses = await DB.expenses.all() || [];
   const returns = await DB.returns.all() || [];
@@ -36,12 +40,13 @@ async function render() {
   drawSalesChart(invoices);
   drawPaymentChart(invoices);
   renderTopProducts(invoices);
+  rendering = false;
 }
 
 function drawSalesChart(invoices) {
   const canvas = document.getElementById('reportSalesChart');
   if (!canvas) return;
-  if (window.reportSalesChart) window.reportSalesChart.destroy();
+  if (window.reportSalesChart && typeof window.reportSalesChart.destroy === 'function') window.reportSalesChart.destroy();
   const days = {};
   invoices.forEach(inv => {
     if (!inv.date) return;
@@ -60,7 +65,7 @@ function drawSalesChart(invoices) {
 function drawPaymentChart(invoices) {
   const canvas = document.getElementById('reportPaymentChart');
   if (!canvas) return;
-  if (window.reportPaymentChart) window.reportPaymentChart.destroy();
+  if (window.reportPaymentChart && typeof window.reportPaymentChart.destroy === 'function') window.reportPaymentChart.destroy();
   const paymentMap = {};
   invoices.forEach(inv => {
     const method = inv.paymentMethod || 'Cash';
