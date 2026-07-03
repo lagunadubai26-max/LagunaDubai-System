@@ -193,57 +193,23 @@
     </main>
 
 </div>
-<!-- Employee Modal -->
-
-<div class="employee-modal" id="employeeModal">
-
-    <div class="employee-box">
-
-        <div class="employee-header">
-
-            <h2>
-                <i class="fa-solid fa-user-plus"></i>
-                إضافة / تعديل موظف
-            </h2>
-
-            <button class="close-modal" id="closeEmployeeModal">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-        </div>
-
-        <div class="employee-body">
-
-            <label>اسم الموظف</label>
-
-            <input
-                    type="text"
-                    id="employeeName"
-                    placeholder="اسم الموظف">
-
-            <label>الوظيفة</label>
-
-            <input
-                    type="text"
-                    id="employeeJob"
-                    placeholder="الوظيفة">
-
-        </div>
-
-        <div class="employee-footer">
-
-            <button id="cancelEmployee" class="cancel-btn">
-                إلغاء
-            </button>
-
-            <button id="saveEmployee" class="confirm-btn">
-                حفظ
-            </button>
-
-        </div>
-
+<div class="modal" id="employeeModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-user-plus"></i> إضافة / تعديل موظف</h2>
+      <button class="close-modal" id="closeEmployeeModal"><i class="fa-solid fa-xmark"></i></button>
     </div>
-
+    <div class="modal-body">
+      <label>اسم الموظف</label>
+      <input type="text" id="employeeName" placeholder="اسم الموظف">
+      <label>الوظيفة</label>
+      <input type="text" id="employeeJob" placeholder="الوظيفة">
+    </div>
+    <div class="modal-footer">
+      <button id="cancelEmployee" class="cancel-btn">إلغاء</button>
+      <button id="saveEmployee" class="confirm-btn">حفظ</button>
+    </div>
+  </div>
 </div>
 <script src="js/supabase-client.js"></script>
 <script src="js/api-client.js"></script>
