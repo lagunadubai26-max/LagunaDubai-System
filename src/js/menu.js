@@ -475,7 +475,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
             }).join('') + '</div><hr style="margin:8px 0;border:none;border-top:2px dashed #ddd">'
           : '';
         document.getElementById('successDetails').innerHTML = `
-          <img src="images/logo.png" style="height:40px;margin-bottom:2px;background:#222;padding:6px;border-radius:8px" alt="LagunaDubai">
+          <img src="images/logo.png" style="height:40px;margin-bottom:4px;background:#222;padding:6px;border-radius:8px" alt="LagunaDubai">
           <div style="font-size:14px;font-weight:700;margin-bottom:4px">LagunaDubai</div>
           <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">** فاتورة كاشير **</div>
           <div style="font-size:11px;color:#888;margin-bottom:4px">#${inv.id}</div>
