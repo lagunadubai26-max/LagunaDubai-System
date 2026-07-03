@@ -72,10 +72,10 @@ function attachAddToCart() {
       const card = this.parentElement;
       const name = card.querySelector("h3").innerText;
       const price = parseInt(this.dataset.price);
-      const emptyItem = document.querySelector(".order-list .order-item");
+      const emptyItem = document.querySelector(".order-box .order-list .order-item");
       if (emptyItem && !emptyItem.querySelector(".name")) emptyItem.remove();
       let found = false;
-      document.querySelectorAll(".order-item").forEach(item => {
+      document.querySelectorAll(".order-box .order-list .order-item").forEach(item => {
         const product = item.querySelector(".name");
         if (!product) return;
         if (product.innerText === name) {
@@ -95,7 +95,7 @@ function attachAddToCart() {
           <div class="order-top"><span class="name">${name}</span><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
           <div class="price">${price} جنيه</div>
           <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div></div>`;
-        document.querySelector(".order-list").appendChild(item);
+        document.querySelector(".order-box .order-list").appendChild(item);
       }
       total += price;
       document.querySelector(".total strong").innerText = total + " جنيه";
@@ -104,54 +104,52 @@ function attachAddToCart() {
   });
 }
 
-function updateAllItems() {
-  const orderList = document.querySelector('.order-box .order-list');
-  const sheetList = document.getElementById('sheetOrderList');
-  const source = orderList && orderList.querySelector('.order-item .name') ? orderList : (sheetList && sheetList.querySelector('.order-item .name') ? sheetList : null);
-  if (!source) return;
-  [orderList, sheetList].forEach(el => {
-    if (el && el !== source) el.innerHTML = source.innerHTML;
-  });
-}
-
 function handleOrderClick(e) {
   const btn = e.target.closest('.plus, .minus, .delete');
   if (!btn) return;
   const item = btn.closest('.order-item');
   if (!item) return;
+  const nameEl = item.querySelector('.name');
+  if (!nameEl) return;
+  const name = nameEl.innerText;
+  // Source of truth is always order-box list
+  let targetItem = null;
+  document.querySelectorAll('.order-box .order-list .order-item').forEach(el => {
+    const n = el.querySelector('.name');
+    if (n && n.innerText === name) targetItem = el;
+  });
+  if (!targetItem) return;
   if (btn.classList.contains('plus')) {
-    const qty = item.querySelector('.qty');
+    const qty = targetItem.querySelector('.qty');
     let q = parseInt(qty.innerText);
     q++;
     qty.innerText = q;
-    const price = parseInt(item.dataset.price);
-    item.querySelector('.price').innerText = (q * price) + ' جنيه';
+    const price = parseInt(targetItem.dataset.price);
+    targetItem.querySelector('.price').innerText = (q * price) + ' جنيه';
     total += price;
   } else if (btn.classList.contains('minus')) {
-    const qtyEl = item.querySelector('.qty');
+    const qtyEl = targetItem.querySelector('.qty');
     let q = parseInt(qtyEl.innerText);
     if (q <= 1) return;
     q--;
     qtyEl.innerText = q;
-    const price = parseInt(item.dataset.price);
-    item.querySelector('.price').innerText = (q * price) + ' جنيه';
+    const price = parseInt(targetItem.dataset.price);
+    targetItem.querySelector('.price').innerText = (q * price) + ' جنيه';
     total -= price;
   } else if (btn.classList.contains('delete')) {
-    const qty = parseInt(item.querySelector('.qty').innerText);
-    const price = parseInt(item.dataset.price);
+    const qty = parseInt(targetItem.querySelector('.qty').innerText);
+    const price = parseInt(targetItem.dataset.price);
     total -= qty * price;
-    item.remove();
-    if (!document.querySelector('.order-item .name')) {
-      document.querySelector('.order-list').innerHTML = '<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>';
-      document.getElementById('sheetOrderList').innerHTML = '<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>';
+    targetItem.remove();
+    if (!document.querySelector('.order-box .order-list .order-item .name')) {
+      document.querySelector('.order-box .order-list').innerHTML = '<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>';
     }
   }
   document.querySelector('.total strong').innerText = total + ' جنيه';
-  updateAllItems();
   syncOrderSheet();
 }
 
-document.querySelector('.order-list').addEventListener('click', handleOrderClick);
+document.querySelector('.order-box .order-list').addEventListener('click', handleOrderClick);
 document.getElementById('sheetOrderList').addEventListener('click', handleOrderClick);
 
 function attachCategoryFilter() {
@@ -189,7 +187,7 @@ const clearNoBtn = clearModal.querySelector(".cancel-btn");
 clearBtn.addEventListener("click", () => clearModal.classList.add("show"));
 clearNoBtn.addEventListener("click", () => clearModal.classList.remove("show"));
 function clearOrder() {
-  document.querySelector(".order-list").innerHTML = `<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>`;
+  document.querySelector(".order-box .order-list").innerHTML = `<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>`;
   const sol = document.getElementById('sheetOrderList');
   if (sol) sol.innerHTML = `<div class="order-item"><span>لا توجد منتجات</span><strong>0</strong></div>`;
   total = 0;
@@ -206,7 +204,7 @@ clearYesBtn.addEventListener("click", () => {
 const checkoutBtn = document.querySelector(".checkout");
 checkoutBtn.addEventListener("click", () => {
   const items = [];
-  document.querySelectorAll(".order-item .name").forEach(el => {
+  document.querySelectorAll(".order-box .order-list .order-item .name").forEach(el => {
     const itemEl = el.closest(".order-item");
     const qty = parseInt(itemEl.querySelector(".qty").innerText);
     const priceText = itemEl.dataset.price;
