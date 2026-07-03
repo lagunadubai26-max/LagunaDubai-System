@@ -22,8 +22,7 @@ const DB = {
         const merged = [...existing];
         for (const item of parsed) {
           const idx = merged.findIndex(m => m.id === item.id);
-          if (idx > -1) merged[idx] = item;
-          else merged.push(item);
+          if (idx === -1) merged.push(item);
         }
         setFn(merged);
       }
