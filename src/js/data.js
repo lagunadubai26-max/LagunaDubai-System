@@ -101,10 +101,16 @@ const DB = {
       const list = DB.invoices.local();
       if (DB_MODE !== 'local') {
         const apiInv = { 
-          ...inv, 
+          id: inv.id,
+          customer: inv.customer,
+          table: inv.table || null,
+          date: inv.date,
           items: JSON.stringify(inv.items),
-          paymentmethod: inv.paymentMethod,
-          paymentMethod: undefined 
+          total: inv.total,
+          serviceAmount: inv.serviceAmount || 0,
+          status: inv.status,
+          paymentMethod: inv.paymentMethod,
+          paymentmethod: inv.paymentMethod
         };
         try { await API.invoices.add(apiInv); } catch {}
       }
@@ -114,7 +120,18 @@ const DB = {
     },
     async update(id, data) {
       if (DB_MODE !== 'local') {
-        const apiData = { ...data, paymentmethod: data.paymentMethod, paymentMethod: undefined };
+        const apiData = { 
+          customer: data.customer,
+          table: data.table || null,
+          date: data.date,
+          items: data.items ? (typeof data.items === 'string' ? data.items : JSON.stringify(data.items)) : undefined,
+          total: data.total,
+          serviceAmount: data.serviceAmount,
+          status: data.status,
+          paymentMethod: data.paymentMethod,
+          paymentmethod: data.paymentMethod
+        };
+        Object.keys(apiData).forEach(k => apiData[k] === undefined && delete apiData[k]);
         try { await API.invoices.update(id, apiData); } catch {}
       }
       const list = DB.invoices.local();

@@ -1,6 +1,10 @@
 -- Seed Data for Laguna Cafe
 -- Run AFTER the schema SQL
 
+-- Migrations for existing tables (safe to re-run)
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS paid REAL DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS remaining REAL DEFAULT 0;
+
 -- Admin user
 INSERT INTO users (id, username, password, name, role) VALUES ('u1', 'admin', 'admin123', 'أحمد علي', 'Administrator');
 

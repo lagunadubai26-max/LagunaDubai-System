@@ -42,6 +42,8 @@ CREATE TABLE invoices (
   date TEXT NOT NULL,
   items TEXT DEFAULT '[]',
   total REAL DEFAULT 0,
+  paid REAL DEFAULT 0,
+  remaining REAL DEFAULT 0,
   serviceAmount REAL DEFAULT 0,
   status TEXT DEFAULT 'paid',
   paymentMethod TEXT DEFAULT 'Cash'
