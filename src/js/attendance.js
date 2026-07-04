@@ -27,8 +27,8 @@ async function render() {
     row.innerHTML = `
       <span class="emp-name-click" style="cursor:pointer;color:var(--primary);font-weight:600;text-decoration:underline">${escapeHtml(emp.name)}</span>
       <span>${escapeHtml(emp.job || '—')}</span>
-      <span class="in-time">${checkInTime}</span>
-      <span class="out-time">${checkOutTime}</span>
+      <span class="in-time">${escapeHtml(checkInTime)}</span>
+      <span class="out-time">${escapeHtml(checkOutTime)}</span>
       <span class="status ${stCls}">${stTxt}</span>
       <div class="actions" style="display:flex;gap:6px">
         <button class="check-btn" title="تسجيل حضور" ${record ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}><i class="fa-solid fa-right-to-bracket"></i></button>

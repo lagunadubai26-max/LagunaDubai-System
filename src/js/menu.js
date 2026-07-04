@@ -150,7 +150,7 @@ function attachAddToCart() {
     button.addEventListener("click", function () {
       const card = this.parentElement;
       const name = card.querySelector("h3").innerText;
-      const price = parseInt(this.dataset.price);
+      const price = Number(this.dataset.price);
       const emptyItem = document.querySelector(".order-box .order-list .order-item");
       if (emptyItem && !emptyItem.querySelector(".name")) emptyItem.remove();
       let found = false;
@@ -179,8 +179,8 @@ function attachAddToCart() {
           <div class="item-note" style="display:none"><input class="note-input" placeholder="إضافة (قهوة محوج، بدون سكر...)" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;background:#fafaf9;margin-bottom:8px"></div>
           <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +حليب 5 ج.م</label></div>`;
         document.querySelector(".order-box .order-list").appendChild(item);
+        total += price;
       }
-      total += price;
       document.querySelector(".total strong").innerText = total + " جنيه";
       syncOrderSheet();
     });
@@ -188,11 +188,11 @@ function attachAddToCart() {
 }
 
 function getItemPrice(itemEl) {
-  return parseInt(itemEl.dataset.price) + (itemEl.dataset.hasMilk === 'true' ? 5 : 0);
+  return Number(itemEl.dataset.price) + (itemEl.dataset.hasMilk === 'true' ? 5 : 0);
 }
 
 function formatItemPrice(itemEl) {
-  const base = parseInt(itemEl.dataset.price);
+  const base = Number(itemEl.dataset.price);
   const milk = itemEl.dataset.hasMilk === 'true';
   const qty = parseInt(itemEl.querySelector('.qty').innerText);
   const effective = milk ? base + 5 : base;
@@ -343,7 +343,7 @@ checkoutBtn.addEventListener("click", () => {
     const noteInput = itemEl.querySelector('.note-input');
     const note = noteInput ? noteInput.value.trim() : '';
     const hasMilk = itemEl.dataset.hasMilk === 'true';
-    const effectivePrice = parseInt(priceText) + (hasMilk ? 5 : 0);
+    const effectivePrice = Number(priceText) + (hasMilk ? 5 : 0);
     if (priceText) items.push({ name: el.innerText, qty, price: effectivePrice, note, hasMilk });
   });
   if (items.length === 0) return alert("الطلب فارغ، أضف منتجات أولاً");

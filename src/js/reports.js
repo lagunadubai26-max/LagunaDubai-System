@@ -50,12 +50,16 @@ function drawSalesChart(invoices) {
   const canvas = document.getElementById('reportSalesChart');
   if (!canvas) return;
   const days = {};
+  const dayOrder = [];
   invoices.forEach(inv => {
     if (!inv.date) return;
-    const d = new Date(inv.date).toLocaleDateString('ar-EG');
-    days[d] = (days[d] || 0) + Number(inv.total || 0);
+    const ts = new Date(inv.date).getTime();
+    const label = new Date(inv.date).toLocaleDateString('ar-EG');
+    if (!days[label]) { days[label] = 0; dayOrder.push({ ts, label }); }
+    days[label] += Number(inv.total || 0);
   });
-  const labels = Object.keys(days).sort();
+  dayOrder.sort((a, b) => a.ts - b.ts);
+  const labels = dayOrder.map(d => d.label);
   const data = labels.map(k => days[k]);
   salesChart = new Chart(canvas, {
     type: 'bar',
@@ -99,8 +103,12 @@ periodSelect.addEventListener('change', render);
 
 document.getElementById('exportBtn').onclick = async () => {
   const invoices = await DB.invoices.all() || [];
+  function csvEsc(val) {
+    const s = String(val || '');
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
   let csv = 'رقم الفاتورة,العميل,التاريخ,الإجمالي,الحالة\n';
-  invoices.forEach(i => { csv += `${i.id},${i.customer},${i.date},${i.total},${i.status}\n`; });
+  invoices.forEach(i => { csv += [csvEsc(i.id), csvEsc(i.customer), csvEsc(i.date), csvEsc(i.total), csvEsc(i.status)].join(',') + '\n'; });
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);

@@ -223,19 +223,22 @@ function renderWithData() {
     const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '—';
     const paid = inv.paid ?? inv.total;
     const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
+    const safeCustomer = escapeHtml(inv.customer || '');
+    const safeTable = escapeHtml(inv.table || '');
+    const safeId = escapeHtml(inv.id);
     row.innerHTML = `
-      <span>${inv.id}</span><span>${inv.customer}</span><span>${dateStr}</span>
-      <span>${inv.table || ''}</span>
+      <span>${safeId}</span><span>${safeCustomer}</span><span>${dateStr}</span>
+      <span>${safeTable}</span>
       <span>${Number(inv.total).toLocaleString()} ج.م</span>
       <span style="font-size:12px;color:${remaining > 0 ? '#dc2626' : '#059669'}">${remaining > 0 ? 'باقي ' + Number(remaining).toLocaleString() : 'مدفوع كامل'}</span>
       <span class="${stCls}">${stTxt}</span>
       <span style="font-size:11px;color:${inv.printed ? '#059669' : '#a8a29e'}">${inv.printed ? '✓ مطبوعة' : '—'}</span>
       <div class="actions">
-        ${remaining > 0 ? `<button class="pay-btn" data-id="${inv.id}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
-        <button class="toggle-status-btn" data-id="${inv.id}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
-        <button class="view-btn" data-id="${inv.id}"><i class="fa-solid fa-eye"></i></button>
-        <button class="print-btn" data-id="${inv.id}"><i class="fa-solid fa-print"></i></button>
-        <button class="delete-btn" data-id="${inv.id}"><i class="fa-solid fa-trash"></i></button>
+        ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
+        <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
+        <button class="view-btn" data-id="${safeId}"><i class="fa-solid fa-eye"></i></button>
+        <button class="print-btn" data-id="${safeId}"><i class="fa-solid fa-print"></i></button>
+        <button class="delete-btn" data-id="${safeId}"><i class="fa-solid fa-trash"></i></button>
       </div>`;
     tableBody.appendChild(row);
   });

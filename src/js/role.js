@@ -1,5 +1,6 @@
 (function() {
-  const user = JSON.parse(sessionStorage.getItem('laguna_user'));
+  let user;
+  try { user = JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return; }
   if (!user) return;
   const isEmployee = user.role === 'Employee';
   const adminLinks = document.querySelectorAll('.admin-only');
