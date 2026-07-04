@@ -2,10 +2,41 @@
   "name": "laguna-cafe",
   "version": "1.0.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
-    "proxy": "node printer-proxy-server.js"
+    "start": "electron .",
+    "proxy": "node printer-proxy-server.js",
+    "build:win": "electron-builder --win portable",
+    "build:win-installer": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.lagunacafe.pos",
+    "productName": "Laguna Cafe",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "electron/icon.png",
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
   },
   "dependencies": {
     "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
   }
 }
