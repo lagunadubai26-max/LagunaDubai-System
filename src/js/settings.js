@@ -2,9 +2,10 @@ async function load() {
   const settings = await DB.settings.get() || {};
   document.getElementById('cafeName').value = settings.cafeName || 'Laguna Cafe';
   document.getElementById('currency').value = settings.currency || 'ج.م';
+  document.getElementById('enableTax').checked = settings.enableTax !== false;
   document.getElementById('taxRate').value = settings.taxRate || 14;
+  document.getElementById('enableService').checked = settings.enableService !== false;
   document.getElementById('serviceTax').value = settings.serviceTax || 10;
-  document.getElementById('lowStockAlert').value = settings.lowStockAlert || 5;
   document.getElementById('autoPrintReceipt').checked = settings.autoPrintReceipt !== false;
   document.getElementById('autoPrintKitchen').checked = settings.autoPrintKitchen !== false;
   document.getElementById('printCopies').value = settings.printCopies || 1;
@@ -16,9 +17,10 @@ document.getElementById('saveSettings').onclick = async () => {
   await DB.settings.save({
     cafeName: document.getElementById('cafeName').value,
     currency: document.getElementById('currency').value,
+    enableTax: document.getElementById('enableTax').checked,
     taxRate: Number(document.getElementById('taxRate').value),
+    enableService: document.getElementById('enableService').checked,
     serviceTax: Number(document.getElementById('serviceTax').value),
-    lowStockAlert: Number(document.getElementById('lowStockAlert').value),
     autoPrintReceipt: document.getElementById('autoPrintReceipt').checked,
     autoPrintKitchen: document.getElementById('autoPrintKitchen').checked,
     printCopies: Number(document.getElementById('printCopies').value) || 1,

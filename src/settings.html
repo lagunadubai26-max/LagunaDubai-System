@@ -90,13 +90,15 @@
         </select>
       </div>
       <div class="settings-card">
-        <h3><i class="fa-solid fa-percentage"></i>الضرائب والتنبيهات</h3>
-        <label>نسبة الضريبة (%)</label>
-        <input type="number" id="taxRate" min="0" max="100">
-        <label>نسبة خدمة الضيافة (%)</label>
-        <input type="number" id="serviceTax" min="0" max="100" value="10">
-        <label>تنبيه المخزون المنخفض (أقل من)</label>
-        <input type="number" id="lowStockAlert" min="0">
+        <h3><i class="fa-solid fa-percentage"></i>الضرائب والرسوم</h3>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-weight:400;font-size:14px;cursor:pointer">
+          <input type="checkbox" id="enableTax"> تفعيل ضريبة القيمة المضافة (VAT)
+        </label>
+        <input type="number" id="taxRate" min="0" max="100" placeholder="14">
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:4px;margin-top:10px;font-weight:400;font-size:14px;cursor:pointer">
+          <input type="checkbox" id="enableService"> تفعيل خدمة الضيافة
+        </label>
+        <input type="number" id="serviceTax" min="0" max="100" value="10" placeholder="10">
       </div>
       <div class="settings-card">
         <h3><i class="fa-solid fa-gear"></i>إعدادات الطباعة</h3>

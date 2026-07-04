@@ -1,5 +1,8 @@
 let total = 0;
-let serviceTaxRate = 0;
+let taxRate = 0;
+let enableTax = false;
+let serviceRate = 0;
+let enableService = false;
 let checkoutProcessing = false;
 let syncingMilkState = false;
 const COOLDOWN_MS = 5000;
@@ -29,13 +32,24 @@ if (isCustomer) {
   }
   if (hasService) {
     const settings = await DB.settings.get();
-    serviceTaxRate = settings.serviceTax || 10;
+    enableService = settings.enableService !== false;
+    serviceRate = settings.serviceTax || 10;
+    enableTax = settings.enableTax !== false;
+    taxRate = settings.taxRate || 14;
   }
 })();
 
-function getTotalWithService() {
-  if (serviceTaxRate > 0) return total + Math.round(total * serviceTaxRate / 100);
-  return total;
+function calculateTotals(baseTotal) {
+  let serviceAmount = 0, taxAmount = 0, grandTotal = baseTotal;
+  if (enableService && serviceRate > 0) {
+    serviceAmount = Math.round(baseTotal * serviceRate / 100);
+    grandTotal = baseTotal + serviceAmount;
+  }
+  if (enableTax && taxRate > 0) {
+    taxAmount = Math.round(grandTotal * taxRate / 100);
+    grandTotal = grandTotal + taxAmount;
+  }
+  return { serviceAmount, taxAmount, grandTotal };
 }
 
 function syncSheetNotesToOrderBox() {
@@ -84,8 +98,13 @@ function syncOrderSheet() {
       });
     });
   }
-  const displayTotal = getTotalWithService();
-  if (sheetTotal) sheetTotal.textContent = displayTotal + ' جنيه' + (serviceTaxRate > 0 ? ' (شامل ' + serviceTaxRate + '% خدمة)' : '');
+  if (sheetTotal) {
+    const { serviceAmount, taxAmount, grandTotal } = calculateTotals(total);
+    let parts = [grandTotal + ' جنيه'];
+    if (serviceAmount > 0) parts.push('خدمة ' + serviceAmount + ' ج.م');
+    if (taxAmount > 0) parts.push('ضريبة ' + taxAmount + ' ج.م');
+    sheetTotal.textContent = parts.join(' | ');
+  }
   let count = 0;
   document.querySelectorAll('.order-box .order-item').forEach(i => {
     const name = i.querySelector('.name');
@@ -348,19 +367,22 @@ checkoutBtn.addEventListener("click", () => {
   });
   if (items.length === 0) return alert("الطلب فارغ، أضف منتجات أولاً");
   const totalAmount = items.reduce((s, i) => s + i.qty * i.price, 0);
-  const serviceAmount = serviceTaxRate > 0 ? Math.round(totalAmount * serviceTaxRate / 100) : 0;
-  const grandTotal = totalAmount + serviceAmount;
+  const { serviceAmount, taxAmount, grandTotal } = calculateTotals(totalAmount);
   // Reset checkout form
   document.getElementById('checkoutCustomerType').value = 'regular';
   document.getElementById('checkoutSpecialFields').style.display = 'none';
   document.getElementById('checkoutSpecialName').value = '';
   document.getElementById('checkoutSpecialPrice').value = '';
-  document.getElementById('checkoutTotal').textContent = grandTotal + ' جنيه' + (serviceTaxRate > 0 ? ' (الخدمة ' + serviceAmount + ' ج.م)' : '');
+  let checkoutLabel = grandTotal + ' جنيه';
+  if (serviceAmount > 0) checkoutLabel += ' (خدمة ' + serviceAmount + ' ج.م)';
+  if (taxAmount > 0) checkoutLabel += ' (ضريبة ' + taxAmount + ' ج.م)';
+  document.getElementById('checkoutTotal').textContent = checkoutLabel;
   document.getElementById('checkoutPaid').value = grandTotal;
   window._itemsTotal = grandTotal;
   window._checkoutTotal = grandTotal;
   window._checkoutItems = items;
   window._checkoutService = serviceAmount;
+  window._checkoutTax = taxAmount;
   window.calcRemaining();
   document.getElementById('checkoutModal').classList.add('show');
 });
@@ -453,10 +475,11 @@ document.getElementById('confirmCheckout').onclick = async () => {
     const method = document.getElementById('checkoutMethod').value;
     const items = window._checkoutItems;
     const serviceAmount = window._checkoutService || 0;
+    const taxAmount = window._checkoutTax || 0;
     const table = tableNum ? 'طاولة ' + tableNum : null;
     const paid = Math.max(0, Number(document.getElementById('checkoutPaid').value) || totalAmount);
     const change = Math.max(0, paid - totalAmount);
-    const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, paymentMethod: method, status: paid >= totalAmount ? 'paid' : 'pending' });
+    const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: paid >= totalAmount ? 'paid' : 'pending' });
     console.log('[checkout] invoice saved:', inv ? inv.id : 'null');
     if (custType === 'special') {
       const existing = (await DB.customers.all() || []).find(c => c.name === customer);
@@ -493,6 +516,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
           <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">** فاتورة كاشير **</div>
           <div style="font-size:11px;color:#888;margin-bottom:4px">#${escapeHtml(inv.id)}</div>
           ${safeItems}
+          ${inv.serviceAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#888;font-size:12px"><span>خدمة (${Math.round(inv.serviceAmount / (totalAmount - inv.serviceAmount - (inv.taxAmount || 0)) * 100) || 0}%)</span><span>${inv.serviceAmount} ج.م</span></div>` : ''}
+          ${inv.taxAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#888;font-size:12px"><span>ضريبة (${Math.round(inv.taxAmount / (totalAmount - inv.taxAmount) * 100) || 0}%)</span><span>${inv.taxAmount} ج.م</span></div>` : ''}
           <div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:700;font-size:15px;padding-top:4px"><span>الإجمالي</span><span>${totalAmount} ج.م</span></div>
           <div style="display:flex;justify-content:space-between;margin:2px 0"><span>المدفوع</span><span>${paid} ج.م</span></div>
           ${inv.change > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#059669"><span>الباقي للعميل</span><span>${inv.change} ج.م</span></div>` : ''}
@@ -601,7 +626,7 @@ body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
 </style></head><body>
 <div class="header"><h2>☕ Laguna Cafe</h2><p style="font-weight:700">** فاتورة كاشير **</p><p>${dateStr}</p><p>${safeCustomer}${safeTable ? ' | ' + safeTable : ''}</p><p style="font-size:10px">#${safeId}</p></div>
 <table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th>الكمية</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
-<div class="summary"><div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
+<div class="summary">${inv.serviceAmount > 0 ? `<div class="line"><span>خدمة الضيافة</span><span>${Number(inv.serviceAmount).toLocaleString()} ج.م</span></div>` : ''}${inv.taxAmount > 0 ? `<div class="line"><span>ضريبة القيمة المضافة</span><span>${Number(inv.taxAmount).toLocaleString()} ج.م</span></div>` : ''}<div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
 <div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${inv.change > 0 ? `<div class="line" style="color:#059669"><span>الباقي للعميل</span><span>${Number(inv.change).toLocaleString()} ج.م</span></div>` : ''}${remaining > 0 ? `<div class="line" style="color:#dc2626"><span>المتبقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}
 <div class="line total"><span>${remaining > 0 ? 'معلق' : 'مدفوع'}</span><span>${inv.paymentMethod || 'كاش'}</span></div></div>
 <div class="footer">شكراً لزيارتكم<br>Laguna Cafe ☕</div>
