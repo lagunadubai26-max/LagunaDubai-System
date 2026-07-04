@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=Laguna Cafe
-Comment=نظام إدارة مطعم وكافية
-Exec=npx electron /home/adham/Downloads/Restaurant\ Menu\ Website/Laguna\ Cafe/backend
-Icon=/home/adham/Downloads/Restaurant\ Menu\ Website/Laguna\ Cafe/backend/icon.png
-Terminal=false
-Type=Application
-Categories=Office;
-StartupWMClass=Laguna Cafe
