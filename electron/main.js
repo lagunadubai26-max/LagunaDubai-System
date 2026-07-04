@@ -1,19 +1,9 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
-
-try {
-  require('fs').writeFileSync(path.join(app.getPath('userData'), 'laguna-debug.log'),
-    '[' + new Date().toISOString() + '] App started\n', { flag: 'a' });
-} catch (_) {}
-
-process.on('uncaughtException', (err) => {
-  try {
-    require('fs').writeFileSync(path.join(app.getPath('userData'), 'laguna-debug.log'),
-      '[' + new Date().toISOString() + '] CRASH: ' + (err && err.message) + '\n' + (err && err.stack) + '\n', { flag: 'a' });
-  } catch (_) {}
-});
+const fs = require('fs');
 
 app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('no-sandbox');
 
 let win;
 
