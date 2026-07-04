@@ -23,8 +23,8 @@ async function render() {
     card.className = 'table-card';
     card.innerHTML = `
       <div class="table-status" style="background:${colorMap[t.status]}"></div>
-      <h3>${t.name}</h3>
-      <p><i class="fa-solid fa-chair"></i> ${t.capacity} كراسي ${t.hasService ? '<span style="color:#d97706;font-size:12px;margin-right:8px"><i class="fa-solid fa-star"></i> ضيافة</span>' : ''}</p>
+      <h3>${escapeHtml(t.name)}</h3>
+      <p><i class="fa-solid fa-chair"></i> ${validateNumber(t.capacity)} كراسي ${t.hasService ? '<span style="color:#d97706;font-size:12px;margin-right:8px"><i class="fa-solid fa-star"></i> ضيافة</span>' : ''}</p>
       <span class="badge" style="background:${colorMap[t.status]}">${statusMap[t.status]}</span>
       <div class="table-actions">
         <button class="edit-btn" data-id="${t.id}"><i class="fa-solid fa-pen"></i></button>

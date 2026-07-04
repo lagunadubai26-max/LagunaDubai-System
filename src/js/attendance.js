@@ -25,8 +25,8 @@ async function render() {
     const checkOutTime = record ? (record.checkOut || '—') : '—';
 
     row.innerHTML = `
-      <span class="emp-name-click" style="cursor:pointer;color:var(--primary);font-weight:600;text-decoration:underline">${emp.name}</span>
-      <span>${emp.job || '—'}</span>
+      <span class="emp-name-click" style="cursor:pointer;color:var(--primary);font-weight:600;text-decoration:underline">${escapeHtml(emp.name)}</span>
+      <span>${escapeHtml(emp.job || '—')}</span>
       <span class="in-time">${checkInTime}</span>
       <span class="out-time">${checkOutTime}</span>
       <span class="status ${stCls}">${stTxt}</span>
@@ -127,8 +127,8 @@ async function showEmployeeDetails(emp) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td style="padding:10px;border-bottom:1px solid var(--border)">${dateStr}</td>
-          <td style="padding:10px;border-bottom:1px solid var(--border)">${h.checkIn || '—'}</td>
-          <td style="padding:10px;border-bottom:1px solid var(--border)">${h.checkOut || '—'}</td>
+          <td style="padding:10px;border-bottom:1px solid var(--border)">${escapeHtml(h.checkIn || '—')}</td>
+          <td style="padding:10px;border-bottom:1px solid var(--border)">${escapeHtml(h.checkOut || '—')}</td>
           <td style="padding:10px;border-bottom:1px solid var(--border)"><span class="status ${stCls}" style="padding:2px 8px;font-size:11px">${stTxt}</span></td>`;
         historyList.appendChild(tr);
       });

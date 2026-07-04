@@ -77,7 +77,7 @@ function renderPrinterList() {
     div.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f5f5f4;border-radius:10px;margin-bottom:8px';
     div.innerHTML = `
       <div>
-        <strong style="font-size:14px">${p.name}</strong> ${badge}<br>
+        <strong style="font-size:14px">${escapeHtml(p.name)}</strong> ${badge}<br>
         <span style="font-size:12px;color:#888">${types[p.type] || p.type}</span>
       </div>
       <div style="display:flex;gap:6px">

@@ -11,3 +11,5 @@ supabase-*.sql
 start-desktop.sh
 start-server.sh
 Laguna Cafe.desktop
+.env
+.env.local

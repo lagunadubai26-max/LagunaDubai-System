@@ -91,7 +91,7 @@ function renderTopProducts(invoices) {
   const sorted = Object.entries(productMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
   if (sorted.length === 0) { container.innerHTML = '<p class="empty">لا توجد بيانات كافية</p>'; return; }
   let html = '<div class="table-header"><span>المنتج</span><span>الكمية</span></div>';
-  sorted.forEach(([name, qty]) => { html += `<div class="table-row"><span>${name}</span><span>${qty}</span></div>`; });
+  sorted.forEach(([name, qty]) => { html += `<div class="table-row"><span>${escapeHtml(name)}</span><span>${qty}</span></div>`; });
   container.innerHTML = html;
 }
 

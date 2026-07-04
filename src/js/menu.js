@@ -4,11 +4,12 @@ let checkoutProcessing = false;
 let syncingMilkState = false;
 const COOLDOWN_MS = 5000;
 const urlParams = new URLSearchParams(window.location.search);
-const tableNum = urlParams.get('table');
+const rawTable = urlParams.get('table');
+const tableNum = /^\d+$/.test(rawTable) ? rawTable : '';
 const hasService = urlParams.get('service') === '1';
 const isCustomer = !!tableNum;
 if (isCustomer) {
-  document.querySelector('.menu-header h1').innerHTML = '<i class="fa-solid fa-utensils"></i> القائمة - طاولة ' + tableNum + (hasService ? ' <span style="color:#d97706;font-size:14px">🌟 ضيافة</span>' : '');
+  document.querySelector('.menu-header h1').textContent = '🍽 القائمة - طاولة ' + tableNum + (hasService ? ' 🌟 ضيافة' : '');
   document.querySelectorAll('.sidebar, #sidebarToggle, .sidebar-overlay').forEach(el => el && (el.style.display = 'none'));
   const mainEl = document.querySelector('.main');
   if (mainEl) { mainEl.style.marginRight = '0'; mainEl.style.width = '100%'; }
@@ -103,7 +104,11 @@ async function loadProducts() {
   if (menuCategories) {
     menuCategories.innerHTML = '<button class="category-btn active" data-category="all">الكل</button>';
     categories.forEach(c => {
-      menuCategories.innerHTML += `<button class="category-btn" data-category="${c.slug}">${c.name}</button>`;
+      const btn = document.createElement('button');
+      btn.className = 'category-btn';
+      btn.dataset.category = c.slug;
+      btn.textContent = c.name;
+      menuCategories.appendChild(btn);
     });
   }
 
@@ -119,13 +124,19 @@ async function loadProducts() {
     const card = document.createElement('div');
     card.className = 'product-card';
     card.dataset.category = p.category;
+    const imgSrc = sanitizeUrl(p.image) || '';
+    const safeName = escapeHtml(p.name);
+    const safeNameEn = escapeHtml(p.nameEn || '');
+    const safeDesc = escapeHtml(p.description || '');
+    const safePrice = validateNumber(p.price, 0);
+    const fallbackImg = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f5f5f4%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 font-size=%2240%22>🍽</text></svg>';
     card.innerHTML = `
-      <div class="menu-icon"><img loading="lazy" src="${p.image || ''}" alt="${p.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f5f5f4%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 font-size=%2240%22>🍽</text></svg>'"></div>
-      <h3>${p.name}</h3>
-      <p>${p.nameEn || ''}</p>
-      ${p.description ? `<p class="desc">${p.description}</p>` : ''}
-      <h2>${p.price} جنيه</h2>
-      <button data-price="${p.price}">إضافة</button>`;
+      <div class="menu-icon"><img loading="lazy" src="${imgSrc || fallbackImg}" alt="${safeName}" onerror="this.src='${fallbackImg}'"></div>
+      <h3>${safeName}</h3>
+      <p>${safeNameEn}</p>
+      ${safeDesc ? `<p class="desc">${safeDesc}</p>` : ''}
+      <h2>${safePrice} جنيه</h2>
+      <button data-price="${safePrice}">إضافة</button>`;
     container.appendChild(card);
   });
 
@@ -467,19 +478,21 @@ document.getElementById('confirmCheckout').onclick = async () => {
       if (isCustomer || !isAdmin) {
         alert(`تم إنشاء الفاتورة ${inv.id}\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${paid} ج.م`);
       } else {
-        const itemsList = inv.items && inv.items.length
+        const safeItems = inv.items && inv.items.length
           ? '<div style="margin:8px 0">' + inv.items.map(it => {
+              const safeName = escapeHtml(it.name);
               const milkTxt = it.hasMilk ? ' +حليب' : '';
-              const noteTxt = it.note ? ' (' + it.note + ')' : '';
-              return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dotted #eee;font-size:13px"><span>• ${it.name}${milkTxt}${noteTxt} x${it.qty}</span><span>${it.qty * it.price} ج.م</span></div>`;
+              const safeNote = escapeHtml(it.note || '');
+              const noteTxt = safeNote ? ' (' + safeNote + ')' : '';
+              return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dotted #eee;font-size:13px"><span>• ${safeName}${milkTxt}${noteTxt} x${it.qty}</span><span>${it.qty * it.price} ج.م</span></div>`;
             }).join('') + '</div><hr style="margin:8px 0;border:none;border-top:2px dashed #ddd">'
           : '';
         document.getElementById('successDetails').innerHTML = `
           <img src="images/logo.png" style="height:55px;margin-bottom:4px;background:#f0f0f0;padding:6px;border-radius:8px" alt="LagunaDubai">
           <div style="font-size:14px;font-weight:700;margin-bottom:4px">LagunaDubai</div>
           <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">** فاتورة كاشير **</div>
-          <div style="font-size:11px;color:#888;margin-bottom:4px">#${inv.id}</div>
-          ${itemsList}
+          <div style="font-size:11px;color:#888;margin-bottom:4px">#${escapeHtml(inv.id)}</div>
+          ${safeItems}
           <div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:700;font-size:15px;padding-top:4px"><span>الإجمالي</span><span>${totalAmount} ج.م</span></div>
           <div style="display:flex;justify-content:space-between;margin:2px 0"><span>المدفوع</span><span>${paid} ج.م</span></div>
           ${inv.change > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#059669"><span>الباقي للعميل</span><span>${inv.change} ج.م</span></div>` : ''}
@@ -557,14 +570,19 @@ function printReceipt(inv) {
   const w = window.open('', '_blank', 'width=400,height=600');
   let itemsHtml = '';
   if (inv.items) inv.items.forEach(item => {
+    const safeName = escapeHtml(item.name);
     const milkTxt = item.hasMilk ? ' +حليب' : '';
-    const noteTxt = item.note ? '<br><small>' + item.note + '</small>' : '';
-    itemsHtml += `<tr><td class="item-name">${item.name}${milkTxt}${noteTxt}</td><td>${item.qty}</td><td>${item.qty * item.price} ج.م</td></tr>`;
+    const safeNote = escapeHtml(item.note || '');
+    const noteTxt = safeNote ? '<br><small>' + safeNote + '</small>' : '';
+    itemsHtml += `<tr><td class="item-name">${safeName}${milkTxt}${noteTxt}</td><td>${item.qty}</td><td>${item.qty * item.price} ج.م</td></tr>`;
   });
   const paid = inv.paid ?? inv.total;
   const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
   const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG');
-  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${inv.id}</title><style>
+  const safeId = escapeHtml(inv.id);
+  const safeCustomer = escapeHtml(inv.customer || '');
+  const safeTable = escapeHtml(inv.table || '');
+  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${safeId}</title><style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
 .header{text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed #000}
@@ -581,7 +599,7 @@ body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
 .footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:10px;color:#555}
 @media print{@page{margin:0;size:58mm 300mm}}
 </style></head><body>
-<div class="header"><h2>☕ Laguna Cafe</h2><p style="font-weight:700">** فاتورة كاشير **</p><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
+<div class="header"><h2>☕ Laguna Cafe</h2><p style="font-weight:700">** فاتورة كاشير **</p><p>${dateStr}</p><p>${safeCustomer}${safeTable ? ' | ' + safeTable : ''}</p><p style="font-size:10px">#${safeId}</p></div>
 <table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th>الكمية</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
 <div class="summary"><div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
 <div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${inv.change > 0 ? `<div class="line" style="color:#059669"><span>الباقي للعميل</span><span>${Number(inv.change).toLocaleString()} ج.م</span></div>` : ''}${remaining > 0 ? `<div class="line" style="color:#dc2626"><span>المتبقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}

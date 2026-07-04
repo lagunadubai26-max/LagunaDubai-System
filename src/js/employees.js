@@ -33,7 +33,7 @@ async function render() {
     const stCls = emp.status === 'active' ? 'active' : emp.status === 'vacation' ? 'vacation' : 'stopped';
     const stTxt = emp.status === 'active' ? 'يعمل' : emp.status === 'vacation' ? 'إجازة' : 'موقوف';
     row.innerHTML = `
-      <span>${emp.name}</span><span>${emp.job}</span><span>${emp.phone || '—'}</span>
+      <span>${escapeHtml(emp.name)}</span><span>${escapeHtml(emp.job)}</span><span>${escapeHtml(emp.phone || '—')}</span>
       <span>${emp.salary ? Number(emp.salary).toLocaleString() + ' ج.م' : '—'}</span>
       <span>${emp.hireDate || '—'}</span>
       <span class="status ${stCls}">${stTxt}</span>

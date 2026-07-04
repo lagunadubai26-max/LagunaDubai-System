@@ -15,7 +15,7 @@ async function render() {
     const row = document.createElement('div');
     row.className = 'table-row';
     row.innerHTML = `
-      <span>${e.description}</span><span>${e.category}</span>
+      <span>${escapeHtml(e.description)}</span><span>${escapeHtml(e.category)}</span>
       <span>${Number(e.amount).toLocaleString()} ج.م</span>
       <span>${new Date(e.date).toLocaleDateString('ar-EG')}</span>
       <div class="actions"><button class="delete-btn" data-id="${e.id}"><i class="fa-solid fa-trash"></i></button></div>`;

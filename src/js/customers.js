@@ -14,7 +14,7 @@ async function render() {
     const row = document.createElement('div');
     row.className = 'table-row';
     row.innerHTML = `
-      <span>${c.name}</span><span>${c.phone || '—'}</span>
+      <span>${escapeHtml(c.name)}</span><span>${escapeHtml(c.phone || '—')}</span>
       <span>${Number(c.totalSpent || 0).toLocaleString()} ج.م</span><span>${c.visits || 0}</span>
       <span>${c.lastVisit ? new Date(c.lastVisit).toLocaleDateString('ar-EG') : '—'}</span>
       <div class="actions">

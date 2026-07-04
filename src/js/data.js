@@ -150,7 +150,9 @@ const DB = {
     if (settings._seeded) return;
     const users = await this.users.all();
     if (users.length === 0) {
-      await this.users.add({ id: 'u1', username: 'admin', password: 'admin123', name: 'أحمد علي', role: 'Administrator' });
+      const defaultPassword = Math.random().toString(36).slice(2, 10);
+      await this.users.add({ id: 'u1', username: 'admin', password: defaultPassword, name: 'أحمد علي', role: 'Administrator' });
+      console.warn('[seed] Admin user created. Password: admin / ' + defaultPassword + '. Change it from Settings page.');
     }
 
     const cats = await this.categories.all();

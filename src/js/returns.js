@@ -25,7 +25,7 @@ async function render() {
     const stTxt = item.status === 'success' ? 'تمت المراجعة' : 'قيد المراجعة';
     const dateStr = item.date ? new Date(item.date).toLocaleDateString('ar-EG') : item.date || '—';
     row.innerHTML = `
-      <span>#${item.id}</span><span>${item.invoice}</span><span>${item.product}</span>
+      <span>#${item.id}</span><span>${escapeHtml(item.invoice)}</span><span>${escapeHtml(item.product)}</span>
       <span>${item.qty}</span><span>${item.amount} ج.م</span><span>${dateStr}</span>
       <span class="status ${stCls}">${stTxt}</span>
       <div class="actions">

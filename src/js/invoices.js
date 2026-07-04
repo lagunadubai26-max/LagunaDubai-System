@@ -28,19 +28,22 @@ async function render() {
     const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '—';
     const paid = inv.paid ?? inv.total;
     const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
+    const safeCustomer = escapeHtml(inv.customer || '');
+    const safeTable = escapeHtml(inv.table || '');
+    const safeId = escapeHtml(inv.id);
     row.innerHTML = `
-      <span>${inv.id}</span><span>${inv.customer}</span><span>${dateStr}</span>
-      <span>${inv.table || ''}</span>
+      <span>${safeId}</span><span>${safeCustomer}</span><span>${dateStr}</span>
+      <span>${safeTable}</span>
       <span>${Number(inv.total).toLocaleString()} ج.م</span>
       <span style="font-size:12px;color:${remaining > 0 ? '#dc2626' : '#059669'}">${remaining > 0 ? 'باقي ' + Number(remaining).toLocaleString() : 'مدفوع كامل'}</span>
       <span class="${stCls}">${stTxt}</span>
       <span style="font-size:11px;color:${inv.printed ? '#059669' : '#a8a29e'}">${inv.printed ? '✓ مطبوعة' : '—'}</span>
       <div class="actions">
-        ${remaining > 0 ? `<button class="pay-btn" data-id="${inv.id}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
-        <button class="toggle-status-btn" data-id="${inv.id}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
-        <button class="view-btn" data-id="${inv.id}"><i class="fa-solid fa-eye"></i></button>
-        <button class="print-btn" data-id="${inv.id}"><i class="fa-solid fa-print"></i></button>
-        <button class="delete-btn" data-id="${inv.id}"><i class="fa-solid fa-trash"></i></button>
+        ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
+        <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
+        <button class="view-btn" data-id="${safeId}"><i class="fa-solid fa-eye"></i></button>
+        <button class="print-btn" data-id="${safeId}"><i class="fa-solid fa-print"></i></button>
+        <button class="delete-btn" data-id="${safeId}"><i class="fa-solid fa-trash"></i></button>
       </div>`;
     tableBody.appendChild(row);
   });
@@ -92,14 +95,19 @@ function attachActions() {
       const w = window.open('', '_blank', 'width=400,height=600');
       let itemsHtml = '';
       if (inv.items) inv.items.forEach(item => {
+        const safeName = escapeHtml(item.name);
+        const safeNote = escapeHtml(item.note || '');
         const milkTxt = item.hasMilk ? ' +حليب' : '';
-        itemsHtml += `<tr><td>${item.name}${milkTxt}${item.note ? '<br><small>' + item.note + '</small>' : ''}</td><td>${item.qty}</td><td>${item.price} ج.م</td><td>${item.qty * item.price} ج.م</td></tr>`;
+        itemsHtml += `<tr><td>${safeName}${milkTxt}${safeNote ? '<br><small>' + safeNote + '</small>' : ''}</td><td>${item.qty}</td><td>${item.price} ج.م</td><td>${item.qty * item.price} ج.م</td></tr>`;
       });
       const paid = inv.paid ?? inv.total;
       const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
       const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : '';
       const baseUrl = window.location.origin + '/LagunaDubai-System/';
-      w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${inv.id}</title><style>
+      const safeId = escapeHtml(inv.id);
+      const safeCustomer = escapeHtml(inv.customer || '');
+      const safeTable = escapeHtml(inv.table || '');
+      w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${safeId}</title><style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
 .header{text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed #000}
@@ -118,7 +126,7 @@ body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
 .footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:10px;color:#555}
 @media print{@page{margin:0;size:58mm 300mm}}
 </style></head><body>
-<div class="header"><img src="${baseUrl}images/logo.png" style="height:65px;margin-bottom:4px;background:#f0f0f0;padding:6px;border-radius:8px" alt="LagunaDubai" id="logoImg"><div style="font-size:14px;font-weight:700;margin-bottom:4px">LagunaDubai</div><h2>** فاتورة كاشير **</h2><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
+<div class="header"><img src="${baseUrl}images/logo.png" style="height:65px;margin-bottom:4px;background:#f0f0f0;padding:6px;border-radius:8px" alt="LagunaDubai" id="logoImg"><div style="font-size:14px;font-weight:700;margin-bottom:4px">LagunaDubai</div><h2>** فاتورة كاشير **</h2><p>${dateStr}</p><p>${safeCustomer}${safeTable ? ' | ' + safeTable : ''}</p><p style="font-size:10px">#${safeId}</p></div>
 <table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
 <div class="summary"><div class="dashed"></div><div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
 <div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${inv.change > 0 ? `<div class="line" style="color:#059669"><span>الباقي للعميل</span><span>${Number(inv.change).toLocaleString()} ج.م</span></div>` : ''}${remaining > 0 ? `<div class="line" style="color:#dc2626"><span>المتبقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}

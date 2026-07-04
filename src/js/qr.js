@@ -7,7 +7,7 @@ function renderCard(t, section) {
   const num = t.name.replace(/\D/g, '');
   const url = BASE + '?table=' + num + (t.hasService ? '&service=1' : '');
   card.innerHTML = `
-    <h2>${t.name}</h2>
+    <h2>${escapeHtml(t.name)}</h2>
     <p>امسح الكود لفتح القائمة</p>
     <div class="qr-code" id="qr-${section}-${t.id}"></div>
     <button class="qr-download" data-url="${url}" data-name="${t.name}"><i class="fa-solid fa-download"></i> تحميل</button>

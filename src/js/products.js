@@ -23,8 +23,14 @@ function populateCategoryDropdowns() {
   const modalSelect = document.getElementById('prodCategoryModal');
   modalSelect.innerHTML = '';
   categories.forEach(c => {
-    catFilter.innerHTML += `<option value="${c.slug}">${c.name}</option>`;
-    modalSelect.innerHTML += `<option value="${c.slug}">${c.name}</option>`;
+    const opt1 = document.createElement('option');
+    opt1.value = c.slug;
+    opt1.textContent = c.name;
+    catFilter.appendChild(opt1);
+    const opt2 = document.createElement('option');
+    opt2.value = c.slug;
+    opt2.textContent = c.name;
+    modalSelect.appendChild(opt2);
   });
 }
 
@@ -35,7 +41,13 @@ function renderCategoryList() {
   categories.forEach(c => {
     const tag = document.createElement('span');
     tag.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:6px 12px;font-size:13px';
-    tag.innerHTML = `${c.name} <button data-id="${c.id}" class="del-cat-btn" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;padding:0"><i class="fa-solid fa-xmark"></i></button>`;
+    tag.textContent = c.name;
+    const btn = document.createElement('button');
+    btn.className = 'del-cat-btn';
+    btn.dataset.id = c.id;
+    btn.style.cssText = 'background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;padding:0';
+    btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    tag.appendChild(btn);
     catList.appendChild(tag);
   });
   document.querySelectorAll('.del-cat-btn').forEach(btn => {
@@ -78,13 +90,13 @@ async function render() {
     const row = document.createElement('div');
     row.className = 'table-row';
     row.innerHTML = `
-      <div><img class="thumb" src="${p.image || ''}" alt="${p.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽</text></svg>'"></div>
-      <span>${p.name}</span><span>${catMap[p.category] || p.category}</span>
-      <span>${p.price} ج.م</span>
-      <span class="status ${stCls}">${stTxt}</span>
+      <div><img class="thumb" src="${sanitizeUrl(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽</text></svg>'"></div>
+      <span>${escapeHtml(p.name)}</span><span>${escapeHtml(catMap[p.category] || p.category)}</span>
+      <span>${validateNumber(p.price)} ج.م</span>
+      <span class="status ${stCls}">${escapeHtml(stTxt)}</span>
       <div class="actions">
-        <button class="edit-btn" data-id="${p.id}"><i class="fa-solid fa-pen"></i></button>
-        <button class="delete-btn" data-id="${p.id}"><i class="fa-solid fa-trash"></i></button>
+        <button class="edit-btn" data-id="${escapeHtml(p.id)}"><i class="fa-solid fa-pen"></i></button>
+        <button class="delete-btn" data-id="${escapeHtml(p.id)}"><i class="fa-solid fa-trash"></i></button>
       </div>`;
     prodList.appendChild(row);
   });

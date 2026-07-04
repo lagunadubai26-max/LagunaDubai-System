@@ -18,7 +18,7 @@ async function render() {
     const row = document.createElement('div');
     row.className = 'table-row';
     row.innerHTML = `
-      <span>${i.name}</span><span>${i.category}</span><span>${i.quantity}</span><span>${i.unit}</span><span>${i.minQuantity}</span>
+      <span>${escapeHtml(i.name)}</span><span>${escapeHtml(i.category)}</span><span>${i.quantity}</span><span>${i.unit}</span><span>${i.minQuantity}</span>
       <span class="status ${stCls}">${stTxt}</span>
       <div class="actions">
         <button class="edit-btn" data-id="${i.id}"><i class="fa-solid fa-pen"></i></button>
@@ -96,7 +96,7 @@ function showToast(message, type) {
   const toast = document.createElement('div');
   toast.className = 'toast toast-' + type;
   const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation' };
-  toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.success}"></i><span>${message}</span>`;
+  toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.success}"></i><span>${escapeHtml(message)}</span>`;
   container.appendChild(toast);
   requestAnimationFrame(() => toast.classList.add('show'));
   setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
@@ -114,7 +114,7 @@ weeklyInvBtn.onclick = async () => {
   inventory.forEach(item => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td style="padding:10px;border-bottom:1px solid var(--border)">${item.name}</td>
+      <td style="padding:10px;border-bottom:1px solid var(--border)">${escapeHtml(item.name)}</td>
       <td style="padding:10px;border-bottom:1px solid var(--border)">${item.quantity}</td>
       <td style="padding:10px;border-bottom:1px solid var(--border)"><input type="number" class="weekly-qty" data-id="${item.id}" value="${item.quantity}" style="width:70px;padding:6px 10px;border:2px solid var(--border);border-radius:8px;font-size:13px;outline:none"></td>
       <td style="padding:10px;border-bottom:1px solid var(--border)">${item.minQuantity}</td>`;

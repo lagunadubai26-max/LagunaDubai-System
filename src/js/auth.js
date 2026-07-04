@@ -13,6 +13,9 @@
   const password = document.getElementById('password');
   const errorEl = document.getElementById('authError');
 
+  let loginAttempts = 0;
+  let loginBlockedUntil = 0;
+
   function showError(el, msg) { el.textContent = msg; el.style.display = 'block'; }
   function hideError(el) { el.textContent = ''; el.style.display = 'none'; }
 
@@ -23,14 +26,25 @@
   }
 
   loginBtn.onclick = async () => {
+    if (Date.now() < loginBlockedUntil) {
+      const wait = Math.ceil((loginBlockedUntil - Date.now()) / 1000);
+      showError(errorEl, 'حاول مرة أخرى بعد ' + wait + ' ثانية');
+      return;
+    }
     hideError(errorEl);
     const u = username.value.trim();
     const p = password.value.trim();
     if (!u || !p) { showError(errorEl, 'يرجى إدخال اسم المستخدم وكلمة المرور'); return; }
     setLoading(loginBtn, true);
+    loginAttempts++;
+    if (loginAttempts >= 5) {
+      loginBlockedUntil = Date.now() + 30000;
+      loginAttempts = 0;
+    }
     const users = await DB.users.all() || [];
     const user = users.find(x => x.username === u && x.password === p);
     if (user) {
+      loginAttempts = 0;
       sessionStorage.setItem('laguna_token', user.id);
       sessionStorage.setItem('laguna_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
       window.location.href = 'index.html';
