@@ -44,3 +44,5 @@ jobs:
             LagunaCafe-Windows/*.exe
             LagunaCafe-Linux/*.AppImage
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
