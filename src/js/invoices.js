@@ -117,7 +117,7 @@ body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
 .footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:10px;color:#555}
 @media print{@page{margin:0;size:58mm 300mm}}
 </style></head><body>
-<div class="header"><img src="${baseUrl}images/logo.png" style="height:50px;margin-bottom:4px" alt="LagunaDubai"><div style="font-size:14px;font-weight:700;margin-bottom:4px">LagunaDubai</div><h2>** فاتورة كاشير **</h2><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
+<div class="header"><img src="${baseUrl}images/logo.png" style="height:50px;margin-bottom:4px;background:#f0f0f0;padding:6px;border-radius:8px" alt="LagunaDubai"><div style="font-size:14px;font-weight:700;margin-bottom:4px">LagunaDubai</div><h2>** فاتورة كاشير **</h2><p>${dateStr}</p><p>${inv.customer}${inv.table ? ' | ' + inv.table : ''}</p><p style="font-size:10px">#${inv.id}</p></div>
 <table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
 <div class="summary"><div class="dashed"></div><div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
 <div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${inv.change > 0 ? `<div class="line" style="color:#059669"><span>الباقي للعميل</span><span>${Number(inv.change).toLocaleString()} ج.م</span></div>` : ''}${remaining > 0 ? `<div class="line" style="color:#dc2626"><span>المتبقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}
