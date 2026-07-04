@@ -26,6 +26,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: sudo apt-get update -q && sudo apt-get install -y fuse libfuse2
       - run: npm install
       - run: npx electron-builder --linux AppImage
       - uses: actions/upload-artifact@v4
