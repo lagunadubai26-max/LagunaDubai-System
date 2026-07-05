@@ -120,7 +120,7 @@ window.PRINTER = (() => {
           { vendorId: 0x04b8 }, { vendorId: 0x04b9 }, { vendorId: 0x0416 },
           { vendorId: 0x067b }, { vendorId: 0x0fe6 }, { vendorId: 0x0525 },
           { vendorId: 0x1fc9 }, { vendorId: 0x0456 }, { vendorId: 0x1504 },
-          { vendorId: 0x0dd4 },
+          { vendorId: 0x0dd4 }, { vendorId: 0x0483 },
         ];
         const dev = await navigator.usb.requestDevice({ filters });
         this.device = dev;
