@@ -541,20 +541,35 @@ document.getElementById('confirmCheckout').onclick = async () => {
 
         printBtn.onclick = async () => {
           document.getElementById('successModal').classList.remove('show');
-          printReceipt(inv);
+          try {
+            if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
+              await PRINTER.printReceipt(inv);
+              if (paid >= totalAmount) await PRINTER.openDrawer();
+            } else {
+              printReceipt(inv);
+            }
+          } catch(e) {
+            printReceipt(inv);
+          }
         };
         const hideSuccess = () => document.getElementById('successModal').classList.remove('show');
         closeBtn.onclick = hideSuccess;
 
-        if (hasPrinter && autoPrintReceipt) {
-          try {
-            for (let i = 0; i < copies; i++) await PRINTER.printReceipt(inv);
-            if (paid >= totalAmount) await PRINTER.openDrawer();
-            if (autoPrintKitchen) await PRINTER.printKitchenOrder(inv);
-            await DB.invoices.update(inv.id, { printed: true });
-          } catch (e) {
-            console.warn('[printer] error:', e);
-            printBtn.textContent = 'إعادة الطباعة';
+        if (autoPrintReceipt) {
+          let printed = false;
+          if (hasPrinter) {
+            try {
+              for (let i = 0; i < copies; i++) await PRINTER.printReceipt(inv);
+              if (paid >= totalAmount) await PRINTER.openDrawer();
+              if (autoPrintKitchen) await PRINTER.printKitchenOrder(inv);
+              await DB.invoices.update(inv.id, { printed: true });
+              printed = true;
+            } catch (e) {
+              console.warn('[printer] error:', e);
+            }
+          }
+          if (!printed) {
+            printBtn.innerHTML = '<i class="fa-solid fa-print"></i> طباعة الفاتورة';
           }
         }
       }
@@ -589,7 +604,33 @@ if (cartFloat && cartSheet) {
   sheetClear.onclick = () => { cartSheet.style.display = 'none'; clearBtn.click(); };
 }
 
-PRINTER.restorePrinters();
+async function autoConnectPrinter() {
+  try {
+    await PRINTER.restorePrinters();
+    if (PRINTER.isConnected()) return;
+    const btn = document.createElement('button');
+    btn.id = 'connectPrinterBtn';
+    btn.innerHTML = '🖨️ توصيل الطابعة';
+    btn.style.cssText = 'position:fixed;bottom:80px;right:15px;z-index:999;background:#e94560;color:#fff;border:none;border-radius:50px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(233,69,96,0.4);transition:0.2s';
+    btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
+    btn.onmouseout = () => btn.style.transform = 'scale(1)';
+    btn.onclick = async () => {
+      btn.innerHTML = '⏳ جاري...';
+      btn.disabled = true;
+      try {
+        await PRINTER.addPrinter('usb', { name: 'XP-80', forKitchen: false });
+        btn.innerHTML = '✅ متصلة';
+        btn.style.background = '#059669';
+        setTimeout(() => btn.remove(), 2000);
+      } catch(e) {
+        btn.innerHTML = '❌ فشل';
+        setTimeout(() => { btn.innerHTML = '🖨️ توصيل الطابعة'; btn.disabled = false; }, 2000);
+      }
+    };
+    document.body.appendChild(btn);
+  } catch(e) { console.warn('[printer]', e); }
+}
+autoConnectPrinter();
 loadProducts();
 
 function printReceipt(inv) {
