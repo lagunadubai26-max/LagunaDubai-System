@@ -268,15 +268,37 @@ window.PRINTER = (() => {
 
   async function restorePrinters() {
     const raw = localStorage.getItem('laguna_printers');
-    if (!raw) return;
     let data;
-    try { data = JSON.parse(raw); } catch { return; }
+    if (raw) { try { data = JSON.parse(raw); } catch { data = []; } } else { data = []; }
     for (const cfg of data) {
       try {
         if (cfg.type === 'usb') continue;
         await addPrinter(cfg.type, { name: cfg.name, host: cfg.host, port: cfg.port, forKitchen: cfg.forKitchen });
       } catch {}
     }
+    try {
+      if (!navigator.usb) return;
+      const devices = await navigator.usb.getDevices();
+      for (const dev of devices) {
+        const already = printers.some(p => p.driver.device === dev);
+        if (already) continue;
+        await dev.open();
+        if (dev.configuration === null) await dev.selectConfiguration(1);
+        await dev.claimInterface(0);
+        const iface = dev.configuration.interfaces[0];
+        let ep = null;
+        for (const e of iface.alternate.endpoints) {
+          if (e.direction === 'out') { ep = e.endpointNumber; break; }
+        }
+        if (!ep) continue;
+        const driver = { type: 'usb', device: dev, endpoint: ep, connected: true };
+        driver.connect = async () => {};
+        driver.disconnect = async () => { try { await dev.close(); } catch {} };
+        driver.send = async (data) => { await dev.transferOut(ep, data); };
+        const p = { id: 'prn_usb_' + (nextId++), name: 'XP-80', type: 'usb', driver, connected: true, active: true, forKitchen: false };
+        printers.push(p);
+      }
+    } catch {}
   }
 
   async function printTo(printerId, data) {
