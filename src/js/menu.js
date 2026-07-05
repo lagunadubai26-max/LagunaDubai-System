@@ -589,6 +589,7 @@ if (cartFloat && cartSheet) {
   sheetClear.onclick = () => { cartSheet.style.display = 'none'; clearBtn.click(); };
 }
 
+PRINTER.restorePrinters();
 loadProducts();
 
 function printReceipt(inv) {
