@@ -79,9 +79,23 @@ function attachActions() {
       if (!inv) return;
       if (inv.printed && !confirm('الفاتورة مطبوعة من قبل.\nهل تريد إعادة الطباعة؟')) return;
 
-      // Try print agent if enabled
+      // Try print agent first (if enabled)
+      let agentPrinted = false;
       if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
-        PRINTER.printViaAgent(inv).catch(() => {});
+        try {
+          const result = await PRINTER.printViaAgent(inv);
+          if (result && result.ok) {
+            agentPrinted = true;
+          }
+        } catch (e) {
+          console.warn('[printer] agent failed:', e);
+        }
+      }
+
+      if (agentPrinted) {
+        if (!inv.printed) await DB.invoices.update(inv.id, { printed: true });
+        render();
+        return;
       }
 
       if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
