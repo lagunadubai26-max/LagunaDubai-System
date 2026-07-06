@@ -7,6 +7,7 @@ async function getFilteredInvoices() {
   return all.filter(inv => {
     if (!inv.date) return false;
     const d = new Date(inv.date);
+    if (period === 'day') return d.toDateString() === now.toDateString();
     if (period === 'week') { const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7); return d >= weekAgo; }
     if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     if (period === 'year') return d.getFullYear() === now.getFullYear();
