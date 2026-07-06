@@ -223,6 +223,7 @@ window.PRINTER = (() => {
     }
     try {
       if (!navigator.usb) return;
+      if (localStorage.getItem('laguna_print_agent_enabled') === 'true') return;
       const devices = await navigator.usb.getDevices();
       for (const dev of devices) {
         const already = printers.some(p => p.driver.device === dev);
