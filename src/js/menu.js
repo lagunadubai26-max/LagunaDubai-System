@@ -638,7 +638,7 @@ async function autoConnectPrinter() {
     document.body.appendChild(btn);
   } catch(e) { console.warn('[printer]', e); }
 }
-autoConnectPrinter();
+if (!isCustomer && window.innerWidth > 768) autoConnectPrinter();
 loadProducts();
 
 function printReceipt(inv) {
