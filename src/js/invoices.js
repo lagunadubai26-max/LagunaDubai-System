@@ -98,6 +98,11 @@ function attachActions() {
         return;
       }
 
+      if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
+        alert('تعذر الطباعة عبر الـ Agent. تأكد من:' + String.fromCharCode(10) + '1- تشغيل start-agent.bat' + String.fromCharCode(10) + '2- السماح بالمحتوى غير الآمن في إعدادات الموقع');
+        return;
+      }
+
       if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
         try {
           await Promise.all([
