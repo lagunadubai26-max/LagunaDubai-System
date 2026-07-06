@@ -56,120 +56,182 @@ window.TEMPLATE = (() => {
   }
 
   function defaultCashierTemplate() {
-    return '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة {{id}}</title><style>\n'
-      + '*{margin:0;padding:0;box-sizing:border-box}\n'
-      + 'body{font-family:\'Courier New\',monospace;font-size:12px;padding:8px;color:#000}\n'
-      + '.header{text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed #000}\n'
-      + '.header .logo{font-size:20px;font-weight:700;margin-bottom:4px}\n'
-      + '.header h2{font-size:14px;font-weight:700;margin-bottom:2px}\n'
-      + '.header p{font-size:11px;color:#555}\n'
-      + '.receipt-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}\n'
-      + '.receipt-table th,.receipt-table td{padding:3px 2px;text-align:center}\n'
-      + '.receipt-table th{border-bottom:1px solid #000}\n'
-      + '.receipt-table td{border-bottom:1px dotted #ccc}\n'
-      + '.receipt-table .item-name{text-align:right}\n'
-      + '.summary{margin:6px 0;padding:4px 0}\n'
-      + '.summary .dashed{border-top:1px dashed #000;margin-bottom:4px}\n'
-      + '.summary .line{display:flex;justify-content:space-between;font-size:11px;padding:1px 0}\n'
-      + '.summary .total{font-size:15px;font-weight:700;border-top:2px solid #000;padding-top:4px;margin-top:4px}\n'
-      + '.footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:10px;color:#555}\n'
-      + '@media print{@page{margin:0;size:58mm 300mm}}\n'
-      + '</style></head><body>\n'
-      + '<div class="header">{{logo}}<div style="font-size:14px;font-weight:700;margin-bottom:4px">LagunaDubai</div><h2>{{title}}</h2><p>{{date}}</p><p>{{customer}}{{table}}</p><p style="font-size:10px">#{{id}}</p></div>\n'
-      + '<table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>{{items}}</tbody></table>\n'
-      + '<div class="summary"><div class="dashed"></div>{{serviceAmount}}{{taxAmount}}<div class="line"><span>الإجمالي</span><span>{{total}} ج.م</span></div>\n'
-      + '<div class="line"><span>المدفوع</span><span>{{paid}} ج.م</span></div>{{change}}{{remaining}}\n'
-      + '<div class="line total"><span>{{status}}</span><span>{{paymentMethod}}</span></div></div>\n'
-      + '<div class="footer">{{footer}}</div>\n'
-      + '<script>document.getElementById(\'logoImg\').onload=function(){window.print();window.close()};setTimeout(function(){window.print();window.close()},3000);<\/script></body></html>';
+    return '<div style="width:300px;margin:0 auto;font-family:\'Cairo\',\'Tahoma\',sans-serif;color:#16294a;background:#fff;padding:14px 12px;direction:rtl;">\n'
+      + '<div style="text-align:center;margin-bottom:10px;">\n'
+      + '<svg width="60" height="60" viewBox="0 0 100 100" style="display:block;margin:0 auto;">\n'
+      + '<polygon points="50,10 45,35 42,70 40,88 60,88 58,70 55,35" fill="#c9a05a"/>\n'
+      + '<path d="M15,78 Q50,95 85,78 Q50,88 15,78 Z" fill="#c9a05a"/>\n'
+      + '<path d="M10,86 Q50,100 90,86 Q50,94 10,86 Z" fill="#c9a05a"/>\n'
+      + '</svg>\n'
+      + '<div style="font-size:20px;font-weight:900;color:#c9a05a;letter-spacing:1px;margin-top:4px;">LAGUNA DUBAI</div>\n'
+      + '<div style="font-size:11px;color:#9a8a6a;">كافيه • مطعم</div>\n'
+      + '</div>\n'
+      + '<div style="border-top:1px dashed #c9a05a;margin:10px 0;"></div>\n'
+      + '<div style="font-size:12px;line-height:1.9;">\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>رقم الفاتورة</span><span>#{id}</span></div>\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>التاريخ</span><span>{date}</span></div>\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>الطاولة</span><span>{table}</span></div>\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>العميل</span><span>{customer}</span></div>\n'
+      + '</div>\n'
+      + '<div style="border-top:1px dashed #c9a05a;margin:10px 0;"></div>\n'
+      + '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#9a8a6a;margin-bottom:6px;">\n'
+      + '<span>الصنف</span><span>الكمية × السعر</span>\n'
+      + '</div>\n'
+      + '{items}\n'
+      + '<div style="display:flex;align-items:flex-end;margin-bottom:7px;">\n'
+      + '<span style="font-size:13px;font-weight:600;white-space:nowrap;">{name}</span>\n'
+      + '<span style="flex:1;border-bottom:1px dotted #c9a05a;margin:0 5px 3px;"></span>\n'
+      + '<span style="font-size:13px;white-space:nowrap;">{qty} × {total}</span>\n'
+      + '</div>\n'
+      + '{/items}\n'
+      + '<div style="border-top:1px dashed #c9a05a;margin:10px 0;"></div>\n'
+      + '<div style="font-size:12px;line-height:2;">\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>الإجمالي الفرعي</span><span>{subtotal}</span></div>\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>الضريبة</span><span>{taxAmount}</span></div>\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>الخدمة</span><span>{serviceAmount}</span></div>\n'
+      + '</div>\n'
+      + '<div style="background:#0b1c33;color:#fff;border-radius:8px;padding:10px 14px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;">\n'
+      + '<span style="font-size:14px;">الإجمالي الكلي</span>\n'
+      + '<span style="font-size:20px;font-weight:900;color:#c9a05a;">{total}</span>\n'
+      + '</div>\n'
+      + '<div style="font-size:12px;line-height:2;">\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>طريقة الدفع</span><span>{paymentMethod}</span></div>\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>المدفوع</span><span>{paid}</span></div>\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>الباقي</span><span>{change}</span></div>\n'
+      + '</div>\n'
+      + '<div style="border-top:1px dashed #c9a05a;margin:12px 0 8px;"></div>\n'
+      + '<div style="text-align:center;font-size:12px;color:#9a8a6a;">{footer}</div>\n'
+      + '<div style="text-align:center;font-size:11px;color:#c9a05a;margin-top:4px;">شكراً لزيارتكم ✨</div>\n'
+      + '<script>window.print();window.close();<\/script>\n'
+      + '</div>';
   }
 
   function defaultKitchenTemplate() {
-    return '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>طلب مطبخ {{id}}</title><style>\n'
-      + '*{margin:0;padding:0;box-sizing:border-box}\n'
-      + 'body{font-family:\'Courier New\',monospace;font-size:14px;padding:8px;color:#000}\n'
-      + '.header{text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px dashed #d97706}\n'
-      + '.header h2{font-size:18px;font-weight:700;margin-bottom:2px;color:#d97706}\n'
-      + '.header p{font-size:12px;color:#555}\n'
-      + '.kitchen-item{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px dashed #ddd;font-size:15px}\n'
-      + '.kitchen-item .item-name{font-weight:700}\n'
-      + '.kitchen-item .item-qty{font-weight:700;color:#d97706}\n'
-      + '.footer{text-align:center;margin-top:12px;padding-top:8px;border-top:2px dashed #d97706;font-size:11px;color:#555}\n'
-      + '.divider{text-align:center;color:#d97706;margin:6px 0;font-weight:700}\n'
-      + '@media print{@page{margin:0;size:58mm 300mm}}\n'
-      + '</style></head><body>\n'
-      + '<div class="header"><h2>{{title}}</h2><p>{{date}}</p><p>{{table}}</p><p style="font-size:11px">#{{id}}</p></div>\n'
-      + '<div class="divider">—————— المطلوب ——————</div>\n'
-      + '{{items}}\n'
-      + '<div class="footer">{{footer}}<br>🍳 المطبخ</div>\n'
-      + '<script>window.print();window.close();<\/script></body></html>';
+    return '<div style="width:300px;margin:0 auto;font-family:\'Cairo\',\'Tahoma\',sans-serif;color:#16294a;background:#fff;padding:14px 12px;direction:rtl;">\n'
+      + '<div style="text-align:center;margin-bottom:6px;">\n'
+      + '<div style="font-size:22px;font-weight:900;">أمر مطبخ</div>\n'
+      + '</div>\n'
+      + '<div style="border-top:2px solid #16294a;margin:8px 0;"></div>\n'
+      + '<div style="font-size:14px;line-height:1.9;font-weight:700;">\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>طاولة</span><span>{table}</span></div>\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>رقم الطلب</span><span>#{id}</span></div>\n'
+      + '<div style="display:flex;justify-content:space-between;"><span>الوقت</span><span>{date}</span></div>\n'
+      + '</div>\n'
+      + '<div style="border-top:2px dashed #16294a;margin:10px 0;"></div>\n'
+      + '{items}\n'
+      + '<div style="display:flex;align-items:center;margin-bottom:12px;border-bottom:1px dotted #ccc;padding-bottom:8px;">\n'
+      + '<span style="font-size:20px;font-weight:900;min-width:34px;">{qty}×</span>\n'
+      + '<span style="font-size:18px;font-weight:700;margin-right:6px;">{name}</span>\n'
+      + '</div>\n'
+      + '{/items}\n'
+      + '<div style="border-top:2px solid #16294a;margin:14px 0 6px;"></div>\n'
+      + '<div style="text-align:center;font-size:11px;color:#888;">{footer}</div>\n'
+      + '<script>window.print();window.close();<\/script>\n'
+      + '</div>';
   }
 
-  function renderCashier(inv, templateStr) {
-    const tpl = templateStr || defaultCashierTemplate();
-    const paid = inv.paid != null ? inv.paid : inv.total;
-    const remaining = inv.remaining != null ? inv.remaining : Math.max(0, (inv.total || 0) - paid);
+  function replaceVars(text, vars) {
+    let r = text;
+    for (const [key, val] of Object.entries(vars)) {
+      r = r.replace(new RegExp('\\{\\{' + key + '\\}\\}', 'g'), val);
+      r = r.replace(new RegExp('\\{' + key + '\\}', 'g'), val);
+    }
+    return r;
+  }
+
+  function renderItemsBlock(tpl, inv) {
+    const start = tpl.indexOf('{items}');
+    const end = tpl.indexOf('{/items}');
+    if (start === -1 || end === -1) return tpl;
+
+    const before = tpl.slice(0, start);
+    const itemTpl = tpl.slice(start + 7, end);
+    const after = tpl.slice(end + 8);
+
+    let itemsHtml = '';
+    if (inv.items) {
+      inv.items.forEach(item => {
+        const milkTxt = item.hasMilk ? ' +حليب' : '';
+        const hasMilkHtml = item.hasMilk ? ' +حليب' : '';
+        const safeNote = escape(item.note || '');
+        let line = itemTpl;
+        const itemVars = {
+          name: escape(item.name) + milkTxt,
+          qty: item.qty,
+          price: item.price + ' ج.م',
+          total: (item.qty * item.price) + ' ج.م',
+          note: safeNote,
+          hasMilk: item.hasMilk ? 'true' : 'false'
+        };
+        line = replaceVars(line, itemVars);
+        itemsHtml += line;
+      });
+    }
+
+    return before + itemsHtml + renderItemsBlock(after, inv);
+  }
+
+  function renderTemplate(tpl, inv, type) {
+    const paid = inv.paid != null ? Number(inv.paid) : Number(inv.total || 0);
+    const total = Number(inv.total || 0);
+    const remaining = inv.remaining != null ? Number(inv.remaining) : Math.max(0, total - paid);
     const change = inv.change || 0;
+    const subtotal = total - (inv.serviceAmount || 0) - (inv.taxAmount || 0);
     const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG');
     const status = remaining > 0 ? 'معلق' : 'مدفوع';
     const baseUrl = window.location.origin + '/LagunaDubai-System/';
     const logoHtml = '<img src="' + baseUrl + 'images/logo.png" id="logoImg" style="height:65px;margin-bottom:4px;background:#222;padding:6px;border-radius:8px" alt="LagunaDubai">';
 
-    const vars = {
+    const commonVars = {
       logo: logoHtml,
-      title: '** فاتورة كاشير **',
       id: escape(inv.id || ''),
       date: dateStr,
       customer: escape(inv.customer || ''),
-      table: inv.table ? ' | ' + escape(inv.table) : '',
-      items: buildItemsHtml(inv, 'cashier'),
-      serviceAmount: inv.serviceAmount > 0
-        ? '<div class="line"><span>خدمة الضيافة</span><span>' + Number(inv.serviceAmount).toLocaleString() + ' ج.م</span></div>'
-        : '',
-      taxAmount: inv.taxAmount > 0
-        ? '<div class="line"><span>ضريبة القيمة المضافة</span><span>' + Number(inv.taxAmount).toLocaleString() + ' ج.م</span></div>'
-        : '',
-      total: Number(inv.total || 0).toLocaleString(),
-      paid: Number(paid).toLocaleString(),
-      change: change > 0
-        ? '<div class="line" style="color:#059669"><span>الباقي للعميل</span><span>' + Number(change).toLocaleString() + ' ج.م</span></div>'
-        : '',
-      remaining: remaining > 0
-        ? '<div class="line" style="color:#dc2626"><span>المتبقي</span><span>' + Number(remaining).toLocaleString() + ' ج.م</span></div>'
-        : '',
+      table: escape(inv.table || ''),
+      items: '',
+      serviceAmount: inv.serviceAmount > 0 ? Number(inv.serviceAmount).toLocaleString() + ' ج.م' : '',
+      taxAmount: inv.taxAmount > 0 ? Number(inv.taxAmount).toLocaleString() + ' ج.م' : '',
+      subtotal: Number(subtotal).toLocaleString() + ' ج.م',
+      total: Number(total).toLocaleString() + ' ج.م',
+      paid: Number(paid).toLocaleString() + ' ج.م',
+      change: change > 0 ? Number(change).toLocaleString() + ' ج.م' : '0 ج.م',
+      remaining: remaining > 0 ? Number(remaining).toLocaleString() + ' ج.م' : '0 ج.م',
       paymentMethod: inv.paymentMethod || 'كاش',
       status: status,
-      footer: 'شكراً لزيارتكم<br>☕ LagunaDubai'
+      footer: 'شكراً لزيارتكم ☕'
     };
 
-    let result = tpl;
-    for (const [key, val] of Object.entries(vars)) {
-      result = result.replace(new RegExp('{{' + key + '}}', 'g'), val);
+    if (type === 'cashier') {
+      commonVars.title = '** فاتورة كاشير **';
+    } else {
+      commonVars.title = '** طلب مطبخ **';
+      commonVars.table = escape(inv.table || '');
+    }
+
+    // First render the items block
+    let result = renderItemsBlock(tpl, inv);
+    // Then replace all remaining variables
+    result = replaceVars(result, commonVars);
+    // Clean up any unreplaced placeholders
+    result = result.replace(/\{[^}]+\}/g, '');
+    result = result.replace(/\{\{[^}]+\}\}/g, '');
+    // Wrap in full HTML if not already (for proper @page CSS in thermal printing)
+    if (!result.match(/<html/i)) {
+      result = '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">'
+        + '<style>@media print{@page{margin:0;size:58mm 300mm}}body{margin:0;padding:0}</style>'
+        + '</head><body>' + result + '</body></html>';
     }
     return result;
   }
 
+  function renderCashier(inv, templateStr) {
+    const tpl = templateStr || defaultCashierTemplate();
+    return renderTemplate(tpl, inv, 'cashier');
+  }
+
   function renderKitchen(inv, templateStr) {
     const tpl = templateStr || defaultKitchenTemplate();
-    const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG');
-    const baseUrl = window.location.origin + '/LagunaDubai-System/';
-    const logoHtml = '<img src="' + baseUrl + 'images/logo.png" style="height:50px;margin-bottom:4px;background:#222;padding:6px;border-radius:8px" alt="LagunaDubai">';
-
-    const vars = {
-      logo: logoHtml,
-      title: '** طلب مطبخ **',
-      id: escape(inv.id || ''),
-      date: dateStr,
-      table: inv.table || '',
-      items: buildItemsHtml(inv, 'kitchen'),
-      footer: ''
-    };
-
-    let result = tpl;
-    for (const [key, val] of Object.entries(vars)) {
-      result = result.replace(new RegExp('{{' + key + '}}', 'g'), val);
-    }
-    return result;
+    return renderTemplate(tpl, inv, 'kitchen');
   }
 
   // ===== ESCPOS Template =====
