@@ -11,6 +11,10 @@ async function load() {
   document.getElementById('printCopies').value = settings.printCopies || 1;
   document.getElementById('wsProxyUrl').value = settings.wsProxyUrl || 'ws://localhost:9090';
   if (settings.wsProxyUrl) localStorage.setItem('laguna_printer_proxy', settings.wsProxyUrl);
+  document.getElementById('enablePrintAgent').checked = settings.enablePrintAgent !== false;
+  document.getElementById('printAgentUrl').value = settings.printAgentUrl || 'http://localhost:4321';
+  if (settings.printAgentUrl) localStorage.setItem('laguna_print_agent_url', settings.printAgentUrl);
+  localStorage.setItem('laguna_print_agent_enabled', settings.enablePrintAgent !== false);
 }
 
 document.getElementById('saveSettings').onclick = async () => {
@@ -24,10 +28,15 @@ document.getElementById('saveSettings').onclick = async () => {
     autoPrintReceipt: document.getElementById('autoPrintReceipt').checked,
     autoPrintKitchen: document.getElementById('autoPrintKitchen').checked,
     printCopies: Number(document.getElementById('printCopies').value) || 1,
-    wsProxyUrl: document.getElementById('wsProxyUrl').value || 'ws://localhost:9090'
+    wsProxyUrl: document.getElementById('wsProxyUrl').value || 'ws://localhost:9090',
+    enablePrintAgent: document.getElementById('enablePrintAgent').checked,
+    printAgentUrl: document.getElementById('printAgentUrl').value || 'http://localhost:4321'
   });
   const proxyUrl = document.getElementById('wsProxyUrl').value || 'ws://localhost:9090';
   localStorage.setItem('laguna_printer_proxy', proxyUrl);
+  const agentUrl = document.getElementById('printAgentUrl').value || 'http://localhost:4321';
+  localStorage.setItem('laguna_print_agent_url', agentUrl);
+  localStorage.setItem('laguna_print_agent_enabled', document.getElementById('enablePrintAgent').checked);
   alert('تم حفظ الإعدادات بنجاح');
 };
 

@@ -341,10 +341,27 @@ window.PRINTER = (() => {
     }
   }
 
+  async function printViaAgent(invoice) {
+    let url = localStorage.getItem('laguna_print_agent_url');
+    if (!url) return { ok: false, skipped: true };
+    try {
+      const resp = await fetch(url.replace(/\/+$/, '') + '/print-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(invoice)
+      });
+      return await resp.json();
+    } catch (err) {
+      console.warn('[print-agent] لا يمكن الوصول:', err.message);
+      return { ok: false, error: err.message };
+    }
+  }
+
   return {
     addPrinter, removePrinter, disconnectAll, getPrinters, isConnected,
     getReceiptPrinters, getKitchenPrinters, restorePrinters,
     printTo, printReceipt, printKitchenOrder, openDrawer,
+    printViaAgent,
     escposInit, escposBold, escposText, escposCut,
     buildReceiptData, buildKitchenOrderData
   };

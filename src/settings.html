@@ -112,6 +112,13 @@
         <input type="number" id="printCopies" min="1" max="5" value="1" style="width:80px;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;margin-bottom:10px">
         <label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px">رابط WebSocket Proxy (لطابعات WiFi)</label>
         <input type="text" id="wsProxyUrl" placeholder="ws://localhost:9090" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
+        <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:600;font-size:13px">
+          <input type="checkbox" id="enablePrintAgent"> استخدام Print Agent
+        </label>
+        <label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px">رابط Print Agent</label>
+        <input type="text" id="printAgentUrl" placeholder="http://192.168.1.100:4321" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
+        <p style="font-size:12px;color:#888;margin-top:4px">برنامج محلي عشان يطبع على الطابعات (شوف print-agent/README.md)</p>
       </div>
       <div class="settings-card" id="printerCard">
         <h3><i class="fa-solid fa-print"></i>الطابعات + درج الكاشير</h3>

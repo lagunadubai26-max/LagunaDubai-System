@@ -193,7 +193,7 @@ function attachAddToCart() {
         item.dataset.price = price;
         item.dataset.hasMilk = 'false';
         item.innerHTML = `
-          <div class="order-top"><span class="name">${name}</span><button class="note-btn"><i class="fa-solid fa-pen"></i></button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
+          <div class="order-top"><span class="name">${name}</span><button class="note-btn" title="أضف ملاحظة"><i class="fa-solid fa-pen"></i>ملاحظة</button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
           <div class="price">${price} جنيه</div>
           <div class="item-note" style="display:none"><input class="note-input" placeholder="إضافة (قهوة محوج، بدون سكر...)" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;background:#fafaf9;margin-bottom:8px"></div>
           <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +حليب 5 ج.م</label></div>`;
@@ -225,7 +225,11 @@ function handleOrderClick(e) {
     const item = btn.closest('.order-item');
     if (!item) return;
     const noteDiv = item.querySelector('.item-note');
-    if (noteDiv) noteDiv.style.display = noteDiv.style.display === 'none' ? 'block' : 'none';
+    if (noteDiv) {
+      const showing = noteDiv.style.display !== 'none';
+      noteDiv.style.display = showing ? 'none' : 'block';
+      btn.classList.toggle('active', !showing);
+    }
     return;
   }
   const item = btn.closest('.order-item');
@@ -485,8 +489,6 @@ document.getElementById('confirmCheckout').onclick = async () => {
       const existing = (await DB.customers.all() || []).find(c => c.name === customer);
       if (existing) {
         await DB.customers.update(existing.id, { visits: (existing.visits || 0) + 1, totalSpent: (existing.totalSpent || 0) + totalAmount, lastVisit: new Date().toISOString() });
-      } else {
-        await DB.customers.add({ name: customer, phone: '', totalSpent: totalAmount, visits: 1, lastVisit: new Date().toISOString() });
       }
     }
     document.getElementById('checkoutModal').classList.remove('show');
@@ -571,6 +573,9 @@ document.getElementById('confirmCheckout').onclick = async () => {
           if (!printed) {
             printBtn.innerHTML = '<i class="fa-solid fa-print"></i> طباعة الفاتورة';
           }
+        }
+        if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
+          PRINTER.printViaAgent(inv).catch(() => {});
         }
       }
     } else {

@@ -1,0 +1,16 @@
+{
+  "name": "laguna-print-agent",
+  "version": "1.0.0",
+  "description": "Local Print Agent – يستقبل طلبات الطباعة من Laguna Cafe ويطبع على طابعتين ويفتح الدرج",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "escpos": "^3.0.0-alpha.6",
+    "escpos-usb": "^3.0.0-alpha.4",
+    "escpos-network": "^3.0.0-alpha.5"
+  }
+}

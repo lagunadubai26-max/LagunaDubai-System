@@ -77,9 +77,11 @@
 .qty{font-size:16px;font-weight:700;min-width:20px;text-align:center}
 .delete{border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px;transition:var(--transition);padding:4px}
 .delete:hover{transform:scale(1.2);color:#b91c1c}
-.note-btn{border:none;background:none;color:var(--accent);cursor:pointer;font-size:14px;transition:var(--transition);padding:4px;opacity:.6}
-.note-btn:hover{opacity:1;transform:scale(1.15)}
+.note-btn{border:none;background:rgba(219,39,119,0.08);color:#db2777;cursor:pointer;font-size:13px;transition:var(--transition);padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-weight:500}
 
+.note-btn:hover{background:rgba(219,39,119,0.15);transform:scale(1.05)}
+
+.note-btn.active{background:rgba(219,39,119,0.2)}
 .order-footer{padding:20px;border-top:1px solid var(--border);background:#fff}
 .total{
   display:flex;justify-content:space-between;align-items:center;
