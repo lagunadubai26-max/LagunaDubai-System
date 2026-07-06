@@ -1,12 +1,14 @@
 async function updateDashboard() {
   const invoices = await DB.invoices.all() || [];
-  const totalSales = invoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const pendingTotal = invoices.filter(i => i.status !== 'paid' && i.status !== 'مدفوعة' && i.status !== 'returned' && i.status !== 'مرتجعة').reduce((s, i) => s + Number(i.total || 0), 0);
   const customers = (await DB.customers.all() || []).length;
   const totalOrders = invoices.reduce((s, i) => s + (i.items ? i.items.reduce((a, b) => a + Number(b.qty || 0), 0) : 0), 0);
 
   document.getElementById('totalSales').textContent = totalSales.toLocaleString() + ' جنيه';
   const salesStatus = document.getElementById('salesStatus');
-  if (salesStatus) salesStatus.textContent = 'إجمالي';
+  if (salesStatus) salesStatus.textContent = (pendingTotal > 0 ? pendingTotal.toLocaleString() + ' ج.م معلقة | ' : '') + 'مدفوعة';
   document.getElementById('totalInvoices').textContent = invoices.length;
   document.getElementById('totalCustomers').textContent = customers || '0';
   document.getElementById('totalOrders').textContent = totalOrders || '0';

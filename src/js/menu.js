@@ -481,10 +481,13 @@ document.getElementById('confirmCheckout').onclick = async () => {
     const serviceAmount = window._checkoutService || 0;
     const taxAmount = window._checkoutTax || 0;
     const table = tableNum ? 'طاولة ' + tableNum : null;
-    const paid = Math.max(0, Number(document.getElementById('checkoutPaid').value) || totalAmount);
+    const paid = Math.max(0, Number(document.getElementById('checkoutPaid').value) || 0);
     const change = Math.max(0, paid - totalAmount);
     const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: paid >= totalAmount ? 'paid' : 'pending' });
     console.log('[checkout] invoice saved:', inv ? inv.id : 'null');
+    if (tableNum) {
+      try { await DB.tables.update('t' + tableNum, { status: 'occupied' }); } catch (e) { console.warn('[checkout] table update:', e); }
+    }
     if (custType === 'special') {
       const existing = (await DB.customers.all() || []).find(c => c.name === customer);
       if (existing) {

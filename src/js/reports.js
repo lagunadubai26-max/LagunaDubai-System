@@ -25,9 +25,13 @@ async function render() {
   const expenses = await DB.expenses.all() || [];
   const returns = await DB.returns.all() || [];
 
-  const totalSales = invoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+  const pendingInvoices = invoices.filter(i => i.status !== 'paid' && i.status !== 'مدفوعة' && i.status !== 'returned' && i.status !== 'مرتجعة');
+  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const totalPending = pendingInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const collectedCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid ?? i.total || 0), 0);
   const netProfit = totalSales - totalReturns - totalExpenses;
 
   document.getElementById('reportSales').textContent = totalSales.toLocaleString() + ' ج.م';
@@ -35,6 +39,8 @@ async function render() {
   document.getElementById('reportReturns').textContent = totalReturns.toLocaleString() + ' ج.م';
   document.getElementById('reportExpenses').textContent = totalExpenses.toLocaleString() + ' ج.م';
   document.getElementById('reportNetProfit').textContent = netProfit.toLocaleString() + ' ج.م';
+  document.getElementById('reportPending').textContent = totalPending.toLocaleString() + ' ج.م';
+  document.getElementById('reportCashDrawer').textContent = collectedCash.toLocaleString() + ' ج.م';
   const specialInvoices = invoices.filter(i => i.customer && i.customer !== 'نقدي');
   const specialTotal = specialInvoices.reduce((s, i) => s + Number(i.total ?? 0), 0);
   document.getElementById('reportSpecialCustomers').textContent = specialTotal.toLocaleString() + ' ج.م';
