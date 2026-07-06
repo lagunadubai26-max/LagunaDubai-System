@@ -78,6 +78,12 @@ function attachActions() {
       const inv = invoices.find(i => i.id === btn.dataset.id);
       if (!inv) return;
       if (inv.printed && !confirm('الفاتورة مطبوعة من قبل.\nهل تريد إعادة الطباعة؟')) return;
+
+      // Try print agent if enabled
+      if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
+        PRINTER.printViaAgent(inv).catch(() => {});
+      }
+
       if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
         try {
           await Promise.all([
@@ -225,3 +231,4 @@ function renderWithData() {
   }
   attachActions();
 }
+
