@@ -2,18 +2,23 @@ const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('no-sandbox');
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox');
+}
 
 let win;
 
 function createWindow() {
+  const iconPath = path.join(__dirname, 'icon.png');
+  const hasIcon = fs.existsSync(iconPath);
+
   win = new BrowserWindow({
     width: 1300,
     height: 850,
     minWidth: 1000,
     minHeight: 700,
-    icon: path.join(__dirname, 'icon.png'),
+    icon: hasIcon ? iconPath : undefined,
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -21,13 +26,15 @@ function createWindow() {
   });
 
   const url = 'https://adhamkhaled1510.github.io/LagunaDubai-System/';
-  win.loadURL(url).catch(() => {
-    dialog.showErrorBox('خطأ في الاتصال',
-      'لا يمكن الاتصال بالإنترنت أو تحميل الصفحة.\nتأكد من اتصالك بالإنترنت وحاول مرة أخرى.\n\n' + url);
+
+  win.loadURL(url).then(() => {
+    win.show();
+  }).catch((err) => {
+    dialog.showErrorBox('خطأ',
+      'لا يمكن تحميل التطبيق. تحقق من اتصالك بالإنترنت.\n\n' + err.message);
   });
 
   win.webContents.setWindowOpenHandler(() => ({ action: 'allow' }));
-
   win.on('closed', () => { win = null; });
 }
 

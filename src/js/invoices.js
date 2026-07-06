@@ -92,47 +92,18 @@ function attachActions() {
           console.warn('[printer] print failed, falling back to browser print:', e);
         }
       }
-      const w = window.open('', '_blank', 'width=400,height=600');
-      let itemsHtml = '';
-      if (inv.items) inv.items.forEach(item => {
-        const safeName = escapeHtml(item.name);
-        const safeNote = escapeHtml(item.note || '');
-        const milkTxt = item.hasMilk ? ' +حليب' : '';
-        itemsHtml += `<tr><td>${safeName}${milkTxt}${safeNote ? '<br><small>' + safeNote + '</small>' : ''}</td><td>${item.qty}</td><td>${item.price} ج.م</td><td>${item.qty * item.price} ج.م</td></tr>`;
+      TEMPLATE.getTemplate('cashier').then(cashierTpl => {
+        if (!cashierTpl) cashierTpl = TEMPLATE.defaultCashierTemplate;
+        const w = window.open('', '_blank', 'width=400,height=600');
+        const rendered = TEMPLATE.renderCashier(inv, cashierTpl);
+        w.document.write(rendered);
+        w.document.close();
+      }).catch(() => {
+        const w = window.open('', '_blank', 'width=400,height=600');
+        const rendered = TEMPLATE.renderCashier(inv);
+        w.document.write(rendered);
+        w.document.close();
       });
-      const paid = inv.paid ?? inv.total;
-      const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
-      const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : '';
-      const baseUrl = window.location.origin + '/LagunaDubai-System/';
-      const safeId = escapeHtml(inv.id);
-      const safeCustomer = escapeHtml(inv.customer || '');
-      const safeTable = escapeHtml(inv.table || '');
-      w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${safeId}</title><style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Courier New',monospace;font-size:12px;padding:8px;color:#000}
-.header{text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed #000}
-.header .logo{font-size:20px;font-weight:700;margin-bottom:4px}
-.header h2{font-size:14px;font-weight:700;margin-bottom:2px}
-.header p{font-size:11px;color:#555}
-.receipt-table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
-.receipt-table th,.receipt-table td{padding:3px 2px;text-align:center}
-.receipt-table th{border-bottom:1px solid #000}
-.receipt-table td{border-bottom:1px dotted #ccc}
-.receipt-table .item-name{text-align:right}
-.summary{margin:6px 0;padding:4px 0}
-.summary .dashed{border-top:1px dashed #000;margin-bottom:4px}
-.summary .line{display:flex;justify-content:space-between;font-size:11px;padding:1px 0}
-.summary .total{font-size:15px;font-weight:700;border-top:2px solid #000;padding-top:4px;margin-top:4px}
-.footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:10px;color:#555}
-@media print{@page{margin:0;size:58mm 300mm}}
-</style></head><body>
-<div class="header"><img src="${baseUrl}images/logo.png" style="height:65px;margin-bottom:4px;background:#222;padding:6px;border-radius:8px" alt="LagunaDubai" id="logoImg"><div style="font-size:14px;font-weight:700;margin-bottom:4px">LagunaDubai</div><h2>** فاتورة كاشير **</h2><p>${dateStr}</p><p>${safeCustomer}${safeTable ? ' | ' + safeTable : ''}</p><p style="font-size:10px">#${safeId}</p></div>
-<table class="receipt-table"><thead><tr><th class="item-name">الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${itemsHtml}</tbody></table>
-<div class="summary"><div class="dashed"></div>${inv.serviceAmount > 0 ? `<div class="line"><span>خدمة الضيافة</span><span>${Number(inv.serviceAmount).toLocaleString()} ج.م</span></div>` : ''}${inv.taxAmount > 0 ? `<div class="line"><span>ضريبة القيمة المضافة</span><span>${Number(inv.taxAmount).toLocaleString()} ج.م</span></div>` : ''}<div class="line"><span>الإجمالي</span><span>${Number(inv.total).toLocaleString()} ج.م</span></div>
-<div class="line"><span>المدفوع</span><span>${Number(paid).toLocaleString()} ج.م</span></div>${inv.change > 0 ? `<div class="line" style="color:#059669"><span>الباقي للعميل</span><span>${Number(inv.change).toLocaleString()} ج.م</span></div>` : ''}${remaining > 0 ? `<div class="line" style="color:#dc2626"><span>المتبقي</span><span>${Number(remaining).toLocaleString()} ج.م</span></div>` : ''}
-<div class="line total"><span>${remaining > 0 ? 'معلق' : 'مدفوع'}</span><span>${inv.paymentMethod || 'كاش'}</span></div></div>
-<div class="footer">شكراً لزيارتكم<br>☕ LagunaDubai</div>
-<script>document.getElementById('logoImg').onload=function(){window.print();window.close()};setTimeout(function(){window.print();window.close()},3000);<\/script></body></html>`);
     };
   });
   document.querySelectorAll('.pay-btn').forEach(btn => {

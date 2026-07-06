@@ -1,3 +1,5 @@
+let _templateTab = 'cashier';
+
 async function load() {
   const settings = await DB.settings.get() || {};
   document.getElementById('cafeName').value = settings.cafeName || 'Laguna Cafe';
@@ -15,9 +17,64 @@ async function load() {
   document.getElementById('printAgentUrl').value = settings.printAgentUrl || 'http://localhost:4321';
   if (settings.printAgentUrl) localStorage.setItem('laguna_print_agent_url', settings.printAgentUrl);
   localStorage.setItem('laguna_print_agent_enabled', settings.enablePrintAgent !== false);
+  loadTemplateEditor(settings);
 }
 
+function loadTemplateEditor(settings) {
+  const cashierTpl = settings.invoiceTemplateCashier || TEMPLATE.defaultCashierTemplate;
+  const kitchenTpl = settings.invoiceTemplateKitchen || TEMPLATE.defaultKitchenTemplate;
+  window._savedTemplates = { cashier: cashierTpl, kitchen: kitchenTpl };
+  switchTemplateTab('cashier');
+}
+
+function switchTemplateTab(tab) {
+  _templateTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  const saved = window._savedTemplates || {};
+  document.getElementById('templateEditor').value = saved[tab] || TEMPLATE['default' + (tab === 'cashier' ? 'Cashier' : 'Kitchen') + 'Template'];
+  const placeholders = TEMPLATE.PLACEHOLDERS[tab] || [];
+  document.getElementById('placeholderList').textContent = '{{' + placeholders.join('}}  {{') + '}}';
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => switchTemplateTab(btn.dataset.tab);
+});
+
+document.getElementById('resetTemplateBtn').onclick = () => {
+  if (!confirm('استعادة القالب الافتراضي لـ ' + (_templateTab === 'cashier' ? 'فاتورة الكاشير' : 'أمر المطبخ') + '؟')) return;
+  const def = TEMPLATE['default' + (_templateTab === 'cashier' ? 'Cashier' : 'Kitchen') + 'Template'];
+  document.getElementById('templateEditor').value = def;
+  window._savedTemplates[_templateTab] = def;
+};
+
+document.getElementById('previewTemplateBtn').onclick = () => {
+  const html = document.getElementById('templateEditor').value;
+  const previewData = {
+    id: 'PREVIEW',
+    date: new Date().toISOString(),
+    customer: 'عميل تجريبي',
+    table: 'طاولة 5',
+    items: [
+      { name: 'قهوة سادة', qty: 2, price: 25, note: '', hasMilk: false },
+      { name: 'كابتشينو', qty: 1, price: 35, note: 'بدون سكر', hasMilk: true }
+    ],
+    total: 85,
+    paid: 85,
+    serviceAmount: 10,
+    taxAmount: 12,
+    change: 0,
+    remaining: 0,
+    paymentMethod: 'كاش'
+  };
+  const fn = _templateTab === 'cashier' ? TEMPLATE.renderCashier : TEMPLATE.renderKitchen;
+  const rendered = fn(previewData, html);
+  const w = window.open('', '_blank', 'width=400,height=700');
+  w.document.write(rendered);
+  w.document.close();
+};
+
 document.getElementById('saveSettings').onclick = async () => {
+  const templateEditor = document.getElementById('templateEditor');
   await DB.settings.save({
     cafeName: document.getElementById('cafeName').value,
     currency: document.getElementById('currency').value,
@@ -30,7 +87,9 @@ document.getElementById('saveSettings').onclick = async () => {
     printCopies: Number(document.getElementById('printCopies').value) || 1,
     wsProxyUrl: document.getElementById('wsProxyUrl').value || 'ws://localhost:9090',
     enablePrintAgent: document.getElementById('enablePrintAgent').checked,
-    printAgentUrl: document.getElementById('printAgentUrl').value || 'http://localhost:4321'
+    printAgentUrl: document.getElementById('printAgentUrl').value || 'http://localhost:4321',
+    invoiceTemplateCashier: window._savedTemplates ? window._savedTemplates.cashier : (TEMPLATE.defaultCashierTemplate),
+    invoiceTemplateKitchen: window._savedTemplates ? window._savedTemplates.kitchen : (TEMPLATE.defaultKitchenTemplate)
   });
   const proxyUrl = document.getElementById('wsProxyUrl').value || 'ws://localhost:9090';
   localStorage.setItem('laguna_printer_proxy', proxyUrl);
@@ -39,6 +98,12 @@ document.getElementById('saveSettings').onclick = async () => {
   localStorage.setItem('laguna_print_agent_enabled', document.getElementById('enablePrintAgent').checked);
   alert('تم حفظ الإعدادات بنجاح');
 };
+
+// Auto-save template when editor changes
+document.getElementById('templateEditor').addEventListener('input', function() {
+  if (!window._savedTemplates) window._savedTemplates = {};
+  window._savedTemplates[_templateTab] = this.value;
+});
 
 document.getElementById('resetData').onclick = async () => {
   if (!confirm('هل تريد مسح كل البيانات؟ هذا الإجراء لا يمكن التراجع عنه!')) return;
