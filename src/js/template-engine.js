@@ -172,6 +172,128 @@ window.TEMPLATE = (() => {
     return result;
   }
 
+  // ===== ESCPOS Template =====
+  const ESCPOS_CMD = {
+    init: [0x1B, 0x40],
+    center: [0x1B, 0x61, 0x01],
+    left: [0x1B, 0x61, 0x00],
+    boldOn: [0x1B, 0x45, 0x01],
+    boldOff: [0x1B, 0x45, 0x00],
+    sizeNormal: [0x1B, 0x21, 0x00],
+    sizeDoubleH: [0x1B, 0x21, 0x10],
+    sizeDoubleW: [0x1B, 0x21, 0x20],
+    sizeDouble: [0x1B, 0x21, 0x30],
+    cut: [0x1D, 0x56, 0x00],
+    drawer: [0x1B, 0x70, 0x00, 0x19, 0xFA],
+    newline: [0x0A]
+  };
+
+  function escposBytes(...bytes) { return new Uint8Array(bytes.flat()); }
+
+  function concatUint8(arrays) {
+    let len = 0;
+    arrays.forEach(a => len += a.length);
+    const r = new Uint8Array(len);
+    let off = 0;
+    arrays.forEach(a => { r.set(a, off); off += a.length; });
+    return r;
+  }
+
+  function textEncoder(s) {
+    return new TextEncoder().encode(s + '\n');
+  }
+
+  function defaultEscposCashier() {
+    return '{init}{center}{size=double}☕ LagunaDubai\n{size=normal}{bold}** فاتورة كاشير **\n{bold=off}{left}\n{date}\n#{id}\n{customer}{table}\n---\n{items:name:qty:total}\n---\n{subtotal}\n{serviceAmount}\n{taxAmount}\n{bold}{total}\n{bold=off}{paid}\n{change}\n{remaining}\n{paymentMethod}\n---\n{footer}\n{cut}';
+  }
+
+  function defaultEscposKitchen() {
+    return '{init}{center}{size=double}☕ LagunaDubai\n{size=normal}{bold}** طلب مطبخ **\n{bold=off}\n{date}\n#{id}\n{table}\n---\n{items:name:qty}\n---\n{cut}';
+  }
+
+  function renderEscpos(inv, templateStr, type) {
+    const tpl = templateStr || (type === 'cashier' ? defaultEscposCashier() : defaultEscposKitchen());
+    const paid = inv.paid != null ? Number(inv.paid) : Number(inv.total || 0);
+    const total = Number(inv.total || 0);
+    const remaining = inv.remaining != null ? Number(inv.remaining) : Math.max(0, total - paid);
+    const change = inv.change || 0;
+    const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-SA') : new Date().toLocaleString('ar-SA');
+    const status = remaining > 0 ? 'معلق' : 'مدفوع';
+    const maxLen = 32;
+
+    const vars = {
+      date: dateStr,
+      id: inv.id || '',
+      customer: inv.customer || '',
+      table: inv.table || '',
+      total: 'الإجمالي:  ' + total.toLocaleString() + ' ج.م',
+      paid: 'المدفوع:   ' + paid.toLocaleString() + ' ج.م',
+      change: change > 0 ? 'الباقي للعميل: ' + change.toLocaleString() + ' ج.م' : '',
+      remaining: remaining > 0 ? 'المتبقي:  ' + remaining.toLocaleString() + ' ج.م' : '',
+      serviceAmount: inv.serviceAmount > 0 ? 'خدمة:      ' + Number(inv.serviceAmount).toLocaleString() + ' ج.م' : '',
+      taxAmount: inv.taxAmount > 0 ? 'ضريبة:     ' + Number(inv.taxAmount).toLocaleString() + ' ج.م' : '',
+      subtotal: 'المجموع:   ' + (total - (inv.serviceAmount || 0) - (inv.taxAmount || 0)).toLocaleString() + ' ج.م',
+      paymentMethod: (inv.paymentMethod || 'كاش') + '    ' + status,
+      footer: 'شكراً لزيارتكم\nLagunaDubai',
+      status: status
+    };
+
+    const lines = tpl.split('\n');
+    const parts = [];
+
+    for (let line of lines) {
+      // Handle commands
+      if (line.startsWith('{init}')) { parts.push(escposBytes(ESCPOS_CMD.init)); continue; }
+      if (line.startsWith('{center}')) { parts.push(escposBytes(ESCPOS_CMD.center)); continue; }
+      if (line.startsWith('{left}')) { parts.push(escposBytes(ESCPOS_CMD.left)); continue; }
+      if (line.startsWith('{bold=off}') || line.startsWith('{boldoff}')) { parts.push(escposBytes(ESCPOS_CMD.boldOff)); continue; }
+      if (line.startsWith('{bold}') || line.startsWith('{bold=on}')) { parts.push(escposBytes(ESCPOS_CMD.boldOn)); continue; }
+      if (line.startsWith('{size=double}') || line.startsWith('{size=2}')) { parts.push(escposBytes(ESCPOS_CMD.sizeDouble)); continue; }
+      if (line.startsWith('{size=normal}') || line.startsWith('{size=1}')) { parts.push(escposBytes(ESCPOS_CMD.sizeNormal)); continue; }
+      if (line.startsWith('{cut}')) { parts.push(escposBytes(ESCPOS_CMD.cut)); continue; }
+      if (line.startsWith('{drawer}') || line.startsWith('{cashdrawer}')) { parts.push(escposBytes(ESCPOS_CMD.drawer)); continue; }
+      if (line.startsWith('---')) { parts.push(textEncoder('------------------------------')); continue; }
+      if (line.startsWith('{items:')) {
+        const match = line.match(/\{items:([^}]+)\}/);
+        if (!match || !inv.items) continue;
+        const cols = match[1].split(':');
+        inv.items.forEach(item => {
+          const milkTxt = item.hasMilk ? ' +حليب' : '';
+          const noteTxt = item.note ? ' (' + item.note + ')' : '';
+          let buf = '';
+          if (cols.length === 3) {
+            const name = ('\u2022 ' + item.name + milkTxt).substring(0, maxLen - 8);
+            const qty = '' + item.qty + 'x';
+            const total_price = '' + (item.qty * item.price);
+            const padded = name.padEnd(maxLen - qty.length - total_price.length) + qty + total_price;
+            buf = padded;
+          } else {
+            buf = '\u2022 ' + item.name + milkTxt + noteTxt;
+          }
+          parts.push(textEncoder(buf));
+          if (item.note) parts.push(textEncoder('  ' + item.note));
+        });
+        continue;
+      }
+
+      // Replace variables
+      let text = line;
+      for (const [key, val] of Object.entries(vars)) {
+        if (val) {
+          const re = new RegExp('\\{' + key + '\\}', 'g');
+          text = text.replace(re, val);
+        }
+      }
+      text = text.replace(/\{empty\}/g, '').replace(/\{spacer\}/g, ' ');
+
+      if (text.trim() || text === '') {
+        parts.push(textEncoder(text));
+      }
+    }
+
+    return concatUint8(parts);
+  }
+
   async function getTemplate(type) {
     try {
       const settings = await DB.settings.get();
@@ -181,12 +303,25 @@ window.TEMPLATE = (() => {
     return null;
   }
 
+  async function getEscposTemplate(type) {
+    try {
+      const settings = await DB.settings.get();
+      if (type === 'cashier') return settings.escposTemplateCashier || null;
+      if (type === 'kitchen') return settings.escposTemplateKitchen || null;
+    } catch {}
+    return null;
+  }
+
   return {
     renderCashier,
     renderKitchen,
+    renderEscpos,
     getTemplate,
+    getEscposTemplate,
     defaultCashierTemplate: defaultCashierTemplate(),
     defaultKitchenTemplate: defaultKitchenTemplate(),
+    defaultEscposCashier: defaultEscposCashier(),
+    defaultEscposKitchen: defaultEscposKitchen(),
     PLACEHOLDERS
   };
 })();

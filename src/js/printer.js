@@ -37,76 +37,21 @@ window.PRINTER = (() => {
     return result;
   }
 
-  function buildReceiptData(inv) {
-    const parts = [];
-    parts.push(escposInit());
-    parts.push(escposCmd(0x1B, 0x21, 0x30));
-    parts.push(escposText('☕ LagunaDubai'));
-    parts.push(escposCmd(0x1B, 0x21, 0x00));
-    parts.push(escposText(''));
-    parts.push(escposBold(true));
-    parts.push(escposText('** فاتورة كاشير **'));
-    parts.push(escposBold(false));
-    parts.push(escposText(''));
-    const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-SA') : '';
-    parts.push(escposText(dateStr));
-    parts.push(escposText('#' + (inv.id || '')));
-    if (inv.customer) parts.push(escposText(inv.customer));
-    if (inv.table) parts.push(escposText(inv.table));
-    parts.push(escposText(''));
-    parts.push(escposText('------------------------------'));
-    if (inv.items) inv.items.forEach(item => {
-      const milkTxt = item.hasMilk ? ' +حليب' : '';
-      const noteTxt = item.note ? ' (' + item.note + ')' : '';
-      const line = ('\u2022 ' + item.name + milkTxt).substring(0, 22).padEnd(22) + item.qty + 'x' + (item.qty * item.price);
-      parts.push(escposText(line));
-      if (item.note) parts.push(escposText('  ' + item.note));
-    });
-    parts.push(escposText('------------------------------'));
-    const paid = inv.paid ?? inv.total;
-    const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
-    const change = inv.change || 0;
-    parts.push(escposText(''));
-    parts.push(escposBold(true));
-    parts.push(escposText('الإجمالي:  ' + (inv.total ?? 0) + ' ج.م'));
-    parts.push(escposBold(false));
-    parts.push(escposText('المدفوع:   ' + paid + ' ج.م'));
-    if (change > 0) parts.push(escposText('الباقي للعميل: ' + change + ' ج.م'));
-    if (remaining > 0) parts.push(escposText('المتبقي:  ' + remaining + ' ج.م'));
-    parts.push(escposText(inv.paymentMethod || 'كاش'));
-    parts.push(escposText(''));
-    parts.push(escposText('شكراً لزيارتكم'));
-    parts.push(escposText(''));
-    parts.push(escposCut());
-    return concatenate(parts);
+  async function buildReceiptData(inv) {
+    try {
+      const tpl = await TEMPLATE.getEscposTemplate('cashier');
+      return TEMPLATE.renderEscpos(inv, tpl, 'cashier');
+    } catch { }
+    // fallback
+    return TEMPLATE.renderEscpos(inv, null, 'cashier');
   }
 
-  function buildKitchenOrderData(inv) {
-    const parts = [];
-    parts.push(escposInit());
-    parts.push(escposText('☕ LagunaDubai'));
-    parts.push(escposText(''));
-    parts.push(escposBold(true));
-    parts.push(escposText('** طلب مطبخ **'));
-    parts.push(escposBold(false));
-    parts.push(escposText(''));
-    const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-SA') : '';
-    parts.push(escposText(dateStr));
-    parts.push(escposText('#' + (inv.id || '')));
-    if (inv.table) parts.push(escposText(inv.table));
-    parts.push(escposText(''));
-    parts.push(escposText('------------------------------'));
-    if (inv.items) inv.items.forEach(item => {
-      const milkTxt = item.hasMilk ? ' +حليب' : '';
-      const noteTxt = item.note ? ' (' + item.note + ')' : '';
-      parts.push(escposText((item.name + milkTxt + noteTxt).substring(0, 28)));
-      parts.push(escposText('  الكمية: ' + item.qty));
-      parts.push(escposText(''));
-    });
-    parts.push(escposText('------------------------------'));
-    parts.push(escposText(''));
-    parts.push(escposCut());
-    return concatenate(parts);
+  async function buildKitchenOrderData(inv) {
+    try {
+      const tpl = await TEMPLATE.getEscposTemplate('kitchen');
+      return TEMPLATE.renderEscpos(inv, tpl, 'kitchen');
+    } catch { }
+    return TEMPLATE.renderEscpos(inv, null, 'kitchen');
   }
 
   // ---------- USB (WebUSB) ----------
@@ -309,7 +254,7 @@ window.PRINTER = (() => {
   }
 
   async function printReceipt(inv, printerId) {
-    const data = buildReceiptData(inv);
+    const data = await buildReceiptData(inv);
     if (printerId) {
       await printTo(printerId, data);
     } else {
@@ -320,7 +265,7 @@ window.PRINTER = (() => {
   }
 
   async function printKitchenOrder(inv, printerId) {
-    const data = buildKitchenOrderData(inv);
+    const data = await buildKitchenOrderData(inv);
     if (printerId) {
       await printTo(printerId, data);
     } else {

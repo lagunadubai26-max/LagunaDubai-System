@@ -1,4 +1,5 @@
-let _templateTab = 'cashier';
+let _templateType = 'cashier';
+let _templateFormat = 'html';
 
 async function load() {
   const settings = await DB.settings.get() || {};
@@ -20,35 +21,65 @@ async function load() {
   loadTemplateEditor(settings);
 }
 
+function getTemplateKey(type, format) {
+  if (format === 'escpos') return type === 'cashier' ? 'escposTemplateCashier' : 'escposTemplateKitchen';
+  return type === 'cashier' ? 'invoiceTemplateCashier' : 'invoiceTemplateKitchen';
+}
+
+function getDefaultTemplate(type, format) {
+  if (format === 'escpos') return TEMPLATE['defaultEscpos' + (type === 'cashier' ? 'Cashier' : 'Kitchen')];
+  return TEMPLATE['default' + (type === 'cashier' ? 'Cashier' : 'Kitchen') + 'Template'];
+}
+
+function getPlaceholders(type, format) {
+  if (format === 'escpos') return ['init','center','left','bold','bold=off','size=normal','size=double','cut','drawer','items:name:qty:total','---','date','id','customer','table','total','paid','change','remaining','serviceAmount','taxAmount','subtotal','paymentMethod','footer'];
+  return TEMPLATE.PLACEHOLDERS[type] || [];
+}
+
 function loadTemplateEditor(settings) {
-  const cashierTpl = settings.invoiceTemplateCashier || TEMPLATE.defaultCashierTemplate;
-  const kitchenTpl = settings.invoiceTemplateKitchen || TEMPLATE.defaultKitchenTemplate;
-  window._savedTemplates = { cashier: cashierTpl, kitchen: kitchenTpl };
-  switchTemplateTab('cashier');
+  if (!window._savedTemplates) window._savedTemplates = {};
+  ['cashier', 'kitchen'].forEach(type => {
+    ['html', 'escpos'].forEach(fmt => {
+      const key = getTemplateKey(type, fmt);
+      window._savedTemplates[key] = settings[key] || getDefaultTemplate(type, fmt);
+    });
+  });
+  switchTemplateEditor();
 }
 
-function switchTemplateTab(tab) {
-  _templateTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+function switchTemplateEditor() {
+  const key = getTemplateKey(_templateType, _templateFormat);
   const saved = window._savedTemplates || {};
-  document.getElementById('templateEditor').value = saved[tab] || TEMPLATE['default' + (tab === 'cashier' ? 'Cashier' : 'Kitchen') + 'Template'];
-  const placeholders = TEMPLATE.PLACEHOLDERS[tab] || [];
-  document.getElementById('placeholderList').textContent = '{{' + placeholders.join('}}  {{') + '}}';
+  document.getElementById('templateEditor').value = saved[key] || getDefaultTemplate(_templateType, _templateFormat);
+  document.querySelectorAll('.type-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.type === _templateType));
+  document.querySelectorAll('.fmt-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.fmt === _templateFormat));
+  const placeholders = getPlaceholders(_templateType, _templateFormat);
+  const prefix = _templateFormat === 'escpos' ? '' : '{{';
+  const suffix = _templateFormat === 'escpos' ? '' : '}}';
+  document.getElementById('placeholderList').textContent = placeholders.map(p => prefix + p + suffix).join('  ');
 }
 
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.onclick = () => switchTemplateTab(btn.dataset.tab);
+// Type tabs: cashier / kitchen
+document.querySelectorAll('.type-tab-btn').forEach(btn => {
+  btn.onclick = () => { _templateType = btn.dataset.type; switchTemplateEditor(); };
+});
+
+// Format tabs: html / escpos
+document.querySelectorAll('.fmt-tab-btn').forEach(btn => {
+  btn.onclick = () => { _templateFormat = btn.dataset.fmt; switchTemplateEditor(); };
 });
 
 document.getElementById('resetTemplateBtn').onclick = () => {
-  if (!confirm('استعادة القالب الافتراضي لـ ' + (_templateTab === 'cashier' ? 'فاتورة الكاشير' : 'أمر المطبخ') + '؟')) return;
-  const def = TEMPLATE['default' + (_templateTab === 'cashier' ? 'Cashier' : 'Kitchen') + 'Template'];
+  const label = (_templateType === 'cashier' ? 'فاتورة الكاشير' : 'أمر المطبخ') + ' - ' + (_templateFormat === 'html' ? 'HTML' : 'ESCPOS');
+  if (!confirm('استعادة القالب الافتراضي لـ ' + label + '؟')) return;
+  const def = getDefaultTemplate(_templateType, _templateFormat);
   document.getElementById('templateEditor').value = def;
-  window._savedTemplates[_templateTab] = def;
+  const key = getTemplateKey(_templateType, _templateFormat);
+  window._savedTemplates[key] = def;
 };
 
 document.getElementById('previewTemplateBtn').onclick = () => {
-  const html = document.getElementById('templateEditor').value;
+  const text = document.getElementById('templateEditor').value;
   const previewData = {
     id: 'PREVIEW',
     date: new Date().toISOString(),
@@ -66,8 +97,12 @@ document.getElementById('previewTemplateBtn').onclick = () => {
     remaining: 0,
     paymentMethod: 'كاش'
   };
-  const fn = _templateTab === 'cashier' ? TEMPLATE.renderCashier : TEMPLATE.renderKitchen;
-  const rendered = fn(previewData, html);
+  if (_templateFormat === 'escpos') {
+    alert('معاينة ESCPOS غير متاحة في المتصفح.\nحفظ القالب واختبر الطباعة.');
+    return;
+  }
+  const fn = _templateType === 'cashier' ? TEMPLATE.renderCashier : TEMPLATE.renderKitchen;
+  const rendered = fn(previewData, text);
   const w = window.open('', '_blank', 'width=400,height=700');
   w.document.write(rendered);
   w.document.close();
@@ -88,8 +123,10 @@ document.getElementById('saveSettings').onclick = async () => {
     wsProxyUrl: document.getElementById('wsProxyUrl').value || 'ws://localhost:9090',
     enablePrintAgent: document.getElementById('enablePrintAgent').checked,
     printAgentUrl: document.getElementById('printAgentUrl').value || 'http://localhost:4321',
-    invoiceTemplateCashier: window._savedTemplates ? window._savedTemplates.cashier : (TEMPLATE.defaultCashierTemplate),
-    invoiceTemplateKitchen: window._savedTemplates ? window._savedTemplates.kitchen : (TEMPLATE.defaultKitchenTemplate)
+    invoiceTemplateCashier: window._savedTemplates ? (window._savedTemplates.invoiceTemplateCashier || TEMPLATE.defaultCashierTemplate) : TEMPLATE.defaultCashierTemplate,
+    invoiceTemplateKitchen: window._savedTemplates ? (window._savedTemplates.invoiceTemplateKitchen || TEMPLATE.defaultKitchenTemplate) : TEMPLATE.defaultKitchenTemplate,
+    escposTemplateCashier: window._savedTemplates ? (window._savedTemplates.escposTemplateCashier || TEMPLATE.defaultEscposCashier) : TEMPLATE.defaultEscposCashier,
+    escposTemplateKitchen: window._savedTemplates ? (window._savedTemplates.escposTemplateKitchen || TEMPLATE.defaultEscposKitchen) : TEMPLATE.defaultEscposKitchen
   });
   const proxyUrl = document.getElementById('wsProxyUrl').value || 'ws://localhost:9090';
   localStorage.setItem('laguna_printer_proxy', proxyUrl);
@@ -102,7 +139,8 @@ document.getElementById('saveSettings').onclick = async () => {
 // Auto-save template when editor changes
 document.getElementById('templateEditor').addEventListener('input', function() {
   if (!window._savedTemplates) window._savedTemplates = {};
-  window._savedTemplates[_templateTab] = this.value;
+  const key = getTemplateKey(_templateType, _templateFormat);
+  window._savedTemplates[key] = this.value;
 });
 
 document.getElementById('resetData').onclick = async () => {
@@ -167,7 +205,7 @@ function renderPrinterList() {
   list.querySelectorAll('.test-prn').forEach(btn => {
     btn.onclick = async () => {
       try {
-        const d = PRINTER.buildReceiptData({ id: 'TEST', date: new Date().toISOString(), customer: 'اختبار', items: [{ name: 'اختبار طباعة', qty: 1, price: 10 }], total: 10, paid: 10, paymentMethod: 'كاش' });
+        const d = await PRINTER.buildReceiptData({ id: 'TEST', date: new Date().toISOString(), customer: 'اختبار', items: [{ name: 'اختبار طباعة', qty: 1, price: 10 }], total: 10, paid: 10, paymentMethod: 'كاش' });
         await PRINTER.printTo(btn.dataset.id, d);
         alert('✓ تمت طباعة الاختبار');
       } catch (e) { alert('خطأ: ' + e.message); }
