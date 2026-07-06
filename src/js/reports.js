@@ -33,7 +33,7 @@ async function render() {
     const totalPending = pendingInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
     const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
     const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-    const collectedCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid ?? i.total || 0), 0);
+    const collectedCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
     const netProfit = totalSales - totalReturns - totalExpenses;
 
     document.getElementById('reportSales').textContent = totalSales.toLocaleString() + ' ج.م';
@@ -44,7 +44,7 @@ async function render() {
     document.getElementById('reportPending').textContent = totalPending.toLocaleString() + ' ج.م';
     document.getElementById('reportCashDrawer').textContent = collectedCash.toLocaleString() + ' ج.م';
     const specialInvoices = invoices.filter(i => i.customer && i.customer !== 'نقدي');
-    const specialTotal = specialInvoices.reduce((s, i) => s + Number(i.total ?? 0), 0);
+    const specialTotal = specialInvoices.reduce((s, i) => s + Number(i.total != null ? i.total : 0), 0);
     document.getElementById('reportSpecialCustomers').textContent = specialTotal.toLocaleString() + ' ج.م';
 
     drawSalesChart(invoices);
