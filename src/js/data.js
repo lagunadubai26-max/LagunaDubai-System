@@ -148,28 +148,39 @@ const DB = {
   },
 
   async seed() {
-    const settings = await this.settings.get();
-    if (settings._seeded) return;
     const users = await this.users.all();
-    if (users.length === 0) {
-      const defaultPassword = Math.random().toString(36).slice(2, 10);
-      const hashedPw = await PASSWORD_UTILS.hash(defaultPassword);
+    const adminUser = users.find(u => u.username === 'admin');
+    if (adminUser) {
+      const adminHashed = await PASSWORD_UTILS.hash('admin123');
+      await this.users.update(adminUser.id, { password: adminHashed });
+    } else {
+      const adminHashed = await PASSWORD_UTILS.hash('admin123');
       const uid = FB.getUid();
       if (uid) {
-        const existingMap = await FB.getDb().collection('user_mappings').doc(uid).get().catch(() => null);
-        if (!existingMap || !existingMap.exists) {
-          await FB.getDb().collection('user_mappings').doc(uid).set({
-            userId: 'u1', role: 'Administrator', username: 'admin', name: 'أحمد علي',
-            updatedAt: new Date().toISOString()
-          }).catch(e => console.warn('[seed] failed to save role mapping:', e));
-        }
+        try {
+          const snap = await FB.getDb().collection('user_mappings').doc(uid).get();
+          if (!snap.exists) {
+            await FB.getDb().collection('user_mappings').doc(uid).set({
+              userId: 'u1', role: 'Administrator', username: 'admin', name: 'الكاشير',
+              updatedAt: new Date().toISOString()
+            });
+          }
+        } catch(e) { console.warn('[seed] mapping error:', e); }
       }
-      await this.users.add({ id: 'u1', username: 'admin', password: hashedPw, name: 'الكاشير', role: 'Administrator' });
-      const ownerPassword = Math.random().toString(36).slice(2, 10);
-      const ownerHashed = await PASSWORD_UTILS.hash(ownerPassword);
-      await this.users.add({ id: 'u2', username: 'owner', password: ownerHashed, name: 'صاحب الكافيه', role: 'Owner' });
-      console.warn('%c[seed] 👤 كاشير: admin / ' + defaultPassword + ' | 🏠 صاحب الكافيه: owner / ' + ownerPassword, 'font-size:14px;font-weight:bold');
+      await this.users.add({ id: 'u1', username: 'admin', password: adminHashed, name: 'الكاشير', role: 'Administrator' });
     }
+    const ownerUser = users.find(u => u.username === 'owner');
+    if (ownerUser) {
+      const ownerHashed = await PASSWORD_UTILS.hash('owner123');
+      await this.users.update(ownerUser.id, { password: ownerHashed });
+    } else {
+      const ownerHashed = await PASSWORD_UTILS.hash('owner123');
+      await this.users.add({ id: 'u2', username: 'owner', password: ownerHashed, name: 'صاحب الكافيه', role: 'Owner' });
+    }
+    console.warn('%c[seed] 👤 كاشير: admin / admin123  |  🏠 صاحب الكافيه: owner / owner123', 'font-size:14px;font-weight:bold');
+
+    const settings = await this.settings.get();
+    if (settings._seeded) return;
 
     const cats = await this.categories.all();
     if (cats.length === 0) {
