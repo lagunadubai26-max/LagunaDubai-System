@@ -90,18 +90,18 @@
       }
     </script>
     <section class="report-cards">
-      <div class="stat-card"><i class="fa-solid fa-money-bill-wave"></i><div><h2 id="reportSales">0</h2><span>إجمالي المبيعات</span></div></div>
-      <div class="stat-card"><i class="fa-solid fa-file-invoice"></i><div><h2 id="reportInvoices">0</h2><span>عدد الفواتير</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-money-bill-wave"></i><div><h2 id="reportSales">0</h2><span>إجمالي المبيعات</span><div id="reportSalesChange"></div></div></div>
+      <div class="stat-card"><i class="fa-solid fa-file-invoice"></i><div><h2 id="reportInvoices">0</h2><span>عدد الفواتير</span><div id="reportInvoicesChange"></div></div></div>
+      <div class="stat-card"><i class="fa-solid fa-receipt"></i><div><h2 id="reportAvgInvoice">0</h2><span>متوسط الفاتورة</span></div></div>
       <div class="stat-card"><i class="fa-solid fa-arrow-rotate-left"></i><div><h2 id="reportReturns">0</h2><span>المرتجعات</span></div></div>
       <div class="stat-card"><i class="fa-solid fa-money-bill-transfer"></i><div><h2 id="reportExpenses">0</h2><span>المصروفات</span></div></div>
-      <div class="stat-card"><i class="fa-solid fa-percentage"></i><div><h2 id="reportNetProfit">0</h2><span>صافي الربح</span></div></div>
-      <div class="stat-card"><i class="fa-solid fa-user-tie"></i><div><h2 id="reportSpecialCustomers">0</h2><span>العملاء المميزين</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-percentage"></i><div><h2 id="reportNetProfit">0</h2><span>صافي الربح</span><div id="reportProfitChange"></div></div></div>
       <div class="stat-card"><i class="fa-solid fa-clock"></i><div><h2 id="reportPending">0</h2><span>مبيعات معلقة</span></div></div>
       <div class="stat-card"><i class="fa-solid fa-cash-register"></i><div><h2 id="reportCashDrawer">0</h2><span>الدرج (كاش)</span></div></div>
     </section>
     <section class="report-charts">
       <div class="chart-card">
-        <h3>المبيعات</h3>
+        <h3>المبيعات اليومية</h3>
         <canvas id="reportSalesChart"></canvas>
       </div>
       <div class="chart-card">
@@ -109,9 +109,29 @@
         <canvas id="reportPaymentChart"></canvas>
       </div>
     </section>
-    <section class="report-table-section">
-      <h3>أكثر المنتجات مبيعاً</h3>
-      <div class="report-table" id="topProducts"></div>
+    <section class="report-charts-three">
+      <div class="chart-card">
+        <h3>المبيعات حسب الفئة</h3>
+        <canvas id="reportCategoryChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>الذروة اليومية</h3>
+        <canvas id="reportHourlyChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>أيام الأسبوع</h3>
+        <canvas id="reportDayChart"></canvas>
+      </div>
+    </section>
+    <section class="report-charts">
+      <div class="chart-card">
+        <h3>أكثر 10 منتجات مبيعاً (الكمية)</h3>
+        <canvas id="reportTopQtyChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>أكثر 10 منتجات مبيعاً (الإيراد)</h3>
+        <canvas id="reportTopRevenueChart"></canvas>
+      </div>
     </section>
   </main>
 </div>
