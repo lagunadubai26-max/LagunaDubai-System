@@ -197,9 +197,9 @@ const DB = {
       await this.users.update(ownerUser.id, { password: ownerHashed });
     } else {
       const ownerHashed = await PASSWORD_UTILS.hash('owner123');
-      await this.users.add({ id: 'u2', username: 'owner', password: ownerHashed, name: 'مالك', role: 'Owner' });
+      await this.users.add({ id: 'u2', username: 'owner', password: ownerHashed, name: 'م/محمد الجوهري', role: 'Owner' });
     }
-    console.warn('%c[seed] 👤 كاشير: admin / admin123  |  🏠 مالك: owner / owner123', 'font-size:14px;font-weight:bold');
+    console.warn('%c[seed] 👤 كاشير: admin / admin123  |  🏠 م/محمد الجوهري: owner / owner123', 'font-size:14px;font-weight:bold');
 
     const settings = await this.settings.get();
     if (settings._seeded) return;

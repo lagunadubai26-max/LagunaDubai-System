@@ -10,7 +10,7 @@
   try { allUsers = await DB.users.all() || []; } catch(e) { allUsers = []; }
   if (!allUsers.some(u => u.role === 'Owner')) {
     setTimeout(() => {
-      console.log('[auth] لا يوجد حساب Owner. سيتم توجيهك إلى صفحة الإعدادات لإضافة مالك النظام الأول.');
+      console.log('[auth] لا يوجد حساب Owner. سيتم توجيهك إلى صفحة الإعدادات لإضافة م/محمد الجوهري النظام الأول.');
     }, 500);
   }
   if (stored) try { const u = JSON.parse(stored); if (u && u.id) { window.location.href = 'index.html'; return; } } catch {}
