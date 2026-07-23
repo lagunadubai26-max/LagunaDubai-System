@@ -9,25 +9,43 @@
  * Default port: 9090
  */
 
+const http = require('http');
 const WebSocket = require('ws');
 const net = require('net');
 
 const PROXY_PORT = process.env.PORT || 9090;
-const wss = new WebSocket.Server({ port: PROXY_PORT });
+
+// Create HTTP server for health checks + WebSocket upgrade
+const server = http.createServer(function(req, res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  if (req.url === '/health') {
+    res.writeHead(200);
+    res.end('OK');
+  } else {
+    res.writeHead(404);
+    res.end('Not Found');
+  }
+});
+
+const wss = new WebSocket.Server({ server: server });
 
 console.log('🧾 Laguna Printer Proxy Server');
-console.log('   WebSocket port: ' + PROXY_PORT);
+console.log('   HTTP port: ' + PROXY_PORT);
+console.log('   WebSocket: ws://localhost:' + PROXY_PORT);
 console.log('   Waiting for browser connections...');
 
-wss.on('connection', (ws, req) => {
-  const clientIp = req.socket.remoteAddress;
+wss.on('connection', function(ws, req) {
+  var clientIp = req.socket.remoteAddress;
   console.log('   ✓ Browser connected from', clientIp);
 
-  let tcpSocket = null;
-  let targetHost = null;
-  let targetPort = null;
+  var tcpSocket = null;
+  var targetHost = null;
+  var targetPort = null;
 
-  ws.on('message', (data) => {
+  ws.on('message', function(data) {
     if (Buffer.isBuffer(data) || data instanceof ArrayBuffer || data instanceof Uint8Array) {
       if (tcpSocket && !tcpSocket.destroyed) {
         tcpSocket.write(Buffer.from(data));
@@ -38,7 +56,7 @@ wss.on('connection', (ws, req) => {
     }
 
     try {
-      const msg = JSON.parse(data.toString());
+      var msg = JSON.parse(data.toString());
       if (msg.action === 'connect') {
         targetHost = msg.host;
         targetPort = msg.port || 9100;
@@ -47,17 +65,17 @@ wss.on('connection', (ws, req) => {
         if (tcpSocket) { tcpSocket.destroy(); tcpSocket = null; }
 
         tcpSocket = new net.Socket();
-        tcpSocket.connect(targetPort, targetHost, () => {
+        tcpSocket.connect(targetPort, targetHost, function() {
           console.log('   ✓ Connected to printer ' + targetHost + ':' + targetPort);
           ws.send(JSON.stringify({ event: 'connected', host: targetHost, port: targetPort }));
         });
 
-        tcpSocket.on('error', (err) => {
+        tcpSocket.on('error', function(err) {
           console.error('   ✗ TCP error:', err.message);
-          ws.send(JSON.stringify({ event: 'error', message: err.message }));
+          ws.send(JSON.stringify({ event: 'error', message: 'فشل الاتصال بالطابعة' }));
         });
 
-        tcpSocket.on('close', () => {
+        tcpSocket.on('close', function() {
           console.log('   ✗ TCP disconnected from ' + targetHost + ':' + targetPort);
           ws.send(JSON.stringify({ event: 'disconnected' }));
           tcpSocket = null;
@@ -72,14 +90,19 @@ wss.on('connection', (ws, req) => {
     }
   });
 
-  ws.on('close', () => {
+  ws.on('close', function() {
     console.log('   ✗ Browser disconnected from', clientIp);
     if (tcpSocket) { tcpSocket.destroy(); tcpSocket = null; }
   });
 
-  ws.on('error', (err) => {
+  ws.on('error', function(err) {
     console.warn('   ⚠ WebSocket error:', err.message);
   });
+});
+
+server.listen(PROXY_PORT, function() {
+  var addr = server.address();
+  console.log('   Listening on port ' + addr.port);
 });
 
 console.log('');

@@ -107,6 +107,7 @@ async function render() {
 
     const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
+    drawAnomalies(invoices, expenses, range);
     drawSalesChart(paidInvoices, range);
     drawPaymentChart(paidInvoices);
     drawCategoryChart(paidInvoices, products);
@@ -183,6 +184,72 @@ function drawCategoryChart(invoices, products) {
     data: { labels, datasets: [{ data, backgroundColor: colors.slice(0, labels.length) }] },
     options: { responsive: true, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: ctx => ctx.label + ': ' + Number(ctx.raw).toLocaleString() + ' ج.م' } } } }
   });
+}
+
+function drawAnomalies(invoices, expenses, range) {
+  var container = document.getElementById('reportAnomalies');
+  if (!container) return;
+  var alerts = [];
+  var dailySales = {};
+  var dailyExpenses = {};
+  var dayCount = 0;
+
+  // Aggregate per day
+  var cursor = new Date(range.start);
+  while (cursor <= range.end) {
+    var key = cursor.toISOString().slice(0, 10);
+    dailySales[key] = 0;
+    dailyExpenses[key] = 0;
+    dayCount++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  invoices.forEach(function(inv) {
+    if (!inv.date) return;
+    var day = inv.date.slice(0, 10);
+    if (dailySales[day] !== undefined) dailySales[day] += Number(inv.total || 0);
+  });
+
+  expenses.forEach(function(exp) {
+    if (!exp.date) return;
+    var day = exp.date.slice(0, 10);
+    if (dailyExpenses[day] !== undefined) dailyExpenses[day] += Number(exp.amount || 0);
+  });
+
+  var salesValues = Object.values(dailySales).filter(function(v) { return v > 0; });
+  var expenseValues = Object.values(dailyExpenses).filter(function(v) { return v > 0; });
+
+  var avgDailySales = salesValues.length > 0 ? salesValues.reduce(function(a, b) { return a + b; }, 0) / salesValues.length : 0;
+  var avgDailyExpenses = expenseValues.length > 0 ? expenseValues.reduce(function(a, b) { return a + b; }, 0) / expenseValues.length : 0;
+
+  Object.keys(dailySales).forEach(function(day) {
+    var sale = dailySales[day];
+    var exp = dailyExpenses[day] || 0;
+
+    // Sales drop check
+    if (avgDailySales > 0 && sale > 0 && sale < avgDailySales * 0.5) {
+      alerts.push({
+        icon: '📉',
+        text: day + ': المبيعات ' + sale.toLocaleString() + ' ج.م (أقل من 50% من المتوسط اليومي ' + Math.round(avgDailySales).toLocaleString() + ' ج.م)'
+      });
+    }
+
+    // Unusual expenses check
+    if (avgDailyExpenses > 0 && exp > avgDailyExpenses * 2) {
+      alerts.push({
+        icon: '⚠️',
+        text: day + ': مصروفات ' + exp.toLocaleString() + ' ج.م (أكثر من ضعف المتوسط اليومي ' + Math.round(avgDailyExpenses).toLocaleString() + ' ج.م)'
+      });
+    }
+  });
+
+  if (alerts.length === 0) { container.style.display = 'none'; return; }
+  container.style.display = 'block';
+  container.innerHTML = '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:16px"><h4 style="margin:0 0 8px 0;color:#856404;font-size:15px"><i class="fa-solid fa-triangle-exclamation"></i> تنبيهات</h4>' +
+    alerts.map(function(a) {
+      return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:#856404">' +
+        '<span>' + a.icon + '</span><span>' + a.text + '</span></div>';
+    }).join('') + '</div>';
 }
 
 function drawHourlyChart(invoices) {
@@ -422,6 +489,7 @@ confirmDayClose.onclick = async () => {
   };
   try {
     await DB.daycloses.close(data);
+    DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, totalExpenses: data.totalExpenses });
     dayCloseModal.classList.remove('show');
     checkDayCloseStatus();
     alert('✅ تم إغلاق اليوم بنجاح');

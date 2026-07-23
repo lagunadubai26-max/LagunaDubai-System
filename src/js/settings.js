@@ -172,6 +172,7 @@ document.getElementById('confirmResetBtn').onclick = async () => {
       await FB.removeDoc(t, row.id);
     }
   }
+  DB.audit.log('reset_all_data', { tables: tables });
   alert('تم مسح كل البيانات من Firebase');
   location.reload();
 };
@@ -218,11 +219,13 @@ document.getElementById('addUserMappingBtn').onclick = async () => {
       userId: user.id, role, username: user.username, name: user.name,
       updatedAt: new Date().toISOString()
     });
+    DB.audit.log('user_mapping_added', { uid: uid, userId: user.id, role: role });
     alert('تم إضافة الصلاحية بنجاح');
     document.getElementById('mappingUid').value = '';
     renderUserMappings();
   } catch (e) {
-    alert('خطأ: ' + e.message);
+    console.error('[settings] mapping error:', e);
+    alert('حدث خطأ في إضافة الصلاحية. حاول مرة أخرى.');
   }
 };
 
@@ -236,6 +239,7 @@ document.getElementById('addUserBtn').onclick = async () => {
   if (existing) return alert('اسم المستخدم موجود بالفعل');
   const hashedPw = await PASSWORD_UTILS.hash(password);
   await DB.users.add({ username, password: hashedPw, name, role });
+  DB.audit.log('user_created', { username: username, name: name, role: role });
   alert('تم إضافة الحساب بنجاح');
   document.getElementById('newUsername').value = '';
   document.getElementById('newPassword').value = '';
@@ -277,7 +281,7 @@ function renderPrinterList() {
         const d = await PRINTER.buildReceiptData({ id: 'TEST', date: new Date().toISOString(), customer: 'اختبار', items: [{ name: 'اختبار طباعة', qty: 1, price: 10 }], total: 10, paid: 10, paymentMethod: 'كاش' });
         await PRINTER.printTo(btn.dataset.id, d);
         alert('✓ تمت طباعة الاختبار');
-      } catch (e) { alert('خطأ: ' + e.message); }
+      } catch (e) { console.error(e); alert('حدث خطأ في الطباعة. حاول مرة أخرى.'); }
     };
   });
   list.querySelectorAll('.drawer-prn').forEach(btn => {
@@ -285,7 +289,7 @@ function renderPrinterList() {
       try {
         await PRINTER.openDrawer(btn.dataset.id);
         alert('✓ تم فتح الدرج');
-      } catch (e) { alert('خطأ: ' + e.message); }
+      } catch (e) { console.error(e); alert('حدث خطأ في فتح الدرج. حاول مرة أخرى.'); }
     };
   });
   list.querySelectorAll('.remove-prn').forEach(btn => {
@@ -306,7 +310,8 @@ document.getElementById('addUsbPrinterBtn').onclick = async () => {
     alert('✓ تم توصيل ' + (forKitchen ? 'طابعة المطبخ' : 'طابعة الفواتير'));
   } catch (e) {
     if (e.name === 'NotFoundError') return;
-    alert('خطأ: ' + e.message);
+    console.error('[printer] USB connect error:', e);
+    alert('حدث خطأ في توصيل الطابعة. حاول مرة أخرى.');
   }
 };
 
@@ -333,7 +338,8 @@ document.getElementById('saveWifiBtn').onclick = async () => {
     document.getElementById('wifiForKitchen').checked = false;
     alert('✓ تم توصيل طابعة WiFi');
   } catch (e) {
-    alert('خطأ في توصيل الطابعة: ' + e.message + '\n\nتأكد من تشغيل proxy server: node printer-proxy-server.js');
+    console.error('[printer] WiFi connect error:', e);
+    alert('حدث خطأ في توصيل طابعة WiFi. تأكد من تشغيل proxy server (node printer-proxy-server.js) وأن عنوان IP الطابعة صحيح.');
   }
 };
 
@@ -346,7 +352,8 @@ document.getElementById('addBtPrinterBtn').onclick = async () => {
     alert('✓ تم توصيل ' + (forKitchen ? 'طابعة المطبخ' : 'طابعة Bluetooth'));
   } catch (e) {
     if (e.name === 'NotFoundError') return;
-    alert('خطأ: ' + e.message);
+    console.error('[printer] Bluetooth connect error:', e);
+    alert('حدث خطأ في توصيل طابعة Bluetooth. حاول مرة أخرى.');
   }
 };
 

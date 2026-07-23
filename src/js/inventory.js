@@ -237,7 +237,8 @@ saveWeeklyInv.onclick = async () => {
       }
     });
   } catch (e) {
-    showToast('فشل الجرد: ' + e.message, 'error');
+    console.error('[inventory] count save error:', e);
+    showToast('فشل حفظ الجرد. حاول مرة أخرى.', 'error');
     return;
   }
 

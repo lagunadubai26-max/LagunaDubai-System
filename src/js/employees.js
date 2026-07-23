@@ -67,7 +67,7 @@ function attachActions() {
       salaryInput.value = emp.salary || '';
       hireDateInput.value = emp.hireDate || '';
       statusSelect.value = emp.status || 'active';
-      pinInput.value = emp.pin || '';
+      pinInput.value = '';
       modal.classList.add('show');
     };
   });
@@ -117,6 +117,8 @@ document.getElementById('saveEmp').onclick = async () => {
       console.error('[employees] failed to hash PIN:', e);
       data.pin = pin;
     }
+  } else if (editId) {
+    delete data.pin;
   }
   if (editId) {
     await DB.employees.update(editId, data);

@@ -37,7 +37,7 @@ async function render() {
       <span>${Number(inv.total).toLocaleString()} ج.م</span>
       <span style="font-size:12px;color:${remaining > 0 ? '#dc2626' : '#059669'}">${remaining > 0 ? 'باقي ' + Number(remaining).toLocaleString() : 'مدفوع كامل'}</span>
       <span class="${stCls}">${stTxt}</span>
-      <span style="font-size:11px;color:${inv.printed ? '#059669' : '#a8a29e'}">${inv.printed ? '✓ مطبوعة' : '—'}</span>
+      <span style="font-size:11px;color:${inv.pendingPrint ? '#dc2626' : inv.printed ? '#059669' : '#a8a29e'}">${inv.pendingPrint ? '⏳ طباعة معلقة' : inv.printed ? '✓ مطبوعة' : '—'}</span>
       <div class="actions">
         ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
         <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
@@ -93,7 +93,7 @@ function attachActions() {
       }
 
       if (agentPrinted) {
-        if (!inv.printed) await DB.invoices.update(inv.id, { printed: true });
+        if (!inv.printed) await DB.invoices.update(inv.id, { printed: true, pendingPrint: false });
         render();
         return;
       }
@@ -105,14 +105,16 @@ function attachActions() {
 
       if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
         try {
-          await Promise.all([
-            PRINTER.printReceipt(inv),
-            PRINTER.printKitchenOrder(inv),
-            PRINTER.openDrawer()
-          ]);
-          if (!inv.printed) await DB.invoices.update(inv.id, { printed: true });
-          render();
-          return;
+          var prResult = await PRINTER.printReceipt(inv);
+          if (prResult && prResult.ok) {
+            await PRINTER.printKitchenOrder(inv);
+            await PRINTER.openDrawer();
+            await DB.invoices.update(inv.id, { printed: true, pendingPrint: false });
+            render();
+            return;
+          } else {
+            await DB.invoices.update(inv.id, { pendingPrint: true });
+          }
         } catch (e) {
           console.warn('[printer] print failed, falling back to browser print:', e);
         }
@@ -228,7 +230,7 @@ function renderWithData() {
       <span>${Number(inv.total).toLocaleString()} ج.م</span>
       <span style="font-size:12px;color:${remaining > 0 ? '#dc2626' : '#059669'}">${remaining > 0 ? 'باقي ' + Number(remaining).toLocaleString() : 'مدفوع كامل'}</span>
       <span class="${stCls}">${stTxt}</span>
-      <span style="font-size:11px;color:${inv.printed ? '#059669' : '#a8a29e'}">${inv.printed ? '✓ مطبوعة' : '—'}</span>
+      <span style="font-size:11px;color:${inv.pendingPrint ? '#dc2626' : inv.printed ? '#059669' : '#a8a29e'}">${inv.pendingPrint ? '⏳ طباعة معلقة' : inv.printed ? '✓ مطبوعة' : '—'}</span>
       <div class="actions">
         ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
         <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>

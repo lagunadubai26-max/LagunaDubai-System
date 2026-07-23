@@ -542,9 +542,10 @@ document.getElementById('confirmCheckout').onclick = async () => {
       inv = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
     } catch (e) {
       resetCheckout();
-      return alert('فشل إنشاء الفاتورة: ' + e.message);
+      console.error('[checkout] transaction error:', e);
+      return alert('فشل إنشاء الفاتورة. تأكد من اتصال الإنترنت وحاول مرة أخرى.');
     }
-    console.log('[checkout] invoice saved:', invId);
+    DB.audit.log('invoice_created', { id: invId, total: totalAmount, method: method, customer: customer, table: table });
     document.getElementById('checkoutModal').classList.remove('show');
     if (inv && inv.id) {
       const isAdmin = !!sessionStorage.getItem('laguna_user');
@@ -612,24 +613,28 @@ document.getElementById('confirmCheckout').onclick = async () => {
         closeBtn.onclick = hideSuccess;
 
         if (autoPrintReceipt) {
-          let printed = false;
+          var printed = false;
           if (hasPrinter) {
             try {
-              for (let i = 0; i < copies; i++) await PRINTER.printReceipt(inv);
-              if (paid >= totalAmount) await PRINTER.openDrawer();
-              if (autoPrintKitchen) await PRINTER.printKitchenOrder(inv);
-              await DB.invoices.update(inv.id, { printed: true });
-              printed = true;
+              var result = await PRINTER.printReceipt(inv);
+              printed = result && result.ok;
+              for (var ci = 1; ci < copies && printed; ci++) await PRINTER.printReceipt(inv);
+              if (printed && paid >= totalAmount) await PRINTER.openDrawer();
+              if (printed && autoPrintKitchen) await PRINTER.printKitchenOrder(inv);
             } catch (e) {
               console.warn('[printer] error:', e);
             }
           }
-          if (!printed) {
-            printBtn.innerHTML = '<i class="fa-solid fa-print"></i> طباعة الفاتورة';
+          if (printed) {
+            await DB.invoices.update(inv.id, { printed: true, pendingPrint: false });
+          } else {
+            await DB.invoices.update(inv.id, { printed: false, pendingPrint: true });
+            printBtn.innerHTML = '<i class="fa-solid fa-hourglass"></i> الطباعة معلقة - اضغط لإعادة المحاولة';
           }
         }
-        if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
-          PRINTER.printViaAgent(inv).catch(() => {});
+        var agentEnabled = localStorage.getItem('laguna_print_agent_enabled') === 'true';
+        if (agentEnabled) {
+          PRINTER.printViaAgent(inv).catch(function() {});
         }
       }
     } else {
@@ -638,7 +643,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
     clearOrder();
   } catch (e) {
     console.error('[checkout] error:', e);
-    alert('حدث خطأ أثناء إنشاء الفاتورة: ' + e.message);
+    console.error('[checkout] error:', e);
+    alert('حدث خطأ أثناء إنشاء الفاتورة. حاول مرة أخرى.');
   }
   resetCheckout();
 };

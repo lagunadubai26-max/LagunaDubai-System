@@ -152,6 +152,7 @@ document.getElementById('dashConfirmDayClose').onclick = async () => {
   };
   try {
     await DB.daycloses.close(data);
+    DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, cashInDrawer: data.cashInDrawer });
     document.getElementById('dashDayCloseModal').classList.remove('show');
     checkDashDayClose();
     alert('✅ تم إغلاق اليوم بنجاح');

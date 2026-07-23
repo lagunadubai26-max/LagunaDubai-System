@@ -136,9 +136,25 @@ const DB = {
     },
   },
 
+  audit: {
+    async log(type, detail) {
+      try {
+        var user;
+        try { user = JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { user = null; }
+        await FB.addDoc('audit_logs', {
+          type: type,
+          detail: typeof detail === 'string' ? detail : JSON.stringify(detail),
+          username: user ? user.username : 'unknown',
+          role: user ? user.role : 'none',
+          timestamp: new Date().toISOString()
+        });
+      } catch(e) { console.warn('[audit]', e); }
+    }
+  },
+
   products: {
     async all() { return await FB.getCollection('products'); },
-    async add(p) { if (!p.id) p.id = Date.now().toString(36); return await FB.addDoc('products', p); },
+    async add(p) { if (!p.id) p.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('products', p); },
     async update(id, data) { await FB.updateDoc('products', id, data); },
     async remove(id) { await FB.removeDoc('products', id); }
   },
