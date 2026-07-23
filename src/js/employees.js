@@ -99,6 +99,7 @@ document.getElementById('saveEmp').onclick = async () => {
   const name = nameInput.value.trim();
   const job = jobInput.value.trim();
   if (!name || !job) return alert('يرجى إدخال الاسم والوظيفة');
+  let pin = pinInput.value.trim() || null;
   const data = {
     name,
     job,
@@ -106,8 +107,17 @@ document.getElementById('saveEmp').onclick = async () => {
     salary: salaryInput.value.trim(),
     hireDate: hireDateInput.value,
     status: statusSelect.value,
-    pin: pinInput.value.trim() || null
+    pin: null
   };
+  if (pin) {
+    try {
+      const hashedPin = await PASSWORD_UTILS.hash(pin);
+      data.pin = hashedPin;
+    } catch (e) {
+      console.error('[employees] failed to hash PIN:', e);
+      data.pin = pin;
+    }
+  }
   if (editId) {
     await DB.employees.update(editId, data);
   } else {

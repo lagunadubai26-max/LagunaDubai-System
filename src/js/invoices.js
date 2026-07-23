@@ -66,7 +66,7 @@ function attachActions() {
       const inv = invoices.find(i => i.id === btn.dataset.id);
       if (!inv) return;
       let items = '';
-      if (inv.items) inv.items.forEach(item => { items += `\n• ${item.name} x${item.qty} = ${item.qty * item.price} ج.م${item.hasMilk ? ' +حليب' : ''}${item.note ? ' (' + item.note + ')' : ''}`; });
+      if (inv.items) inv.items.forEach(item => { items += `\n• ${escapeHtml(item.name)} x${item.qty} = ${item.qty * item.price} ج.م${item.hasMilk ? ' +حليب' : ''}${item.note ? ' (' + escapeHtml(item.note) + ')' : ''}`; });
       const paid = inv.paid ?? inv.total;
       const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
       const change = inv.change || 0;

@@ -17,7 +17,12 @@ const FB = (() => {
 
   async function ensure() { if (!db) await init(); }
 
-  function docId() { return Date.now().toString(36).toUpperCase(); }
+  function docId() { 
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2);
+}
 
   async function getCollection(name) {
     await ensure();
