@@ -22,16 +22,61 @@
 
   const BLOCK_MULTIPLIERS = [1, 2, 4, 10, 20];
   const BASE_BLOCK_MS = 30000;
+  const SECRET_PREFIX = 'lgn_2026_';
 
-  function getLoginState() {
-    try {
-      const raw = sessionStorage.getItem('laguna_login_attempts');
-      if (raw) { const s = JSON.parse(raw); if (s && typeof s.count === 'number' && typeof s.blockedUntil === 'number') return s; }
-    } catch {}
-    return { count: 0, blockedUntil: 0, level: 0 };
+  // ── In-memory lockout (can't be cleared by DevTools) ──
+  var _memoryBlockedUntil = 0;
+  var _memoryAttempts = 0;
+
+  function simpleHash(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) {
+      h = ((h << 5) - h) + str.charCodeAt(i);
+      h |= 0;
+    }
+    return h.toString(36);
   }
 
-  function saveLoginState(s) { sessionStorage.setItem('laguna_login_attempts', JSON.stringify(s)); }
+  function tamperCheck(state) {
+    if (!state || typeof state.count !== 'number' || typeof state.blockedUntil !== 'number') return false;
+    var expected = simpleHash(SECRET_PREFIX + state.count + ':' + state.level + ':' + state.blockedUntil);
+    return state._h === expected;
+  }
+
+  function sealState(s) {
+    s._h = simpleHash(SECRET_PREFIX + s.count + ':' + s.level + ':' + s.blockedUntil);
+    return s;
+  }
+
+  function getLoginState() {
+    var best = { count: 0, blockedUntil: 0, level: 0, _h: '' };
+
+    // Layer 1: localStorage (survives tab close / incognito boundary)
+    try {
+      var raw = localStorage.getItem('laguna_login_lockout');
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (tamperCheck(s)) {
+          if (s.blockedUntil > best.blockedUntil) best = s;
+        }
+      }
+    } catch (e) {}
+
+    // Layer 2: in-memory (can't be cleared, survives same page)
+    if (_memoryBlockedUntil > best.blockedUntil) {
+      best.blockedUntil = _memoryBlockedUntil;
+      best.count = _memoryAttempts;
+    }
+
+    return best;
+  }
+
+  function saveLoginState(s) {
+    var sealed = sealState(s);
+    try { localStorage.setItem('laguna_login_lockout', JSON.stringify(sealed)); } catch (e) {}
+    _memoryBlockedUntil = s.blockedUntil;
+    _memoryAttempts = s.count;
+  }
 
   function showError(el, msg) { el.textContent = msg; el.style.display = 'block'; }
   function hideError(el) { el.textContent = ''; el.style.display = 'none'; }
