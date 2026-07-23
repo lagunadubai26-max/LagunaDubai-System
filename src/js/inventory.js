@@ -103,6 +103,14 @@ function showToast(message, type) {
 }
 
 // --- Weekly Inventory ---
+// --- Postpone daily inventory ---
+document.getElementById('postponeInvBtn').onclick = () => {
+  const today = new Date().toISOString().slice(0, 10);
+  localStorage.setItem('laguna_inv_done_' + today, '1');
+  localStorage.setItem('laguna_inv_remind_' + today, '1');
+  showToast('تم تأجيل تذكير الجرد لليوم التالي', 'success');
+};
+
 const weeklyInvBtn = document.getElementById('weeklyInvBtn');
 const weeklyInvModal = document.getElementById('weeklyInvModal');
 const weeklyInvList = document.getElementById('weeklyInvList');

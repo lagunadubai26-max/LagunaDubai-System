@@ -157,6 +157,35 @@
   /* Returns */
   .returns-table-wrap { overflow-x: auto; }
   .returns-table-wrap table { min-width: 600px; }
+
+  /* Reports mobile */
+  .report-controls { flex-direction: column; align-items: stretch; }
+  .report-controls .month-picker-wrap { width: 100%; }
+  .report-controls .month-picker-wrap input[type="month"] { width: 100%; }
+  .report-controls button { width: 100%; justify-content: center; }
+
+  /* Inventory tools mobile */
+  .inventory-tools { flex-direction: column; gap: 10px; }
+  .inventory-tools input,
+  .inventory-tools select { width: 100%; }
+  .inventory-tools .add-btn { width: 100%; margin-right: 0 !important; justify-content: center; }
+
+  /* Inventory table mobile */
+  .inventory-table { overflow-x: auto; }
+  .inventory-table .table-header,
+  .inventory-table .table-row { min-width: 650px; }
+
+  /* Attendance table mobile */
+  .attendance-table { overflow-x: auto; }
+  .attendance-table .table-header,
+  .attendance-table .attendance-row { min-width: 600px; }
+
+  /* Employee details mobile */
+  #employeeDetailsModal .modal-box { max-width: 95% !important; }
+  #employeeDetailsModal .modal-body > div:first-child { grid-template-columns: 1fr !important; }
+
+  /* Day close modal mobile */
+  #dayCloseModal .modal-box { max-width: 95% !important; }
 }
 
 /* === Small Mobile (≤400) === */
