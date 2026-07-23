@@ -171,7 +171,7 @@ const DB = {
       const empPassword = Math.random().toString(36).slice(2, 10);
       const empHashed = await PASSWORD_UTILS.hash(empPassword);
       await this.users.add({ id: 'u3', username: 'employee', password: empHashed, name: 'موظف', role: 'Employee' });
-      console.warn('[seed] Admin user created. User: admin / ' + defaultPassword + '. Owner: owner / ' + ownerPassword + '. Employee: employee / ' + empPassword + '. Change from Settings page.');
+      console.warn('%c[seed] ✅ Admin: admin / ' + defaultPassword + ' | 🏠 Owner: owner / ' + ownerPassword + ' | 👤 Employee: employee / ' + empPassword, 'font-size:14px;font-weight:bold');
     }
 
     const cats = await this.categories.all();
