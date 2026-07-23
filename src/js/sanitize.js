@@ -32,5 +32,11 @@ function validateStr(val, maxLen) {
 
 function escapeEscPos(str) {
   if (str === null || str === undefined) return '';
-  return String(str).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  return String(str)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+}
+
+function stripNonAscii(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[^\x20-\x7E]/g, '');
 }

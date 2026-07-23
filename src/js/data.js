@@ -11,7 +11,7 @@ const DB = {
   invoices: {
     async all() { return await FB.getCollection('invoices'); },
     async add(inv) {
-      if (!inv.id) inv.id = 'INV-' + Date.now().toString(36).toUpperCase();
+      if (!inv.id) inv.id = 'INV-' + crypto.randomUUID().slice(0, 8).toUpperCase();
       return await FB.addDoc('invoices', inv);
     },
     async update(id, data) { await FB.updateDoc('invoices', id, data); },
@@ -20,7 +20,7 @@ const DB = {
 
   employees: {
     async all() { return await FB.getCollection('employees'); },
-    async add(emp) { if (!emp.id) emp.id = Date.now().toString(36); return await FB.addDoc('employees', emp); },
+    async add(emp) { if (!emp.id) emp.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('employees', emp); },
     async update(id, data) { await FB.updateDoc('employees', id, data); },
     async remove(id) { await FB.removeDoc('employees', id); }
   },
@@ -32,7 +32,7 @@ const DB = {
       const today = new Date().toISOString().slice(0, 10);
       return all.filter(a => a.date && a.date.slice(0, 10) === today);
     },
-    async add(rec) { if (!rec.id) rec.id = Date.now().toString(36); return await FB.addDoc('attendance', rec); },
+    async add(rec) { if (!rec.id) rec.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('attendance', rec); },
     async update(id, data) { await FB.updateDoc('attendance', id, data); },
     async remove(id) { await FB.removeDoc('attendance', id); },
     async checkIn(employeeId, name, job) {
@@ -41,7 +41,7 @@ const DB = {
       const lateThreshold = 9 * 60; // 9:00 AM
       const status = hour > lateThreshold ? 'late' : 'present';
       return await FB.addDoc('attendance', {
-        id: 'att-' + Date.now().toString(36), employeeId, name, job,
+        id: 'att-' + crypto.randomUUID().slice(0, 8), employeeId, name, job,
         date: now.toISOString(), checkIn: now.toISOString(), status
       });
     },
@@ -50,41 +50,41 @@ const DB = {
 
   returns: {
     async all() { return await FB.getCollection('returns'); },
-    async add(r) { if (!r.id) r.id = Date.now().toString(36); return await FB.addDoc('returns', r); },
+    async add(r) { if (!r.id) r.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('returns', r); },
     async update(id, data) { await FB.updateDoc('returns', id, data); },
     async remove(id) { await FB.removeDoc('returns', id); }
   },
 
   tables: {
     async all() { return await FB.getCollection('tables_'); },
-    async add(t) { if (!t.id) t.id = Date.now().toString(36); return await FB.addDoc('tables_', t); },
+    async add(t) { if (!t.id) t.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('tables_', t); },
     async update(id, data) { await FB.updateDoc('tables_', id, data); },
     async remove(id) { await FB.removeDoc('tables_', id); }
   },
 
   expenses: {
     async all() { return await FB.getCollection('expenses'); },
-    async add(e) { if (!e.id) e.id = Date.now().toString(36); return await FB.addDoc('expenses', e); },
+    async add(e) { if (!e.id) e.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('expenses', e); },
     async remove(id) { await FB.removeDoc('expenses', id); }
   },
 
   customers: {
     async all() { return await FB.getCollection('customers'); },
-    async add(c) { if (!c.id) c.id = Date.now().toString(36); return await FB.addDoc('customers', c); },
+    async add(c) { if (!c.id) c.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('customers', c); },
     async update(id, data) { await FB.updateDoc('customers', id, data); },
     async remove(id) { await FB.removeDoc('customers', id); }
   },
 
   inventory: {
     async all() { return await FB.getCollection('inventory'); },
-    async add(item) { if (!item.id) item.id = Date.now().toString(36); return await FB.addDoc('inventory', item); },
+    async add(item) { if (!item.id) item.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('inventory', item); },
     async update(id, data) { await FB.updateDoc('inventory', id, data); },
     async remove(id) { await FB.removeDoc('inventory', id); }
   },
 
   inventory_counts: {
     async all() { return await FB.getCollection('inventory_counts'); },
-    async add(c) { if (!c.id) c.id = Date.now().toString(36); return await FB.addDoc('inventory_counts', c); },
+    async add(c) { if (!c.id) c.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('inventory_counts', c); },
   },
 
   settings: {
@@ -106,7 +106,7 @@ const DB = {
 
   categories: {
     async all() { return await FB.getCollection('categories'); },
-    async add(c) { if (!c.id) c.id = Date.now().toString(36); return await FB.addDoc('categories', c); },
+    async add(c) { if (!c.id) c.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('categories', c); },
     async update(id, data) { await FB.updateDoc('categories', id, data); },
     async remove(id) { await FB.removeDoc('categories', id); }
   },
@@ -131,7 +131,7 @@ const DB = {
       return all.filter(d => d.date && d.date.startsWith(prefix));
     },
     async close(data) {
-      if (!data.id) data.id = 'dc-' + data.date;
+      if (!data.id) data.id = 'dc-' + crypto.randomUUID().slice(0, 8);
       return await FB.addDoc('daycloses', data);
     },
   },

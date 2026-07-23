@@ -164,9 +164,21 @@ async function loadProducts() {
   attachSearch();
 }
 
+async function occupyTable() {
+  if (!tableNum) return;
+  const count = document.querySelectorAll('.order-box .order-list .order-item .name').length;
+  if (count === 1) {
+    try {
+      await DB.tables.update('t' + tableNum, { status: 'occupied' });
+    } catch (e) {
+      console.warn('[occupy]', e);
+    }
+  }
+}
+
 function attachAddToCart() {
   document.querySelectorAll(".product-card button").forEach(button => {
-    button.addEventListener("click", function () {
+    button.addEventListener("click", async function () {
       const card = this.parentElement;
       const name = card.querySelector("h3").innerText;
       const price = Number(this.dataset.price);
@@ -202,6 +214,7 @@ function attachAddToCart() {
       }
       document.querySelector(".total strong").innerText = total + " جنيه";
       syncOrderSheet();
+      await occupyTable();
     });
   });
 }
@@ -498,7 +511,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
         }
       }
     }
-    const invId = 'INV-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+    const invId = 'INV-' + crypto.randomUUID().slice(0, 8).toUpperCase();
     let inv;
     try {
       await FB.runTransaction(async (tx) => {

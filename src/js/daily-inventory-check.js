@@ -3,15 +3,18 @@
     let user;
     try { user = JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return; }
     if (!user) return;
+    if (user.role === 'Owner') return;
 
-    const today = new Date().toISOString().slice(0, 10);
-    const doneKey = 'laguna_inv_done_' + today;
-    const remindKey = 'laguna_inv_remind_' + today;
+    var now = new Date();
+    if (now.getHours() < 6) now.setDate(now.getDate() - 1);
+    var invDate = now.toISOString().slice(0, 10);
+    var doneKey = 'laguna_inv_done_' + invDate;
+    var remindKey = 'laguna_inv_remind_' + invDate;
 
     if (localStorage.getItem(remindKey)) return;
 
-    const counts = await DB.inventory_counts.all() || [];
-    const todayCount = counts.filter(c => c.date && c.date.slice(0, 10) === today);
+    var counts = await DB.inventory_counts.all() || [];
+    var todayCount = counts.filter(function(c) { return c.date && c.date.slice(0, 10) === invDate; });
     if (todayCount.length > 0) {
       localStorage.setItem(doneKey, '1');
       return;

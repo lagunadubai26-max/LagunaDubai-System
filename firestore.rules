@@ -33,12 +33,10 @@ service cloud.firestore {
     // Owner: cannot create mapping for themselves — Admin adds them
     match /user_mappings/{uid} {
       allow read: if isAuth();
-      allow create: if (request.auth.uid == uid && (
-        request.resource.data.role == 'Employee' ||
-        !exists(/databases/$(database)/documents/users/u1)
-      )) || isAdmin();
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isAdmin() || (
+        request.auth.uid == uid && request.resource.data.role == 'Employee'
+      ) || !exists(/databases/$(database)/documents/users/u1);
+      allow update, delete: if isAdmin();
     }
 
     // ── Admin-only collections ──
