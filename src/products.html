@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/products.css">
   
-<link rel="stylesheet" href="css/responsive.css"></head>
+<link rel="stylesheet" href="css/responsive.css"><script src="js/role-head.js"></script></head>
 <body>
 <button class="sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -70,7 +70,7 @@
     <script>
       if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';
       const _user = JSON.parse(sessionStorage.getItem('laguna_user'));
-      if (_user) { document.getElementById('profileName').textContent = _user.name; document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? 'محمد الجوهري' : 'موظف'; }
+      if (_user) { document.getElementById('profileName').textContent = _user.name; document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? '' : 'موظف'; }
     </script>
     <section class="product-stats">
       <div class="stat-card"><i class="fa-solid fa-box"></i><div><h2 id="prodTotal">0</h2><span>إجمالي المنتجات</span></div></div>

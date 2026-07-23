@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/customers.css">
   
-<link rel="stylesheet" href="css/responsive.css"></head>
+<link rel="stylesheet" href="css/responsive.css"><script src="js/role-head.js"></script></head>
 <body>
 <button class="sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -75,7 +75,7 @@
       const _user = JSON.parse(sessionStorage.getItem('laguna_user'));
       if (_user) {
         document.getElementById('profileName').textContent = _user.name;
-        document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? 'محمد الجوهري' : 'موظف';
+        document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? '' : 'موظف';
       }
     </script>
     <section class="customer-stats">
