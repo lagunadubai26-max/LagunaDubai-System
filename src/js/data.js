@@ -109,7 +109,9 @@ const DB = {
 
   users: {
     async all() { return await FB.getCollection('users'); },
-    async add(u) { return await FB.addDoc('users', u); }
+    async add(u) { return await FB.addDoc('users', u); },
+    async update(id, data) { await FB.updateDoc('users', id, data); },
+    async remove(id) { await FB.removeDoc('users', id); }
   },
 
   products: {

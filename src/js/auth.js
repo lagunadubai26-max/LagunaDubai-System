@@ -6,6 +6,13 @@
   }
 
   const stored = sessionStorage.getItem('laguna_user');
+  let allUsers;
+  try { allUsers = await DB.users.all() || []; } catch(e) { allUsers = []; }
+  if (!allUsers.some(u => u.role === 'Owner')) {
+    setTimeout(() => {
+      console.log('[auth] لا يوجد حساب Owner. سيتم توجيهك إلى صفحة الإعدادات لإضافة مالك النظام الأول.');
+    }, 500);
+  }
   if (stored) try { const u = JSON.parse(stored); if (u && u.id) { window.location.href = 'index.html'; return; } } catch {}
 
   const loginBtn = document.getElementById('loginBtn');
@@ -88,13 +95,6 @@
     }
     setLoading(loginBtn, false);
   };
-
-  // إذا لم يكن هناك مستخدم Owner بعد، نوجه إلى صفحة الإعدادات لتهيئته
-  if (!users || users.length === 0 || !users.some(u => u.role === 'Owner')) {
-    setTimeout(() => {
-      console.log('[auth] لا يوجد حساب Owner. سيتم توجيهك إلى صفحة الإعدادات لإضافة مالك النظام الأول.');
-    }, 500);
-  }
 
   username.addEventListener('keydown', (e) => { if (e.key === 'Enter') password.focus(); });
   password.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
