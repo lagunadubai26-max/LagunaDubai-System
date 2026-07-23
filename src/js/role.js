@@ -5,7 +5,7 @@
   const isOwner = user.role === 'Owner';
 
   const page = window.location.pathname.split('/').pop();
-  const ownerRestricted = ['menu.html','tables.html','inventory.html','customers.html','qr.html','products.html','settings.html'];
+  const ownerRestricted = ['menu.html','tables.html','inventory.html','customers.html','qr.html','products.html','settings.html','reports.html'];
   if (isOwner && ownerRestricted.includes(page)) { window.location.replace('index.html'); return; }
 
   if (isOwner) {
@@ -22,7 +22,7 @@
   const role = document.getElementById('sidebarRole');
   if (avatar) avatar.textContent = user.name.charAt(0);
   if (name) name.textContent = user.name;
-  if (role) role.textContent = isOwner ? 'م/محمد الجوهري' : 'موظف';
+  if (role) role.textContent = isOwner ? 'محمد الجوهري' : 'موظف';
 
   const uidEl = document.getElementById('sidebarUid');
   if (uidEl) {
@@ -44,5 +44,5 @@
   const h4 = document.querySelector('.profile h4');
   const span = document.querySelector('.profile span');
   if (h4) h4.textContent = user.name;
-  if (span) span.textContent = isOwner ? 'م/محمد الجوهري' : 'موظف';
+  if (span) span.textContent = isOwner ? 'محمد الجوهري' : 'موظف';
 })();

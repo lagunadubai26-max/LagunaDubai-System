@@ -92,7 +92,7 @@
           const _user = JSON.parse(sessionStorage.getItem('laguna_user'));
           if (_user) {
             document.getElementById('profileName').textContent = _user.name;
-            document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? 'م/محمد الجوهري' : 'موظف';
+            document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? 'محمد الجوهري' : 'موظف';
             document.getElementById('topAvatar').textContent = _user.name.charAt(0);
           }
         </script>
