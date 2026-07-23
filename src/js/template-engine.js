@@ -49,9 +49,11 @@ window.TEMPLATE = (() => {
   function buildItemsPlain(inv) {
     if (!inv.items || !inv.items.length) return '';
     return inv.items.map(item => {
+      const safeName = escapeEscPos(item.name);
+      const safeNote = escapeEscPos(item.note || '');
       const milkTxt = item.hasMilk ? ' +حليب' : '';
-      const noteTxt = item.note ? ' (' + item.note + ')' : '';
-      return '\n\u2022 ' + item.name + milkTxt + noteTxt + ' x' + item.qty + ' = ' + (item.qty * item.price) + ' ج.م';
+      const noteTxt = safeNote ? ' (' + safeNote + ')' : '';
+      return '\n\u2022 ' + safeName + milkTxt + noteTxt + ' x' + item.qty + ' = ' + (item.qty * item.price) + ' ج.م';
     }).join('');
   }
 
@@ -330,20 +332,22 @@ window.TEMPLATE = (() => {
         if (!match || !inv.items) continue;
         const cols = match[1].split(':');
         inv.items.forEach(item => {
+          const safeName = escapeEscPos(item.name);
+          const safeNote = escapeEscPos(item.note || '');
           const milkTxt = item.hasMilk ? ' +حليب' : '';
-          const noteTxt = item.note ? ' (' + item.note + ')' : '';
+          const noteTxt = safeNote ? ' (' + safeNote + ')' : '';
           let buf = '';
           if (cols.length === 3) {
-            const name = ('\u2022 ' + item.name + milkTxt).substring(0, maxLen - 8);
+            const name = ('\u2022 ' + safeName + milkTxt).substring(0, maxLen - 8);
             const qty = '' + item.qty + 'x';
             const total_price = '' + (item.qty * item.price);
             const padded = name.padEnd(maxLen - qty.length - total_price.length) + qty + total_price;
             buf = padded;
           } else {
-            buf = '\u2022 ' + item.name + milkTxt + noteTxt;
+            buf = '\u2022 ' + safeName + milkTxt + noteTxt;
           }
           parts.push(textEncoder(buf));
-          if (item.note) parts.push(textEncoder('  ' + item.note));
+          if (safeNote) parts.push(textEncoder('  ' + safeNote));
         });
         continue;
       }

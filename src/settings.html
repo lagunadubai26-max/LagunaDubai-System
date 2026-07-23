@@ -212,6 +212,26 @@
     </div>
   </main>
 </div>
+
+<div class="modal" id="resetConfirmModal">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-header">
+      <h2>⚠️ تأكيد مسح البيانات</h2>
+      <button class="close-modal" id="closeResetConfirm"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:25px">
+      <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+      <p style="font-size:15px;font-weight:700;color:#dc2626;margin-bottom:8px">هذا الإجراء لا يمكن التراجع عنه!</p>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">سيتم حذف كل الفواتير والطلبات والموظفين والمخزون والإعدادات من Firebase.</p>
+      <p style="font-size:13px;margin-bottom:10px">اكتب <strong style="color:#dc2626">تأكيد</strong> للمتابعة:</p>
+      <input type="text" id="resetConfirmWord" placeholder="اكتب تأكيد" style="width:100%;height:44px;border:2px solid var(--border);border-radius:10px;padding:0 14px;font-family:inherit;font-size:16px;text-align:center;outline:none">
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px;padding:16px 25px">
+      <button class="cancel-btn" id="cancelResetConfirm" style="flex:1;height:44px;font-size:15px">إلغاء</button>
+      <button class="confirm-btn" id="confirmResetBtn" style="flex:1;height:44px;font-size:15px;background:#dc2626" disabled>حذف كل البيانات</button>
+    </div>
+  </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>

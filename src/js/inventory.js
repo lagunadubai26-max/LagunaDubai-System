@@ -131,19 +131,30 @@ saveWeeklyInv.onclick = async () => {
 
   const lowStockItems = [];
   const inputs = document.querySelectorAll('.weekly-qty');
-  for (const input of inputs) {
-    const actualQty = Number(input.value);
-    const itemId = input.dataset.id;
-    const item = inventory.find(i => i.id === itemId);
-    if (!item) continue;
-    await DB.inventory_counts.add({
-      itemId, itemName: item.name, weekKey, date: dateStr,
-      systemQty: item.quantity, actualQty, minQty: item.minQuantity
+  try {
+    await FB.runTransaction(async (tx) => {
+      const rawDb = FB.getDb();
+      for (const input of inputs) {
+        const actualQty = Number(input.value);
+        const itemId = input.dataset.id;
+        const itemRef = rawDb.collection('inventory').doc(itemId);
+        const itemSnap = await tx.get(itemRef);
+        if (!itemSnap.exists) continue;
+        const item = itemSnap.data();
+        const countId = itemId + '-' + weekKey;
+        tx.set(rawDb.collection('inventory_counts').doc(countId), {
+          itemId, itemName: item.name, weekKey, date: dateStr,
+          systemQty: item.quantity, actualQty, minQty: item.minQuantity
+        });
+        tx.update(itemRef, { quantity: actualQty });
+        if (actualQty < item.minQuantity) {
+          lowStockItems.push(item.name);
+        }
+      }
     });
-    await DB.inventory.update(itemId, { quantity: actualQty });
-    if (actualQty < item.minQuantity) {
-      lowStockItems.push(item.name);
-    }
+  } catch (e) {
+    showToast('فشل الجرد: ' + e.message, 'error');
+    return;
   }
 
   weeklyInvModal.classList.remove('show');

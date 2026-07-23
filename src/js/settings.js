@@ -147,10 +147,24 @@ document.getElementById('templateEditor').addEventListener('input', function() {
   window._savedTemplates[key] = this.value;
 });
 
-document.getElementById('resetData').onclick = async () => {
-  if (!confirm('هل تريد مسح كل البيانات؟ هذا الإجراء لا يمكن التراجع عنه!')) return;
-  if (!confirm('تأكيد: مسح كل البيانات من Firebase؟')) return;
-  if (!confirm('مسح نهائي؟ سيتم حذف كل الفواتير والطلبات والموظفين!')) return;
+document.getElementById('resetData').onclick = () => {
+  document.getElementById('resetConfirmWord').value = '';
+  document.getElementById('confirmResetBtn').disabled = true;
+  document.getElementById('resetConfirmModal').classList.add('show');
+};
+
+document.getElementById('resetConfirmWord').oninput = function() {
+  document.getElementById('confirmResetBtn').disabled = this.value.trim() !== 'تأكيد';
+};
+
+document.getElementById('resetConfirmWord').onkeydown = function(e) {
+  if (e.key === 'Enter' && this.value.trim() === 'تأكيد') {
+    document.getElementById('confirmResetBtn').click();
+  }
+};
+
+document.getElementById('confirmResetBtn').onclick = async () => {
+  document.getElementById('resetConfirmModal').classList.remove('show');
   const tables = ['invoices', 'returns', 'attendance', 'expenses', 'customers', 'inventory', 'settings', 'employees', 'users', 'products', 'tables_'];
   for (const t of tables) {
     const all = await FB.getCollection(t) || [];
@@ -160,6 +174,13 @@ document.getElementById('resetData').onclick = async () => {
   }
   alert('تم مسح كل البيانات من Firebase');
   location.reload();
+};
+
+document.getElementById('cancelResetConfirm').onclick = () => {
+  document.getElementById('resetConfirmModal').classList.remove('show');
+};
+document.getElementById('closeResetConfirm').onclick = () => {
+  document.getElementById('resetConfirmModal').classList.remove('show');
 };
 
 async function renderUserMappings() {

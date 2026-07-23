@@ -13,8 +13,15 @@
   const password = document.getElementById('password');
   const errorEl = document.getElementById('authError');
 
-  let loginAttempts = 0;
-  let loginBlockedUntil = 0;
+  function getLoginState() {
+    try {
+      const raw = localStorage.getItem('laguna_login_state');
+      if (raw) { const s = JSON.parse(raw); if (s && typeof s.attempts === 'number' && typeof s.blockedUntil === 'number') return s; }
+    } catch {}
+    return { attempts: 0, blockedUntil: 0 };
+  }
+
+  function saveLoginState(s) { localStorage.setItem('laguna_login_state', JSON.stringify(s)); }
 
   function showError(el, msg) { el.textContent = msg; el.style.display = 'block'; }
   function hideError(el) { el.textContent = ''; el.style.display = 'none'; }
@@ -26,8 +33,9 @@
   }
 
   loginBtn.onclick = async () => {
-    if (Date.now() < loginBlockedUntil) {
-      const wait = Math.ceil((loginBlockedUntil - Date.now()) / 1000);
+    const loginState = getLoginState();
+    if (Date.now() < loginState.blockedUntil) {
+      const wait = Math.ceil((loginState.blockedUntil - Date.now()) / 1000);
       showError(errorEl, 'حاول مرة أخرى بعد ' + wait + ' ثانية');
       return;
     }
@@ -36,11 +44,12 @@
     const p = password.value.trim();
     if (!u || !p) { showError(errorEl, 'يرجى إدخال اسم المستخدم وكلمة المرور'); return; }
     setLoading(loginBtn, true);
-    loginAttempts++;
-    if (loginAttempts >= 5) {
-      loginBlockedUntil = Date.now() + 30000;
-      loginAttempts = 0;
+    loginState.attempts++;
+    if (loginState.attempts >= 5) {
+      loginState.blockedUntil = Date.now() + 30000;
+      loginState.attempts = 0;
     }
+    saveLoginState(loginState);
     const users = await DB.users.all() || [];
     const user = users.find(x => x.username === u);
     let passwordOk = false;
@@ -52,7 +61,7 @@
       }
     }
     if (user && passwordOk) {
-      loginAttempts = 0;
+      saveLoginState({ attempts: 0, blockedUntil: 0 });
       const firebaseUid = FB.getUid();
       if (firebaseUid && user.role === 'Employee') {
         FB.getDb().collection('user_mappings').doc(firebaseUid).get().then(snap => {

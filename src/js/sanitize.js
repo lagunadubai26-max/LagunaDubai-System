@@ -29,3 +29,8 @@ function validateStr(val, maxLen) {
   const s = val.trim();
   return maxLen ? s.slice(0, maxLen) : s;
 }
+
+function escapeEscPos(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+}
