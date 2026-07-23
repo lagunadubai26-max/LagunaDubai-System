@@ -32,6 +32,7 @@ async function render() {
   document.getElementById('invLowStock').textContent = inventory.filter(i => i.quantity > 0 && i.quantity <= i.minQuantity).length;
   document.getElementById('invOutOfStock').textContent = inventory.filter(i => i.quantity <= 0).length;
   attachEvents();
+  checkDailyInventoryBanner();
 }
 
 function attachEvents() {
@@ -105,11 +106,59 @@ function showToast(message, type) {
 // --- Weekly Inventory ---
 // --- Postpone daily inventory ---
 document.getElementById('postponeInvBtn').onclick = () => {
+  postponeInventory();
+};
+
+async function checkDailyInventoryBanner() {
+  const today = new Date().toISOString().slice(0, 10);
+  const doneKey = 'laguna_inv_done_' + today;
+  if (localStorage.getItem(doneKey)) return;
+
+  const counts = await DB.inventory_counts.all() || [];
+  const todayCount = counts.filter(c => c.date && c.date.slice(0, 10) === today);
+  if (todayCount.length > 0) {
+    localStorage.setItem(doneKey, '1');
+    return;
+  }
+
+  const existing = document.getElementById('dailyInvBanner');
+  if (existing) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'dailyInvBanner';
+  banner.style.cssText = 'background:linear-gradient(135deg,#fef3c7,#fffbeb);border:2px solid var(--accent);border-radius:16px;padding:18px 22px;margin-bottom:25px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap';
+  banner.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:32px">📋</div>
+      <div>
+        <div style="font-weight:700;font-size:16px;color:var(--primary)">تذكير الجرد اليومي</div>
+        <div style="font-size:13px;color:var(--muted)">لم يتم تسجيل جرد المخزون اليوم. قم بعمل الجرد لضمان دقة الكميات.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-shrink:0">
+      <button id="bannerDoInv" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:600;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-check"></i> تسجيل الجرد</button>
+      <button id="bannerPostpone" style="background:#e7e5e4;color:var(--primary);border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clock"></i> تأجيل</button>
+    </div>`;
+
+  const tools = document.querySelector('.inventory-tools');
+  if (tools) tools.parentNode.insertBefore(banner, tools);
+
+  document.getElementById('bannerDoInv').onclick = () => {
+    banner.remove();
+    document.getElementById('weeklyInvBtn').click();
+  };
+  document.getElementById('bannerPostpone').onclick = () => {
+    postponeInventory();
+    banner.remove();
+  };
+}
+
+function postponeInventory() {
   const today = new Date().toISOString().slice(0, 10);
   localStorage.setItem('laguna_inv_done_' + today, '1');
   localStorage.setItem('laguna_inv_remind_' + today, '1');
   showToast('تم تأجيل تذكير الجرد لليوم التالي', 'success');
-};
+}
 
 const weeklyInvBtn = document.getElementById('weeklyInvBtn');
 const weeklyInvModal = document.getElementById('weeklyInvModal');

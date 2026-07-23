@@ -76,11 +76,14 @@
                 <h1>لوحة التحكم</h1>
                 <p>مرحبًا بك في نظام Laguna Cafe</p>
             </div>
-            <div class="profile-top" style="display:none">
-                <div class="avatar" id="topAvatar">أ</div>
-                <div class="info">
-                    <h4 id="profileName">جاري التحميل...</h4>
-                    <span id="profileRole">...</span>
+            <div style="display:flex;align-items:center;gap:12px">
+                <button id="dashDayCloseBtn" class="btn-dayclose" style="height:46px;padding:0 20px;border:none;border-radius:12px;background:#1c1917;color:#fff;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.3s"><i class="fa-solid fa-moon"></i> إغلاق اليوم</button>
+                <div class="profile-top" style="display:flex;align-items:center;gap:12px">
+                    <div class="avatar" id="topAvatar">أ</div>
+                    <div class="info">
+                        <h4 id="profileName">جاري التحميل...</h4>
+                        <span id="profileRole">...</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -175,6 +178,33 @@
 
     </main>
 
+</div>
+
+<!-- Day Close Modal -->
+<div class="modal" id="dashDayCloseModal">
+  <div class="modal-box" style="max-width:600px">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-moon"></i> إغلاق اليوم</h2>
+      <button class="close-modal" id="dashCloseDayClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="dc-date" id="dashDcDate"></div>
+      <div class="dc-stats">
+        <div class="dc-stat"><span>إجمالي المبيعات</span><strong id="dashDcSales">0</strong></div>
+        <div class="dc-stat"><span>عدد الفواتير</span><strong id="dashDcInvoices">0</strong></div>
+        <div class="dc-stat"><span>الدرج (كاش)</span><strong id="dashDcCash">0</strong></div>
+        <div class="dc-stat"><span>شبكة/فيزا</span><strong id="dashDcCard">0</strong></div>
+        <div class="dc-stat"><span>عدد الأصناف المباعة</span><strong id="dashDcItemsSold">0</strong></div>
+        <div class="dc-stat"><span>المصروفات</span><strong id="dashDcExpenses">0</strong></div>
+        <div class="dc-stat"><span>المرتجعات</span><strong id="dashDcReturns">0</strong></div>
+        <div class="dc-stat dc-highlight"><span>صافي الربح</span><strong id="dashDcNet">0</strong></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" id="dashCancelDayClose">إلغاء</button>
+      <button class="confirm-btn" id="dashConfirmDayClose"><i class="fa-solid fa-check"></i> تأكيد إغلاق اليوم</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>

@@ -186,6 +186,11 @@
 
   /* Day close modal mobile */
   #dayCloseModal .modal-box { max-width: 95% !important; }
+  #dashDayCloseModal .modal-box { max-width: 95% !important; }
+
+  /* Dashboard topbar mobile */
+  .topbar > div:last-child { flex-wrap: wrap; gap: 8px !important; }
+  .topbar button.btn-dayclose { width: 100%; justify-content: center; }
 }
 
 /* === Small Mobile (≤400) === */
