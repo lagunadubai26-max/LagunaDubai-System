@@ -36,9 +36,13 @@ const DB = {
     async update(id, data) { await FB.updateDoc('attendance', id, data); },
     async remove(id) { await FB.removeDoc('attendance', id); },
     async checkIn(employeeId, name, job) {
+      const now = new Date();
+      const hour = now.getHours() * 60 + now.getMinutes();
+      const lateThreshold = 9 * 60; // 9:00 AM
+      const status = hour > lateThreshold ? 'late' : 'present';
       return await FB.addDoc('attendance', {
         id: 'att-' + Date.now().toString(36), employeeId, name, job,
-        date: new Date().toISOString(), checkIn: new Date().toISOString(), status: 'present'
+        date: now.toISOString(), checkIn: now.toISOString(), status
       });
     },
     async checkOut(id) { await FB.updateDoc('attendance', id, { checkOut: new Date().toISOString() }); }

@@ -1,6 +1,12 @@
+function formatTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+}
+
 const table = document.querySelector(".attendance-table");
 
-// Details Modal Elements
 const detailsModal = document.getElementById("employeeDetailsModal");
 const closeDetailsModal = document.getElementById("closeDetailsModal");
 const closeDetailsBtn = document.getElementById("closeDetailsBtn");
@@ -16,13 +22,13 @@ async function render() {
     const record = todayRecords.find(r => r.employeeId === emp.id);
     const row = document.createElement("div");
     row.className = "attendance-row";
-    row.dataset.id = emp.id; // employee ID
+    row.dataset.id = emp.id;
     row.dataset.recordId = record ? record.id : '';
 
     const stCls = record ? (record.status === 'present' ? 'present' : record.status === 'late' ? 'late' : 'absent') : 'absent';
     const stTxt = record ? (record.status === 'present' ? 'حاضر' : record.status === 'late' ? 'متأخر' : 'غائب') : 'غائب';
-    const checkInTime = record ? (record.checkIn || '—') : '—';
-    const checkOutTime = record ? (record.checkOut || '—') : '—';
+    const checkInTime = record && record.checkIn ? formatTime(record.checkIn) : '—';
+    const checkOutTime = record && record.checkOut ? formatTime(record.checkOut) : '—';
 
     row.innerHTML = `
       <span class="emp-name-click" style="cursor:pointer;color:var(--primary);font-weight:600;text-decoration:underline">${escapeHtml(emp.name)}</span>
@@ -127,8 +133,8 @@ async function showEmployeeDetails(emp) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td style="padding:10px;border-bottom:1px solid var(--border)">${dateStr}</td>
-          <td style="padding:10px;border-bottom:1px solid var(--border)">${escapeHtml(h.checkIn || '—')}</td>
-          <td style="padding:10px;border-bottom:1px solid var(--border)">${escapeHtml(h.checkOut || '—')}</td>
+          <td style="padding:10px;border-bottom:1px solid var(--border)">${formatTime(h.checkIn)}</td>
+          <td style="padding:10px;border-bottom:1px solid var(--border)">${formatTime(h.checkOut)}</td>
           <td style="padding:10px;border-bottom:1px solid var(--border)"><span class="status ${stCls}" style="padding:2px 8px;font-size:11px">${stTxt}</span></td>`;
         historyList.appendChild(tr);
       });
