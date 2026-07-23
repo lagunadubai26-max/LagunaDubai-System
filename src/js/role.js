@@ -8,12 +8,15 @@
   const ownerRestricted = ['menu.html','tables.html','inventory.html','customers.html','qr.html','products.html','settings.html'];
   if (isOwner && ownerRestricted.includes(page)) { window.location.replace('index.html'); return; }
 
-  document.querySelectorAll('.admin-only').forEach(el => {
-    if (isOwner) el.style.display = 'none';
-  });
-  document.querySelectorAll('.no-owner').forEach(el => {
-    if (isOwner) el.style.display = 'none';
-  });
+  if (isOwner) {
+    document.querySelectorAll('.sidebar nav a').forEach(el => {
+      const href = el.getAttribute('href');
+      if (href && ownerRestricted.some(p => href.includes(p))) {
+        el.style.display = 'none';
+      }
+    });
+  }
+
   const avatar = document.getElementById('sidebarAvatar');
   const name = document.getElementById('sidebarName');
   const role = document.getElementById('sidebarRole');

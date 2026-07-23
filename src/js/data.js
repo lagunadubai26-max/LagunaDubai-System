@@ -164,14 +164,11 @@ const DB = {
           }).catch(e => console.warn('[seed] failed to save role mapping:', e));
         }
       }
-      await this.users.add({ id: 'u1', username: 'admin', password: hashedPw, name: 'أحمد علي', role: 'Administrator' });
+      await this.users.add({ id: 'u1', username: 'admin', password: hashedPw, name: 'الكاشير', role: 'Administrator' });
       const ownerPassword = Math.random().toString(36).slice(2, 10);
       const ownerHashed = await PASSWORD_UTILS.hash(ownerPassword);
-      await this.users.add({ id: 'u2', username: 'owner', password: ownerHashed, name: 'مالك الكافيه', role: 'Owner' });
-      const empPassword = Math.random().toString(36).slice(2, 10);
-      const empHashed = await PASSWORD_UTILS.hash(empPassword);
-      await this.users.add({ id: 'u3', username: 'employee', password: empHashed, name: 'موظف', role: 'Employee' });
-      console.warn('%c[seed] ✅ Admin: admin / ' + defaultPassword + ' | 🏠 Owner: owner / ' + ownerPassword + ' | 👤 Employee: employee / ' + empPassword, 'font-size:14px;font-weight:bold');
+      await this.users.add({ id: 'u2', username: 'owner', password: ownerHashed, name: 'صاحب الكافيه', role: 'Owner' });
+      console.warn('%c[seed] 👤 كاشير: admin / ' + defaultPassword + ' | 🏠 صاحب الكافيه: owner / ' + ownerPassword, 'font-size:14px;font-weight:bold');
     }
 
     const cats = await this.categories.all();
