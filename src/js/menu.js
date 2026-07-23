@@ -390,6 +390,11 @@ checkoutBtn.addEventListener("click", () => {
   document.getElementById('checkoutSpecialFields').style.display = 'none';
   document.getElementById('checkoutSpecialName').value = '';
   document.getElementById('checkoutSpecialPrice').value = '';
+  (async () => {
+    const allCusts = await DB.customers.all();
+    const dl = document.getElementById('custList');
+    if (dl) dl.innerHTML = allCusts.map(c => '<option value="' + escapeHtml(c.name) + '">').join('');
+  })();
   let checkoutLabel = grandTotal + ' جنيه';
   if (serviceAmount > 0) checkoutLabel += ' (خدمة ' + serviceAmount + ' ج.م)';
   if (taxAmount > 0) checkoutLabel += ' (ضريبة ' + taxAmount + ' ج.م)';
@@ -482,7 +487,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
     const custType = document.getElementById('checkoutCustomerType').value;
     let customer, totalAmount;
     if (custType === 'special') {
-      customer = document.getElementById('checkoutSpecialName').value.trim() || 'عميل خاص';
+      customer = document.getElementById('checkoutSpecialName').value.trim();
+      if (!customer) { resetCheckout(); return alert('يرجى إدخال اسم العميل الخاص'); }
       totalAmount = Number(document.getElementById('checkoutSpecialPrice').value);
       if (!totalAmount || totalAmount <= 0) { resetCheckout(); return alert('يرجى إدخال السعر المخصص للعميل الخاص'); }
     } else {
@@ -512,7 +518,14 @@ document.getElementById('confirmCheckout').onclick = async () => {
       }
     }
     const invId = 'INV-' + crypto.randomUUID().slice(0, 8).toUpperCase();
-    let inv;
+    let inv, matchedCust, custReadFailed = false;
+    if (custType === 'special') {
+      try {
+        const allCusts = await DB.customers.all() || [];
+        matchedCust = allCusts.find(c => c.name === customer);
+        if (!matchedCust) { resetCheckout(); return alert('العميل "' + customer + '" غير موجود في قائمة العملاء المميزين'); }
+      } catch(e) { custReadFailed = true; console.warn('[checkout] could not read customers:', e); }
+    }
     try {
       await FB.runTransaction(async (tx) => {
         const rawDb = FB.getDb();
@@ -526,24 +539,21 @@ document.getElementById('confirmCheckout').onclick = async () => {
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);
-        if (custType === 'special') {
-          const custSnap = await tx.get(rawDb.collection('customers'));
-          const existing = custSnap.docs.find(d => d.data().name === customer);
-          if (existing) {
-            const custData = existing.data();
-            tx.update(rawDb.collection('customers').doc(existing.id), {
-              visits: (custData.visits || 0) + 1,
-              totalSpent: (custData.totalSpent || 0) + totalAmount,
-              lastVisit: new Date().toISOString()
-            });
-          }
-        }
       });
+      try {
+        if (matchedCust) {
+          await DB.customers.update(matchedCust.id, {
+            visits: (matchedCust.visits || 0) + 1,
+            totalSpent: (matchedCust.totalSpent || 0) + totalAmount,
+            lastVisit: new Date().toISOString()
+          });
+        }
+      } catch(e) { console.warn('[checkout] customer stats update failed:', e); }
       inv = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
     } catch (e) {
       resetCheckout();
       console.error('[checkout] transaction error:', e);
-      return alert('فشل إنشاء الفاتورة. تأكد من اتصال الإنترنت وحاول مرة أخرى.');
+      return alert('فشل إنشاء الفاتورة: ' + e.message);
     }
     DB.audit.log('invoice_created', { id: invId, total: totalAmount, method: method, customer: customer, table: table });
     document.getElementById('checkoutModal').classList.remove('show');

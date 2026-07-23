@@ -30,6 +30,9 @@
       uidEl.title = uid;
     }
   }
+  if (role === 'Employee') {
+    document.querySelectorAll('.sidebar nav a.no-employee').forEach(function(el) { el.style.display = 'none'; });
+  }
   var toggle = document.getElementById('sidebarToggle');
   var overlay = document.getElementById('sidebarOverlay');
   var sidebar = document.querySelector('.sidebar');

@@ -58,7 +58,8 @@ service cloud.firestore {
     }
 
     match /customers/{docId} {
-      allow read, write: if isAdmin();
+      allow read: if isAuth();
+      allow write: if isAdmin();
     }
 
     // ── Products: anyone can read, only Admin can write ──

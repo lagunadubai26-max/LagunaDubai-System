@@ -38,7 +38,6 @@
         <a href="menu.html" class="active"><i class="fa-solid fa-utensils"></i><span>المنيو</span></a>
         <a href="invoices.html"><i class="fa-solid fa-file-invoice"></i><span>الفواتير</span></a>
         <a href="returns.html"><i class="fa-solid fa-arrow-rotate-left"></i><span>المرتجعات</span></a>
-        <a href="employees.html"><i class="fa-solid fa-users"></i><span>الموظفين</span></a>
         <a href="attendance.html"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
         <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
         <a href="inventory.html"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
@@ -157,7 +156,8 @@
       <div id="checkoutSpecialFields" style="display:none;margin-bottom:15px;">
         <div style="margin-bottom:12px;">
           <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">اسم العميل الخاص</label>
-          <input type="text" id="checkoutSpecialName" placeholder="اسم العميل" class="checkout-input">
+          <input type="text" id="checkoutSpecialName" placeholder="اسم العميل" class="checkout-input" list="custList">
+          <datalist id="custList"></datalist>
         </div>
         <div>
           <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">السعر المخصص (إجمالي)</label>
@@ -254,7 +254,7 @@
         <script src="js/notifications.js"></script>
         <script src="js/printer.js"></script>
 <script src="js/template-engine.js"></script>
-<script src="js/menu.js?v=3"></script>
+<script src="js/menu.js?v=4"></script>
 <script src="js/daily-inventory-check.js"></script>
 <script src="js/role.js?v=3"></script>
 

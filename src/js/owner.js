@@ -57,9 +57,10 @@ function renderDashboard() {
   const monthReturns = filterByDate(g.returns.filter(r => r.status === 'success'), range);
   const pending = g.invoices.filter(i => i.status !== 'paid' && i.status !== 'مدفوعة' && i.status !== 'returned' && i.status !== 'مرتجعة');
 
+  const vipNames = g.customers.map(c => c.name);
   const totalSales = monthPaid.reduce((s, i) => s + Number(i.total || 0), 0);
-  const vipSales = monthPaid.filter(i => i.customer && i.customer !== 'نقدي').reduce((s, i) => s + Number(i.total || 0), 0);
-  const regularSales = monthPaid.filter(i => !i.customer || i.customer === 'نقدي').reduce((s, i) => s + Number(i.total || 0), 0);
+  const vipSales = monthPaid.filter(i => i.customer && vipNames.includes(i.customer)).reduce((s, i) => s + Number(i.total || 0), 0);
+  const regularSales = monthPaid.filter(i => !i.customer || i.customer === 'نقدي' || !vipNames.includes(i.customer)).reduce((s, i) => s + Number(i.total || 0), 0);
   const totalExpenses = monthExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = monthReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
   const netProfit = totalSales - totalReturns - totalExpenses;
@@ -158,19 +159,24 @@ function drawSplitChart(id, vip, regular) {
 // ================================================================
 // CUSTOMERS
 // ================================================================
+function calcCustActualTotal(name) {
+  return g.invoices.filter(i => i.customer === name && (i.status === 'paid' || i.status === 'مدفوعة')).reduce((s, i) => s + Number(i.total || 0), 0);
+}
+
 function renderCustomers() {
   const val = (document.getElementById('custSearch').value || '').toLowerCase();
   const sort = document.getElementById('custSort').value;
 
   let list = g.customers.filter(c => c.name.toLowerCase().includes(val));
-  if (sort === 'spent') list.sort((a, b) => Number(b.totalSpent || 0) - Number(a.totalSpent || 0));
+  if (sort === 'spent') list.sort((a, b) => calcCustActualTotal(b.name) - calcCustActualTotal(a.name));
   else if (sort === 'visits') list.sort((a, b) => Number(b.visits || 0) - Number(a.visits || 0));
   else list.sort((a, b) => a.name.localeCompare(b.name));
 
   const range = getMonthRange();
   const monthPaid = filterByDate(g.invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة'), range);
-  const totalSpent = list.reduce((s, c) => s + Number(c.totalSpent || 0), 0);
-  const monthSpent = monthPaid.filter(i => i.customer && i.customer !== 'نقدي').reduce((s, i) => s + Number(i.total || 0), 0);
+  const custNames = list.map(c => c.name);
+  const totalSpent = list.reduce((s, c) => s + calcCustActualTotal(c.name), 0);
+  const monthSpent = monthPaid.filter(i => i.customer && custNames.includes(i.customer)).reduce((s, i) => s + Number(i.total || 0), 0);
 
   document.getElementById('custTotal').textContent = list.length;
   document.getElementById('custTotalSpent').textContent = fmt(totalSpent);
@@ -182,11 +188,12 @@ function renderCustomers() {
 
   list.forEach(c => {
     const custMonth = monthPaid.filter(i => i.customer === c.name).reduce((s, i) => s + Number(i.total || 0), 0);
+    const allTime = calcCustActualTotal(c.name);
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.innerHTML = `<td><strong>${escapeHtml(c.name)}</strong></td>
       <td style="color:var(--text-secondary)">${escapeHtml(c.phone || '—')}</td>
-      <td style="color:var(--accent);font-weight:600">${fmt(c.totalSpent || 0)}</td>
+      <td style="color:var(--accent);font-weight:600">${fmt(allTime)}</td>
       <td>${fmt(custMonth)}</td>
       <td>${c.visits || 0}</td>
       <td style="color:var(--text-secondary);font-size:12px">${c.lastVisit ? new Date(c.lastVisit).toLocaleDateString('ar-EG') : '—'}</td>
@@ -200,14 +207,17 @@ function showCustDetail(id) {
   if (!c) return;
   const range = getMonthRange();
   const custInvoices = g.invoices.filter(i => i.customer === c.name && i.status !== 'returned' && i.status !== 'مرتجعة');
+  const allPaid = custInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
   const monthInvoices = filterByDate(custInvoices, range);
   const monthTotal = monthInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-  const avg = monthInvoices.length > 0 ? Math.round(monthTotal / monthInvoices.length) : 0;
+  const allTotal = allPaid.reduce((s, i) => s + Number(i.total || 0), 0);
+  const monthCount = monthInvoices.length;
+  const avg = monthCount > 0 ? Math.round(monthTotal / monthCount) : 0;
 
   document.getElementById('custModalName').textContent = escapeHtml(c.name);
-  document.getElementById('custMDTotal').textContent = fmt(c.totalSpent || 0);
+  document.getElementById('custMDTotal').textContent = fmt(allTotal);
   document.getElementById('custMDMonth').textContent = fmt(monthTotal);
-  document.getElementById('custMDVisits').textContent = monthInvoices.length || '0';
+  document.getElementById('custMDVisits').textContent = monthCount || '0';
   document.getElementById('custMDAvg').textContent = fmt(avg);
 
   const tbody = document.getElementById('custMDInvoices');
@@ -439,12 +449,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('ownerAvatar').textContent = _ownerUser.name.charAt(0);
 
   document.querySelectorAll('.tab-nav button').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
       btn.classList.add('active');
       const section = document.getElementById('tab-' + btn.dataset.tab);
       if (section) section.classList.add('active');
+      const tab = btn.dataset.tab;
+      if (tab === 'dashboard') renderDashboard();
+      else if (tab === 'customers') { await loadAll(); renderCustomers(); }
+      else if (tab === 'reports') { await loadAll(); renderReports(); }
     });
   });
 

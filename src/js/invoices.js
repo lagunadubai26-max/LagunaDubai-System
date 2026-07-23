@@ -20,6 +20,7 @@ async function render() {
     const matchStatus = filterStatus === 'كل الحالات' || st === filterStatus;
     return matchSearch && matchStatus;
   });
+  filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
     const row = document.createElement('div');
@@ -215,6 +216,7 @@ function renderWithData() {
     const matchStatus = filterStatus === 'كل الحالات' || st === filterStatus;
     return matchSearch && matchStatus;
   });
+  filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
     const row = document.createElement('div');
