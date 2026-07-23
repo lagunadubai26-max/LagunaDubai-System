@@ -8,7 +8,7 @@
   var ownerRestricted = ['settings.html','products.html'];
   var employeeRestricted = ['employees.html','customers.html','qr.html','settings.html','products.html'];
 
-  if (role === 'Owner' && ownerRestricted.includes(page)) { window.location.replace('index.html'); return; }
+  if (role === 'Owner' && page !== 'owner.html' && page !== 'auth.html') { window.location.replace('owner.html'); return; }
   if (role === 'Employee' && employeeRestricted.includes(page)) { window.location.replace('index.html'); return; }
 
   var avatar = document.getElementById('sidebarAvatar');

@@ -34,7 +34,7 @@ async function render() {
     const stTxt = emp.status === 'active' ? 'يعمل' : emp.status === 'vacation' ? 'إجازة' : 'موقوف';
     row.innerHTML = `
       <span>${escapeHtml(emp.name)}</span><span>${escapeHtml(emp.job)}</span><span>${escapeHtml(emp.phone || '—')}</span>
-      <span>${emp.salary ? Number(emp.salary).toLocaleString() + ' ج.م' : '—'}</span>
+      <span style="display:none">${emp.salary ? Number(emp.salary).toLocaleString() + ' ج.م' : '—'}</span>
       <span>${escapeHtml(emp.hireDate || '—')}</span>
       <span class="status ${stCls}">${stTxt}</span>
       <div class="actions">
@@ -64,7 +64,6 @@ function attachActions() {
       nameInput.value = emp.name;
       jobInput.value = emp.job;
       phoneInput.value = emp.phone || '';
-      salaryInput.value = emp.salary || '';
       hireDateInput.value = emp.hireDate || '';
       statusSelect.value = emp.status || 'active';
       pinInput.value = '';
@@ -87,7 +86,6 @@ if (addBtn) {
     nameInput.value = '';
     jobInput.value = '';
     phoneInput.value = '';
-    salaryInput.value = '';
     hireDateInput.value = '';
     statusSelect.value = 'active';
     pinInput.value = '';
@@ -104,7 +102,7 @@ document.getElementById('saveEmp').onclick = async () => {
     name,
     job,
     phone: phoneInput.value.trim(),
-    salary: salaryInput.value.trim(),
+    salary: '',
     hireDate: hireDateInput.value,
     status: statusSelect.value,
     pin: null
