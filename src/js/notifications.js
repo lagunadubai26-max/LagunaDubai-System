@@ -36,7 +36,10 @@
     dot._timer = setTimeout(() => { if (dot && dot.parentNode) dot.remove(); }, 15000);
   }
 
+  let initDone = false;
   function init() {
+    if (initDone) return;
+    initDone = true;
     const stored = localStorage.getItem('laguna_inv_count');
     lastCount = stored ? Number(stored) : 0;
 

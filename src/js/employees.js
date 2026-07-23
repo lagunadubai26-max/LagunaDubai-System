@@ -35,7 +35,7 @@ async function render() {
     row.innerHTML = `
       <span>${escapeHtml(emp.name)}</span><span>${escapeHtml(emp.job)}</span><span>${escapeHtml(emp.phone || '—')}</span>
       <span>${emp.salary ? Number(emp.salary).toLocaleString() + ' ج.م' : '—'}</span>
-      <span>${emp.hireDate || '—'}</span>
+      <span>${escapeHtml(emp.hireDate || '—')}</span>
       <span class="status ${stCls}">${stTxt}</span>
       <div class="actions">
         <button class="edit-btn" data-id="${emp.id}"><i class="fa-solid fa-pen"></i></button>

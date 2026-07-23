@@ -10,7 +10,7 @@ function renderCard(t, section) {
     <h2>${escapeHtml(t.name)}</h2>
     <p>امسح الكود لفتح القائمة</p>
     <div class="qr-code" id="qr-${section}-${t.id}"></div>
-    <button class="qr-download" data-url="${url}" data-name="${t.name}"><i class="fa-solid fa-download"></i> تحميل</button>
+    <button class="qr-download" data-url="${url}" data-name="${escapeHtml(t.name)}"><i class="fa-solid fa-download"></i> تحميل</button>
     <div class="qr-link">
       <input type="text" value="${url}" readonly>
     </div>`;

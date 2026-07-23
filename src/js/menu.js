@@ -205,7 +205,7 @@ function attachAddToCart() {
         item.dataset.price = price;
         item.dataset.hasMilk = 'false';
         item.innerHTML = `
-          <div class="order-top"><span class="name">${name}</span><button class="note-btn" title="أضف ملاحظة"><i class="fa-solid fa-pen"></i>ملاحظة</button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
+          <div class="order-top"><span class="name">${escapeHtml(name)}</span><button class="note-btn" title="أضف ملاحظة"><i class="fa-solid fa-pen"></i>ملاحظة</button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
           <div class="price">${price} جنيه</div>
           <div class="item-note" style="display:none"><input class="note-input" placeholder="إضافة (قهوة محوج، بدون سكر...)" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;background:#fafaf9;margin-bottom:8px"></div>
           <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +حليب 5 ج.م</label></div>`;
@@ -490,7 +490,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
       totalAmount = window._checkoutTotal;
     }
     const method = document.getElementById('checkoutMethod').value;
-    const items = window._checkoutItems;
+    const items = window._checkoutItems || [];
     const serviceAmount = window._checkoutService || 0;
     const taxAmount = window._checkoutTax || 0;
     const table = tableNum ? 'طاولة ' + tableNum : null;
@@ -613,12 +613,12 @@ document.getElementById('confirmCheckout').onclick = async () => {
         closeBtn.onclick = hideSuccess;
 
         if (autoPrintReceipt) {
-          var printed = false;
+          let printed = false;
           if (hasPrinter) {
             try {
-              var result = await PRINTER.printReceipt(inv);
+              let result = await PRINTER.printReceipt(inv);
               printed = result && result.ok;
-              for (var ci = 1; ci < copies && printed; ci++) await PRINTER.printReceipt(inv);
+              for (let ci = 1; ci < copies && printed; ci++) await PRINTER.printReceipt(inv);
               if (printed && paid >= totalAmount) await PRINTER.openDrawer();
               if (printed && autoPrintKitchen) await PRINTER.printKitchenOrder(inv);
             } catch (e) {
@@ -632,9 +632,9 @@ document.getElementById('confirmCheckout').onclick = async () => {
             printBtn.innerHTML = '<i class="fa-solid fa-hourglass"></i> الطباعة معلقة - اضغط لإعادة المحاولة';
           }
         }
-        var agentEnabled = localStorage.getItem('laguna_print_agent_enabled') === 'true';
+        let agentEnabled = localStorage.getItem('laguna_print_agent_enabled') === 'true';
         if (agentEnabled) {
-          PRINTER.printViaAgent(inv).catch(function() {});
+          try { await PRINTER.printViaAgent(inv); } catch (e) { console.warn('[print-agent]', e); }
         }
       }
     } else {
@@ -642,7 +642,6 @@ document.getElementById('confirmCheckout').onclick = async () => {
     }
     clearOrder();
   } catch (e) {
-    console.error('[checkout] error:', e);
     console.error('[checkout] error:', e);
     alert('حدث خطأ أثناء إنشاء الفاتورة. حاول مرة أخرى.');
   }

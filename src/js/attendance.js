@@ -133,8 +133,8 @@ async function showEmployeeDetails(emp) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td style="padding:10px;border-bottom:1px solid var(--border)">${dateStr}</td>
-          <td style="padding:10px;border-bottom:1px solid var(--border)">${formatTime(h.checkIn)}</td>
-          <td style="padding:10px;border-bottom:1px solid var(--border)">${formatTime(h.checkOut)}</td>
+          <td style="padding:10px;border-bottom:1px solid var(--border)">${escapeHtml(formatTime(h.checkIn))}</td>
+          <td style="padding:10px;border-bottom:1px solid var(--border)">${escapeHtml(formatTime(h.checkOut))}</td>
           <td style="padding:10px;border-bottom:1px solid var(--border)"><span class="status ${stCls}" style="padding:2px 8px;font-size:11px">${stTxt}</span></td>`;
         historyList.appendChild(tr);
       });
