@@ -1,14 +1,13 @@
 let invoices = [];
 const searchInput = document.querySelector('.filter-box input');
 const statusSelect = document.querySelector('.filter-box select');
-const tableBody = document.querySelector('.invoice-table');
+const tableBody = document.querySelector('#invTableBody');
 const _invUser = (() => { try { return JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return {}; } })();
 
 async function render() {
   invoices = await DB.invoices.all() || [];
 
-  const existing = tableBody.querySelectorAll('.invoice-row');
-  existing.forEach(r => r.remove());
+  tableBody.innerHTML = '';
 
   const val = searchInput ? searchInput.value.toLowerCase() : '';
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
@@ -23,8 +22,7 @@ async function render() {
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
-    const row = document.createElement('div');
-    row.className = 'invoice-row';
+    const row = document.createElement('tr');
     const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
     const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
     const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '—';
@@ -33,22 +31,11 @@ async function render() {
     const safeCustomer = escapeHtml(inv.customer || '');
     const safeTable = escapeHtml(inv.table || '');
     const safeId = escapeHtml(inv.id);
-    row.innerHTML = `
-      <span>${safeId}</span><span>${safeCustomer}</span><span>${dateStr}</span>
-      <span>${safeTable}</span>
-      <span>${Number(inv.total).toLocaleString()} ج.م</span>
-      <span style="font-size:12px;color:${remaining > 0 ? '#dc2626' : '#059669'}">${remaining > 0 ? 'باقي ' + Number(remaining).toLocaleString() : 'مدفوع كامل'}</span>
-      <span class="${stCls}">${stTxt}</span>
-      <span style="font-size:11px;color:${inv.pendingPrint ? '#dc2626' : inv.printed ? '#059669' : '#a8a29e'}">${inv.pendingPrint ? '⏳ طباعة معلقة' : inv.printed ? '✓ مطبوعة' : '—'}</span>
-      <div class="actions">
-        <button class="view-btn" data-id="${safeId}"><i class="fa-solid fa-eye"></i></button>
-        <button class="print-btn" data-id="${safeId}"><i class="fa-solid fa-print"></i></button>
-        ${_invUser.role !== 'Owner' ? `
-        ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
-        <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
-        <button class="delete-btn" data-id="${safeId}"><i class="fa-solid fa-trash"></i></button>
-        ` : ''}
-      </div>`;
+    const remainingHtml = remaining > 0 ? '<span style="color:#dc2626;font-size:12px">باقي ' + Number(remaining).toLocaleString() + '</span>' : '<span style="color:#059669;font-size:12px">مدفوع كامل</span>';
+    const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
+    const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '"><i class="fa-solid fa-print"></i></button>';
+    const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
+    row.innerHTML = '<td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
     tableBody.appendChild(row);
   });
 
@@ -203,8 +190,7 @@ FB.onCollection('invoices', (data) => {
 });
 
 function renderWithData() {
-  const existing = tableBody.querySelectorAll('.invoice-row');
-  existing.forEach(r => r.remove());
+  tableBody.innerHTML = '';
 
   const val = searchInput ? searchInput.value.toLowerCase() : '';
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
@@ -219,8 +205,7 @@ function renderWithData() {
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
-    const row = document.createElement('div');
-    row.className = 'invoice-row';
+    const row = document.createElement('tr');
     const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
     const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
     const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '—';
@@ -229,22 +214,11 @@ function renderWithData() {
     const safeCustomer = escapeHtml(inv.customer || '');
     const safeTable = escapeHtml(inv.table || '');
     const safeId = escapeHtml(inv.id);
-    row.innerHTML = `
-      <span>${safeId}</span><span>${safeCustomer}</span><span>${dateStr}</span>
-      <span>${safeTable}</span>
-      <span>${Number(inv.total).toLocaleString()} ج.م</span>
-      <span style="font-size:12px;color:${remaining > 0 ? '#dc2626' : '#059669'}">${remaining > 0 ? 'باقي ' + Number(remaining).toLocaleString() : 'مدفوع كامل'}</span>
-      <span class="${stCls}">${stTxt}</span>
-      <span style="font-size:11px;color:${inv.pendingPrint ? '#dc2626' : inv.printed ? '#059669' : '#a8a29e'}">${inv.pendingPrint ? '⏳ طباعة معلقة' : inv.printed ? '✓ مطبوعة' : '—'}</span>
-      <div class="actions">
-        <button class="view-btn" data-id="${safeId}"><i class="fa-solid fa-eye"></i></button>
-        <button class="print-btn" data-id="${safeId}"><i class="fa-solid fa-print"></i></button>
-        ${_invUser.role !== 'Owner' ? `
-        ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
-        <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
-        <button class="delete-btn" data-id="${safeId}"><i class="fa-solid fa-trash"></i></button>
-        ` : ''}
-      </div>`;
+    const remainingHtml = remaining > 0 ? '<span style="color:#dc2626;font-size:12px">باقي ' + Number(remaining).toLocaleString() + '</span>' : '<span style="color:#059669;font-size:12px">مدفوع كامل</span>';
+    const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
+    const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '"><i class="fa-solid fa-print"></i></button>';
+    const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
+    row.innerHTML = '<td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
     tableBody.appendChild(row);
   });
 
