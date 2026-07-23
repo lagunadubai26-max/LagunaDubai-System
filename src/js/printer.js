@@ -291,9 +291,12 @@ window.PRINTER = (() => {
     let url = localStorage.getItem('laguna_print_agent_url');
     if (!url) return { ok: false, skipped: true };
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      const apiKey = localStorage.getItem('laguna_print_agent_key');
+      if (apiKey) headers['X-API-Key'] = apiKey;
       const resp = await fetch(url.replace(/\/+$/, '') + '/print-invoice', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(invoice)
       });
       return await resp.json();

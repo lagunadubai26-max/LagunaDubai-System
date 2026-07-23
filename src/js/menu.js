@@ -483,17 +483,55 @@ document.getElementById('confirmCheckout').onclick = async () => {
     const table = tableNum ? 'طاولة ' + tableNum : null;
     const paid = Math.max(0, Number(document.getElementById('checkoutPaid').value) || 0);
     const change = Math.max(0, paid - totalAmount);
-    const inv = await DB.invoices.add({ customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: paid >= totalAmount ? 'paid' : 'pending' });
-    console.log('[checkout] invoice saved:', inv ? inv.id : 'null');
-    if (tableNum) {
-      try { await DB.tables.update('t' + tableNum, { status: 'occupied' }); } catch (e) { console.warn('[checkout] table update:', e); }
-    }
-    if (custType === 'special') {
-      const existing = (await DB.customers.all() || []).find(c => c.name === customer);
-      if (existing) {
-        await DB.customers.update(existing.id, { visits: (existing.visits || 0) + 1, totalSpent: (existing.totalSpent || 0) + totalAmount, lastVisit: new Date().toISOString() });
+    if (custType !== 'special') {
+      const allProds = await DB.products.all() || [];
+      const priceMap = {};
+      allProds.forEach(p => { priceMap[p.name] = Number(p.price); });
+      for (const item of items) {
+        const catalogPrice = priceMap[item.name];
+        if (catalogPrice !== undefined) {
+          const expected = catalogPrice + (item.hasMilk ? 5 : 0);
+          if (item.price !== expected) {
+            resetCheckout();
+            return alert('خطأ في السعر: "' + item.name + '" - السعر المتوقع ' + expected + ' ج.م ولكن وجد ' + item.price + ' ج.م');
+          }
+        }
       }
     }
+    const invId = 'INV-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+    let inv;
+    try {
+      await FB.runTransaction(async (tx) => {
+        const rawDb = FB.getDb();
+        if (tableNum) {
+          const tableRef = rawDb.collection('tables_').doc('t' + tableNum);
+          const tableDoc = await tx.get(tableRef);
+          if (!tableDoc.exists) throw new Error('الطاولة غير موجودة');
+          tx.update(tableRef, { status: 'occupied' });
+        }
+        const invData = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
+        const uid = FB.getUid();
+        if (uid) invData._uid = uid;
+        tx.set(rawDb.collection('invoices').doc(invId), invData);
+        if (custType === 'special') {
+          const custSnap = await tx.get(rawDb.collection('customers'));
+          const existing = custSnap.docs.find(d => d.data().name === customer);
+          if (existing) {
+            const custData = existing.data();
+            tx.update(rawDb.collection('customers').doc(existing.id), {
+              visits: (custData.visits || 0) + 1,
+              totalSpent: (custData.totalSpent || 0) + totalAmount,
+              lastVisit: new Date().toISOString()
+            });
+          }
+        }
+      });
+      inv = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
+    } catch (e) {
+      resetCheckout();
+      return alert('فشل إنشاء الفاتورة: ' + e.message);
+    }
+    console.log('[checkout] invoice saved:', invId);
     document.getElementById('checkoutModal').classList.remove('show');
     if (inv && inv.id) {
       const isAdmin = !!sessionStorage.getItem('laguna_user');

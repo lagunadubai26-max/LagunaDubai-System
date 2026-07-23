@@ -42,9 +42,35 @@
       loginAttempts = 0;
     }
     const users = await DB.users.all() || [];
-    const user = users.find(x => x.username === u && x.password === p);
+    const user = users.find(x => x.username === u);
+    let passwordOk = false;
     if (user) {
+      passwordOk = await PASSWORD_UTILS.verify(p, user.password);
+      if (passwordOk && !PASSWORD_UTILS.isHashed(user.password)) {
+        const hashed = await PASSWORD_UTILS.hash(p);
+        await DB.users.update(user.id, { password: hashed }).catch(() => {});
+      }
+    }
+    if (user && passwordOk) {
       loginAttempts = 0;
+      const firebaseUid = FB.getUid();
+      if (firebaseUid && user.role === 'Employee') {
+        FB.getDb().collection('user_mappings').doc(firebaseUid).get().then(snap => {
+          if (!snap.exists) {
+            FB.getDb().collection('user_mappings').doc(firebaseUid).set({
+              userId: user.id, role: 'Employee', username: user.username, name: user.name,
+              updatedAt: new Date().toISOString()
+            }).catch(e => console.warn('[auth] failed to save employee mapping:', e));
+          }
+        }).catch(() => {});
+      }
+      if (firebaseUid && (user.role === 'Administrator' || user.role === 'Owner')) {
+        FB.getDb().collection('user_mappings').doc(firebaseUid).get().then(snap => {
+          if (!snap.exists) {
+            console.warn('[auth] No role mapping for ' + user.role + ' "' + user.username + '". UID: ' + firebaseUid + '. Ask an Admin to add it from Settings > Role Mappings.');
+          }
+        }).catch(() => {});
+      }
       sessionStorage.setItem('laguna_token', user.id);
       sessionStorage.setItem('laguna_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
       window.location.href = 'index.html';

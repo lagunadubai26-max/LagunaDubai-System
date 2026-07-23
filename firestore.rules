@@ -6,81 +6,107 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isValidString(val, maxLen) {
-      return val is string && val.size() <= maxLen;
+    function getUserRole() {
+      return get(/databases/$(database)/documents/user_mappings/$(request.auth.uid)).data.role;
     }
 
-    function isPositiveNumber(val) {
-      return val is number && val >= 0;
+    function isAdmin() {
+      return isAuth() && getUserRole() == 'Administrator';
     }
 
-    // Global: require auth for all access
-    match /{doc=**} {
+    function isOwner() {
+      return isAuth() && getUserRole() == 'Owner';
+    }
+
+    function isEmployee() {
+      return isAuth() && getUserRole() == 'Employee';
+    }
+
+    function isAdminOrOwner() {
+      return isAdmin() || isOwner();
+    }
+
+    // ── user_mappings: role mapping from anonymous UID → role ──
+    // Bootstrap (first run, no users/u1): any authenticated user can create any mapping
+    // Employee: can only create mapping for themselves with role 'Employee'
+    // Admin: can create mapping for any uid (adds Owners, other Admins)
+    // Owner: cannot create mapping for themselves — Admin adds them
+    match /user_mappings/{uid} {
+      allow read: if isAuth();
+      allow create: if (request.auth.uid == uid && (
+        request.resource.data.role == 'Employee' ||
+        !exists(/databases/$(database)/documents/users/u1)
+      )) || isAdmin();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ── Admin-only collections ──
+    match /users/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+      allow create: if isAuth() && (
+        isAdmin() || !exists(/databases/$(database)/documents/users/u1)
+      );
+    }
+
+    match /settings/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /employees/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /customers/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Products: anyone can read, only Admin can write ──
+    match /products/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ── Expenses: Admin and Owner can write ──
+    match /expenses/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdminOrOwner();
+    }
+
+    // ── Operational collections: any authenticated user ──
+    match /invoices/{docId} {
       allow read, write: if isAuth();
     }
 
-    // Invoices: validate fields to prevent abuse
-    match /invoices/{docId} {
-      allow create: if isAuth()
-        && request.resource.data.keys().size() <= 20
-        && isValidString(request.resource.data.customer, 200)
-        && (!request.resource.data.keys().has('note') || isValidString(request.resource.data.note, 500))
-        && (!request.resource.data.keys().has('table') || isValidString(request.resource.data.table, 50))
-        && (!request.resource.data.keys().has('id') || isValidString(request.resource.data.id, 50));
-      allow update: if isAuth();
-      allow delete: if isAuth();
-      allow read: if isAuth();
+    match /attendance/{docId} {
+      allow read, write: if isAuth();
     }
 
-    // Products: validate fields
-    match /products/{docId} {
-      allow create, update: if isAuth()
-        && isValidString(request.resource.data.name, 200)
-        && (!request.resource.data.keys().has('nameEn') || isValidString(request.resource.data.nameEn, 200))
-        && (!request.resource.data.keys().has('description') || isValidString(request.resource.data.description, 1000));
-      allow delete: if isAuth();
-      allow read: if isAuth();
+    match /tables_/{docId} {
+      allow read, write: if isAuth();
     }
 
-    // Customers: validate fields
-    match /customers/{docId} {
-      allow create, update: if isAuth()
-        && isValidString(request.resource.data.name, 200);
-      allow delete: if isAuth();
-      allow read: if isAuth();
-    }
-
-    // Settings: protect from oversized writes
-    match /settings/{docId} {
-      allow write: if isAuth()
-        && request.resource.data.keys().size() <= 30;
-      allow read: if isAuth();
-    }
-
-    // Expenses: validate
-    match /expenses/{docId} {
-      allow create: if isAuth()
-        && isValidString(request.resource.data.description, 500)
-        && isValidString(request.resource.data.category, 100);
-      allow update, delete: if isAuth();
-      allow read: if isAuth();
-    }
-
-    // Inventory: validate
     match /inventory/{docId} {
-      allow create, update: if isAuth()
-        && isValidString(request.resource.data.name, 200);
-      allow delete: if isAuth();
-      allow read: if isAuth();
+      allow read, write: if isAuth();
     }
 
-    // Employees: validate
-    match /employees/{docId} {
-      allow create, update: if isAuth()
-        && isValidString(request.resource.data.name, 200)
-        && isValidString(request.resource.data.job, 200);
-      allow delete: if isAuth();
-      allow read: if isAuth();
+    match /inventory_counts/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    match /returns/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    match /categories/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // ── Catch-all: deny anything not explicitly listed ──
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -25,17 +25,17 @@
     </div>
     <nav>
         <a href="index.html"><i class="fa-solid fa-chart-line"></i><span>لوحة التحكم</span></a>
-        <a href="menu.html"><i class="fa-solid fa-utensils"></i><span>المنيو</span></a>
+        <a href="menu.html" class="no-owner"><i class="fa-solid fa-utensils"></i><span>المنيو</span></a>
         <a href="invoices.html"><i class="fa-solid fa-file-invoice"></i><span>الفواتير</span></a>
         <a href="returns.html"><i class="fa-solid fa-arrow-rotate-left"></i><span>المرتجعات</span></a>
         <a href="employees.html" class="admin-only"><i class="fa-solid fa-users"></i><span>الموظفين</span></a>
-        <a href="attendance.html"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
-        <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
-        <a href="inventory.html" class="admin-only"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
-        <a href="expenses.html" class="admin-only"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
+        <a href="attendance.html" class="no-owner"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
+        <a href="tables.html" class="no-owner"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
+        <a href="inventory.html" class="no-owner"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
+        <a href="expenses.html" class="no-employee"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
         <a href="customers.html" class="admin-only"><i class="fa-solid fa-user-group"></i><span>العملاء المميزين</span></a>
-        <a href="reports.html" class="admin-only"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
-        <a href="qr.html"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
+        <a href="reports.html" class="no-employee"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
+        <a href="qr.html" class="no-owner"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
         <a href="settings.html" class="active admin-only"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
         <a href="products.html" class="admin-only"><i class="fa-solid fa-pizza-slice"></i><span>المنتجات</span></a>
     </nav>
@@ -44,6 +44,7 @@
         <div class="info">
             <div class="name" id="sidebarName">الاسم</div>
             <div class="role" id="sidebarRole">الدور</div>
+            <div class="uid" id="sidebarUid" style="font-size:10px;color:#888;margin-top:2px;direction:ltr"></div>
         </div>
         <a href="auth.html" onclick="sessionStorage.removeItem('laguna_user');sessionStorage.removeItem('laguna_token')" style="color:var(--muted);font-size:16px;text-decoration:none" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></a>
     </div>
@@ -74,7 +75,7 @@
       const _user = JSON.parse(sessionStorage.getItem('laguna_user'));
       if (_user) {
         document.getElementById('profileName').textContent = _user.name;
-        document.getElementById('profileRole').textContent = _user.role === 'Employee' ? 'موظف' : 'مدير';
+        document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? 'صاحب الكافيه' : 'موظف';
       }
     </script>
     <section class="settings-grid">
@@ -118,6 +119,8 @@
         </label>
         <label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px">رابط Print Agent</label>
         <input type="text" id="printAgentUrl" placeholder="http://192.168.1.100:4321" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
+        <label style="display:block;margin-bottom:4px;margin-top:8px;font-weight:600;font-size:13px">مفتاح API للـ Print Agent</label>
+        <input type="password" id="printAgentKey" placeholder="اتركه فارغ لو مش عايز حماية" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
         <p style="font-size:12px;color:#888;margin-top:4px">برنامج محلي عشان يطبع على الطابعات (شوف print-agent/README.md)</p>
       </div>
         <div class="settings-card">
@@ -178,9 +181,29 @@
         <label>الصلاحية</label>
         <select id="newRole">
           <option value="Administrator">مدير</option>
+          <option value="Owner">صاحب الكافيه</option>
           <option value="Employee">موظف</option>
         </select>
         <button class="add-btn" id="addUserBtn"><i class="fa-solid fa-user-plus"></i>إضافة حساب</button>
+      </div>
+      <div class="settings-card">
+        <h3><i class="fa-solid fa-link"></i>صلاحيات المستخدمين (Role Mappings)</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">اربط الـ UID المجهول للمستخدم بصلاحية معينة. يقدر الموظف يسجل بنفسه تلقائي. Owner و Admin محتاجين Admin يضيفهم هنا.</p>
+        <div id="userMappingList" style="margin-bottom:12px">
+          <p style="color:#888;font-size:13px;text-align:center;padding:12px">جاري التحميل...</p>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+        <label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px">الـ UID المجهول (من المتصفح)</label>
+        <input type="text" id="mappingUid" placeholder="اسأل المستخدم يكتبلك UID بتاعه من Console F12" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:13px;direction:ltr">
+        <label style="display:block;margin-top:8px;margin-bottom:4px;font-weight:600;font-size:13px">اختر المستخدم</label>
+        <select id="mappingUserId" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:13px"></select>
+        <label style="display:block;margin-top:8px;margin-bottom:4px;font-weight:600;font-size:13px">الصلاحية</label>
+        <select id="mappingRole" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:13px">
+          <option value="Administrator">مدير</option>
+          <option value="Owner">صاحب الكافيه</option>
+          <option value="Employee">موظف</option>
+        </select>
+        <button class="add-btn" id="addUserMappingBtn" style="margin-top:12px"><i class="fa-solid fa-plus"></i>إضافة صلاحية</button>
       </div>
     </section>
     <div class="settings-actions">
@@ -195,11 +218,13 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/firebase-client.js"></script>
 <script src="js/sanitize.js"></script>
+<script src="js/password-utils.js"></script>
 <script src="js/data.js"></script>
         <script src="js/notifications.js"></script>
         <script src="js/printer.js"></script>
 <script src="js/template-engine.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/daily-inventory-check.js"></script>
 <script src="js/role.js?v=3"></script>
 </body>
 </html>

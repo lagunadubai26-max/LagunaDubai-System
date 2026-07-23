@@ -55,5 +55,13 @@ const FB = (() => {
     });
   }
 
-  return { getCollection, addDoc, updateDoc, removeDoc, onCollection };
+  async function runTransaction(updateFn) {
+    await ensure();
+    return db.runTransaction(updateFn);
+  }
+
+  function getUid() { return uid; }
+  function getDb() { return db; }
+
+  return { getCollection, addDoc, updateDoc, removeDoc, onCollection, runTransaction, getUid, getDb };
 })();

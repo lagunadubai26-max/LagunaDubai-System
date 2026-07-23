@@ -17,6 +17,7 @@ async function load() {
   document.getElementById('enablePrintAgent').checked = settings.enablePrintAgent !== false;
   document.getElementById('printAgentUrl').value = settings.printAgentUrl || 'http://localhost:4321';
   if (settings.printAgentUrl) localStorage.setItem('laguna_print_agent_url', settings.printAgentUrl);
+  if (settings.printAgentKey) localStorage.setItem('laguna_print_agent_key', settings.printAgentKey);
   localStorage.setItem('laguna_print_agent_enabled', settings.enablePrintAgent !== false);
   loadTemplateEditor(settings);
 }
@@ -123,6 +124,7 @@ document.getElementById('saveSettings').onclick = async () => {
     wsProxyUrl: document.getElementById('wsProxyUrl').value || 'ws://localhost:9090',
     enablePrintAgent: document.getElementById('enablePrintAgent').checked,
     printAgentUrl: document.getElementById('printAgentUrl').value || 'http://localhost:4321',
+    printAgentKey: document.getElementById('printAgentKey').value || '',
     invoiceTemplateCashier: window._savedTemplates ? (window._savedTemplates.invoiceTemplateCashier || TEMPLATE.defaultCashierTemplate) : TEMPLATE.defaultCashierTemplate,
     invoiceTemplateKitchen: window._savedTemplates ? (window._savedTemplates.invoiceTemplateKitchen || TEMPLATE.defaultKitchenTemplate) : TEMPLATE.defaultKitchenTemplate,
     escposTemplateCashier: window._savedTemplates ? (window._savedTemplates.escposTemplateCashier || TEMPLATE.defaultEscposCashier) : TEMPLATE.defaultEscposCashier,
@@ -132,6 +134,8 @@ document.getElementById('saveSettings').onclick = async () => {
   localStorage.setItem('laguna_printer_proxy', proxyUrl);
   const agentUrl = document.getElementById('printAgentUrl').value || 'http://localhost:4321';
   localStorage.setItem('laguna_print_agent_url', agentUrl);
+  const agentKey = document.getElementById('printAgentKey').value || '';
+  localStorage.setItem('laguna_print_agent_key', agentKey);
   localStorage.setItem('laguna_print_agent_enabled', document.getElementById('enablePrintAgent').checked);
   alert('تم حفظ الإعدادات بنجاح');
 };
@@ -158,6 +162,49 @@ document.getElementById('resetData').onclick = async () => {
   location.reload();
 };
 
+async function renderUserMappings() {
+  const list = document.getElementById('userMappingList');
+  if (!list) return;
+  try {
+    const snap = await FB.getDb().collection('user_mappings').get();
+    const mappings = [];
+    snap.forEach(d => mappings.push({ uid: d.id, ...d.data() }));
+    if (mappings.length === 0) {
+      list.innerHTML = '<p style="color:#888;font-size:13px;text-align:center;padding:12px">لا توجد صلاحيات مسجلة</p>';
+      return;
+    }
+    list.innerHTML = mappings.map(m =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f5f5f4;border-radius:8px;margin-bottom:6px;font-size:13px">
+        <span><strong>${escapeHtml(m.name || m.username || m.uid)}</strong> — ${m.role === 'Administrator' ? 'مدير' : m.role === 'Owner' ? 'صاحب الكافيه' : 'موظف'}</span>
+        <span style="color:#888;font-size:11px;direction:ltr;text-align:left" title="${m.uid}">${m.uid.slice(0, 12)}...</span>
+      </div>`
+    ).join('');
+  } catch (e) {
+    list.innerHTML = '<p style="color:#dc2626;font-size:13px">خطأ في تحميل الصلاحيات</p>';
+  }
+}
+
+document.getElementById('addUserMappingBtn').onclick = async () => {
+  const uid = document.getElementById('mappingUid').value.trim();
+  const userId = document.getElementById('mappingUserId').value;
+  const role = document.getElementById('mappingRole').value;
+  if (!uid || !userId) return alert('يرجى إدخال UID واختيار مستخدم');
+  try {
+    const users = await DB.users.all() || [];
+    const user = users.find(u => u.id === userId);
+    if (!user) return alert('المستخدم غير موجود');
+    await FB.getDb().collection('user_mappings').doc(uid).set({
+      userId: user.id, role, username: user.username, name: user.name,
+      updatedAt: new Date().toISOString()
+    });
+    alert('تم إضافة الصلاحية بنجاح');
+    document.getElementById('mappingUid').value = '';
+    renderUserMappings();
+  } catch (e) {
+    alert('خطأ: ' + e.message);
+  }
+};
+
 document.getElementById('addUserBtn').onclick = async () => {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value.trim();
@@ -166,7 +213,8 @@ document.getElementById('addUserBtn').onclick = async () => {
   if (!username || !password || !name) return alert('يرجى ملء جميع الحقول');
   const existing = (await DB.users.all() || []).find(u => u.username === username);
   if (existing) return alert('اسم المستخدم موجود بالفعل');
-  await DB.users.add({ username, password, name, role });
+  const hashedPw = await PASSWORD_UTILS.hash(password);
+  await DB.users.add({ username, password: hashedPw, name, role });
   alert('تم إضافة الحساب بنجاح');
   document.getElementById('newUsername').value = '';
   document.getElementById('newPassword').value = '';
@@ -283,3 +331,17 @@ document.getElementById('addBtPrinterBtn').onclick = async () => {
 
 // Restore saved printers on load
 PRINTER.restorePrinters().then(() => renderPrinterList());
+
+// ── User Mappings ──
+async function initUserMappings() {
+  const select = document.getElementById('mappingUserId');
+  if (!select) return;
+  try {
+    const users = await DB.users.all() || [];
+    select.innerHTML = users.map(u => `<option value="${u.id}">${escapeHtml(u.name)} (${u.username})</option>`).join('');
+  } catch (e) {
+    console.warn('[settings] failed to load users:', e);
+  }
+  renderUserMappings();
+}
+initUserMappings();

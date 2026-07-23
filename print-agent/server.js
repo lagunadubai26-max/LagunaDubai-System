@@ -7,8 +7,25 @@ escpos.Network = require("escpos-network");
 const config = require("./config");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || config.allowedOrigins.some(o => origin.startsWith(o) || o === origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('غير مسموح بـ CORS من: ' + origin));
+    }
+  }
+}));
 app.use(express.json());
+
+function requireApiKey(req, res, next) {
+  if (!config.apiKey) return next();
+  const provided = req.headers['x-api-key'] || req.query.api_key;
+  if (!provided || provided !== config.apiKey) {
+    return res.status(401).json({ ok: false, error: 'مفتاح API غير صحيح' });
+  }
+  next();
+}
 
 function printCashier(invoice) {
   return new Promise((resolve, reject) => {
@@ -120,7 +137,7 @@ function printKitchen(invoice) {
   });
 }
 
-app.post("/print-invoice", async (req, res) => {
+app.post("/print-invoice", requireApiKey, async (req, res) => {
   const invoice = req.body;
   if (!invoice || !invoice.items) {
     return res.status(400).json({ ok: false, error: "بيانات الفاتورة ناقصة" });
