@@ -157,7 +157,30 @@ function postponeInventory() {
   const today = new Date().toISOString().slice(0, 10);
   localStorage.setItem('laguna_inv_done_' + today, '1');
   localStorage.setItem('laguna_inv_remind_' + today, '1');
-  showToast('تم تأجيل تذكير الجرد لليوم التالي', 'success');
+
+  const existing = document.getElementById('dailyInvBanner');
+  if (existing) existing.remove();
+
+  const bar = document.getElementById('postponedBar');
+  if (bar) return;
+
+  const postponed = document.createElement('div');
+  postponed.id = 'postponedBar';
+  postponed.style.cssText = 'background:#f5f5f4;border:1px solid var(--border);border-radius:12px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
+  postponed.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">⏰</span>
+      <span style="font-size:14px;color:var(--muted)">تم تأجيل تذكير الجرد — يمكنك إقامته في أي وقت</span>
+    </div>
+    <button id="postponedDoInv" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:600"><i class="fa-solid fa-check"></i> إقامة الجرد الآن</button>`;
+
+  const tools = document.querySelector('.inventory-tools');
+  if (tools) tools.parentNode.insertBefore(postponed, tools);
+
+  document.getElementById('postponedDoInv').onclick = () => {
+    postponed.remove();
+    document.getElementById('weeklyInvBtn').click();
+  };
 }
 
 const weeklyInvBtn = document.getElementById('weeklyInvBtn');
@@ -215,6 +238,8 @@ saveWeeklyInv.onclick = async () => {
   }
 
   weeklyInvModal.classList.remove('show');
+  const postponedBar = document.getElementById('postponedBar');
+  if (postponedBar) postponedBar.remove();
   if (lowStockItems.length > 0) {
     showToast('تم حفظ الجرد الأسبوعي', 'success');
     lowStockItems.forEach(name => showToast('تنبيه: ' + name + ' أقل من الحد الأدنى', 'warning'));

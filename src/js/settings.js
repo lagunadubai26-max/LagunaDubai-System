@@ -196,7 +196,7 @@ async function renderUserMappings() {
     }
     list.innerHTML = mappings.map(m =>
       `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f5f5f4;border-radius:8px;margin-bottom:6px;font-size:13px">
-        <span><strong>${escapeHtml(m.name || m.username || m.uid)}</strong> — ${m.role === 'Administrator' ? 'مدير' : m.role === 'Owner' ? 'صاحب الكافيه' : 'موظف'}</span>
+        <span><strong>${escapeHtml(m.name || m.username || m.uid)}</strong> — ${m.role === 'Administrator' ? 'مدير' : m.role === 'Owner' ? 'م/محمد الجوهري' : 'موظف'}</span>
         <span style="color:#888;font-size:11px;direction:ltr;text-align:left" title="${m.uid}">${m.uid.slice(0, 12)}...</span>
       </div>`
     ).join('');
