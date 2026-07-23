@@ -5,7 +5,7 @@
   var role = user.role || 'Admin';
 
   var page = window.location.pathname.split('/').pop();
-  var ownerRestricted = ['menu.html','tables.html','inventory.html','employees.html','attendance.html','customers.html','qr.html','products.html','settings.html'];
+  var ownerRestricted = ['settings.html','products.html'];
   var employeeRestricted = ['employees.html','customers.html','qr.html','settings.html','products.html'];
 
   if (role === 'Owner' && ownerRestricted.includes(page)) { window.location.replace('index.html'); return; }
@@ -17,7 +17,7 @@
   if (avatar) avatar.textContent = user.name.charAt(0);
   if (name) name.textContent = user.name;
   if (roleEl) {
-    if (role === 'Owner') roleEl.textContent = '';
+    if (role === 'Owner') roleEl.textContent = 'م/ محمد الجوهري';
     else if (role === 'Admin') roleEl.textContent = 'كاشير';
     else roleEl.textContent = 'موظف';
   }
@@ -43,7 +43,7 @@
   var span = document.querySelector('.profile span');
   if (h4) h4.textContent = user.name;
   if (span) {
-    if (role === 'Owner') span.textContent = '';
+    if (role === 'Owner') span.textContent = 'م/ محمد الجوهري';
     else if (role === 'Admin') span.textContent = 'كاشير';
     else span.textContent = 'موظف';
   }
