@@ -2,6 +2,7 @@ let invoices = [];
 const searchInput = document.querySelector('.filter-box input');
 const statusSelect = document.querySelector('.filter-box select');
 const tableBody = document.querySelector('.invoice-table');
+const _invUser = (() => { try { return JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return {}; } })();
 
 async function render() {
   invoices = await DB.invoices.all() || [];
@@ -39,11 +40,13 @@ async function render() {
       <span class="${stCls}">${stTxt}</span>
       <span style="font-size:11px;color:${inv.pendingPrint ? '#dc2626' : inv.printed ? '#059669' : '#a8a29e'}">${inv.pendingPrint ? '⏳ طباعة معلقة' : inv.printed ? '✓ مطبوعة' : '—'}</span>
       <div class="actions">
-        ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
-        <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
         <button class="view-btn" data-id="${safeId}"><i class="fa-solid fa-eye"></i></button>
         <button class="print-btn" data-id="${safeId}"><i class="fa-solid fa-print"></i></button>
+        ${_invUser.role !== 'Owner' ? `
+        ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
+        <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
         <button class="delete-btn" data-id="${safeId}"><i class="fa-solid fa-trash"></i></button>
+        ` : ''}
       </div>`;
     tableBody.appendChild(row);
   });
@@ -232,11 +235,13 @@ function renderWithData() {
       <span class="${stCls}">${stTxt}</span>
       <span style="font-size:11px;color:${inv.pendingPrint ? '#dc2626' : inv.printed ? '#059669' : '#a8a29e'}">${inv.pendingPrint ? '⏳ طباعة معلقة' : inv.printed ? '✓ مطبوعة' : '—'}</span>
       <div class="actions">
-        ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
-        <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
         <button class="view-btn" data-id="${safeId}"><i class="fa-solid fa-eye"></i></button>
         <button class="print-btn" data-id="${safeId}"><i class="fa-solid fa-print"></i></button>
+        ${_invUser.role !== 'Owner' ? `
+        ${remaining > 0 ? `<button class="pay-btn" data-id="${safeId}" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>` : ''}
+        <button class="toggle-status-btn" data-id="${safeId}" data-status="${inv.status}" title="${stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة'}"><i class="fa-solid ${stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check'}"></i></button>
         <button class="delete-btn" data-id="${safeId}"><i class="fa-solid fa-trash"></i></button>
+        ` : ''}
       </div>`;
     tableBody.appendChild(row);
   });

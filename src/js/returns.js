@@ -3,6 +3,7 @@ const table = document.querySelector('.returns-table');
 const searchInput = document.querySelector('.filter-box input');
 const statusSelect = document.querySelector('.filter-box select');
 const filterBtn = document.querySelector('.search-btn');
+const _retUser = (() => { try { return JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return {}; } })();
 
 async function render() {
   returns = await DB.returns.all() || [];
@@ -30,8 +31,8 @@ async function render() {
       <span class="status ${stCls}">${stTxt}</span>
       <div class="actions">
         <button class="view-btn" data-id="${item.id}"><i class="fa-solid fa-eye"></i></button>
-        <button class="edit-btn" data-id="${item.id}"><i class="fa-solid fa-pen"></i></button>
-        <button class="delete-btn" data-id="${item.id}"><i class="fa-solid fa-trash"></i></button>
+        ${_retUser.role !== 'Owner' ? `<button class="edit-btn" data-id="${item.id}"><i class="fa-solid fa-pen"></i></button>
+        <button class="delete-btn" data-id="${item.id}"><i class="fa-solid fa-trash"></i></button>` : ''}
       </div>`;
     table.appendChild(row);
   });

@@ -460,14 +460,19 @@ async function showDayCloseModal() {
   dayCloseModal.classList.add('show');
 }
 
-document.getElementById('dayCloseBtn').onclick = async () => {
-  const existing = await DB.daycloses.today();
-  if (existing) {
-    alert('✅ تم إغلاق هذا اليوم بالفعل');
-    return;
-  }
-  showDayCloseModal();
-};
+const _repUser = (() => { try { return JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return {}; } })();
+if (_repUser.role === 'Owner') {
+  document.getElementById('dayCloseBtn').style.display = 'none';
+} else {
+  document.getElementById('dayCloseBtn').onclick = async () => {
+    const existing = await DB.daycloses.today();
+    if (existing) {
+      alert('✅ تم إغلاق هذا اليوم بالفعل');
+      return;
+    }
+    showDayCloseModal();
+  };
+}
 
 confirmDayClose.onclick = async () => {
   const btn = confirmDayClose;

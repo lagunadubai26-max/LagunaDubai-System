@@ -1,5 +1,6 @@
 let expenses = [];
 const expList = document.getElementById('expList');
+const _expUser = (() => { try { return JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return {}; } })();
 
 async function render() {
   expenses = await DB.expenses.all() || [];
@@ -18,7 +19,7 @@ async function render() {
       <span>${escapeHtml(e.description)}</span><span>${escapeHtml(e.category)}</span>
       <span>${Number(e.amount).toLocaleString()} ج.م</span>
       <span>${new Date(e.date).toLocaleDateString('ar-EG')}</span>
-      <div class="actions"><button class="delete-btn" data-id="${e.id}"><i class="fa-solid fa-trash"></i></button></div>`;
+      <div class="actions">${_expUser.role !== 'Owner' ? `<button class="delete-btn" data-id="${e.id}"><i class="fa-solid fa-trash"></i></button>` : ''}</div>`;
     expList.appendChild(row);
   });
 
@@ -31,15 +32,19 @@ async function render() {
   });
 }
 
-document.getElementById('addExpBtn').onclick = async () => {
-  const description = document.getElementById('expDesc').value.trim();
-  const amount = Number(document.getElementById('expAmount').value);
-  const category = document.getElementById('expCategory').value;
-  if (!description || !amount) return alert('يرجى إدخال الوصف والمبلغ');
-  await DB.expenses.add({ description, amount, category, date: new Date().toISOString() });
-  document.getElementById('expDesc').value = '';
-  document.getElementById('expAmount').value = '';
-  render();
-};
+if (_expUser.role !== 'Owner') {
+  document.getElementById('addExpBtn').onclick = async () => {
+    const description = document.getElementById('expDesc').value.trim();
+    const amount = Number(document.getElementById('expAmount').value);
+    const category = document.getElementById('expCategory').value;
+    if (!description || !amount) return alert('يرجى إدخال الوصف والمبلغ');
+    await DB.expenses.add({ description, amount, category, date: new Date().toISOString() });
+    document.getElementById('expDesc').value = '';
+    document.getElementById('expAmount').value = '';
+    render();
+  };
+} else {
+  document.querySelector('.expense-form').style.display = 'none';
+}
 
 render();
