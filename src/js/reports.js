@@ -1,35 +1,28 @@
-const periodSelect = document.getElementById('reportPeriod');
+const monthInput = document.getElementById('reportMonth');
 
-function getPeriodRange(period) {
-  const now = new Date();
-  if (period === 'day') {
-    const s = new Date(now); s.setHours(0, 0, 0, 0);
-    return { start: s, end: now };
+// Set default to current month
+const now = new Date();
+monthInput.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+function getMonthRange(value) {
+  if (!value) {
+    const d = new Date();
+    value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   }
-  if (period === 'week') {
-    const s = new Date(now); s.setDate(now.getDate() - 7); s.setHours(0, 0, 0, 0);
-    return { start: s, end: now };
-  }
-  if (period === 'month') {
-    const s = new Date(now.getFullYear(), now.getMonth(), 1);
-    return { start: s, end: now };
-  }
-  if (period === 'year') {
-    const s = new Date(now.getFullYear(), 0, 1);
-    return { start: s, end: now };
-  }
-  return { start: null, end: null };
+  const [year, month] = value.split('-').map(Number);
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0, 23, 59, 59, 999);
+  return { start, end, year, month };
 }
 
-function getPrevPeriodRange(period) {
-  const { start, end } = getPeriodRange(period);
-  if (!start) return { start: null, end: null };
-  const diff = end - start;
-  return { start: new Date(start.getTime() - diff), end: new Date(start.getTime() - 1) };
+function getPrevMonthRange(value) {
+  const { year, month } = getMonthRange(value);
+  if (month === 1) return getMonthRange((year - 1) + '-' + '12');
+  return getMonthRange(year + '-' + String(month - 1).padStart(2, '0'));
 }
 
 function filterByDate(items, range) {
-  if (!range.start) return items;
+  if (!range || !range.start) return items;
   return items.filter(item => {
     if (!item.date) return false;
     const d = new Date(item.date);
@@ -48,8 +41,7 @@ function calcStats(invoices, expenses, returns) {
   const netProfit = totalSales - totalReturns - totalExpenses;
   const numPaid = paidInvoices.length;
   const avgInvoice = numPaid > 0 ? Math.round(totalSales / numPaid) : 0;
-  const specialTotal = invoices.filter(i => i.customer && i.customer !== 'نقدي').reduce((s, i) => s + Number(i.total || 0), 0);
-  return { totalSales, totalPending, totalReturns, totalExpenses, netProfit, collectedCash, avgInvoice, specialTotal, numPaid, numInvoices: invoices.length };
+  return { totalSales, totalPending, totalReturns, totalExpenses, netProfit, collectedCash, avgInvoice, numPaid, numInvoices: invoices.length };
 }
 
 function fmtMoney(v) { return v.toLocaleString() + ' ج.م'; }
@@ -84,9 +76,8 @@ async function render() {
   if (rendering) return;
   rendering = true;
   try {
-    const period = periodSelect.value;
-    const range = getPeriodRange(period);
-    const prevRange = getPrevPeriodRange(period);
+    const range = getMonthRange(monthInput.value);
+    const prevRange = getPrevMonthRange(monthInput.value);
 
     const allInvoices = await DB.invoices.all() || [];
     const allExpenses = await DB.expenses.all() || [];
@@ -116,7 +107,7 @@ async function render() {
 
     const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
-    drawSalesChart(paidInvoices, period);
+    drawSalesChart(paidInvoices, range);
     drawPaymentChart(paidInvoices);
     drawCategoryChart(paidInvoices, products);
     drawHourlyChart(paidInvoices);
@@ -128,7 +119,7 @@ async function render() {
   rendering = false;
 }
 
-function drawSalesChart(invoices, period) {
+function drawSalesChart(invoices, range) {
   destroyChart('sales');
   const canvas = document.getElementById('reportSalesChart');
   if (!canvas) return;
@@ -137,12 +128,8 @@ function drawSalesChart(invoices, period) {
   invoices.forEach(inv => {
     if (!inv.date) return;
     const d = new Date(inv.date);
-    let label;
-    if (period === 'year') { label = d.toLocaleString('ar-EG', { month: 'long' }); }
-    else if (period === 'all') { label = d.getFullYear().toString(); }
-    else { label = d.toLocaleDateString('ar-EG'); }
-    const ts = d.getTime();
-    if (!buckets[label]) { buckets[label] = 0; order.push({ ts, label }); }
+    const label = d.getDate().toString();
+    if (!buckets[label]) { buckets[label] = 0; order.push({ ts: d.getTime(), label }); }
     buckets[label] += Number(inv.total || 0);
   });
   order.sort((a, b) => a.ts - b.ts);
@@ -237,18 +224,14 @@ function drawDayChart(invoices) {
   if (!canvas) return;
   const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
   const dayData = new Array(7).fill(0);
-  const dayCount = new Array(7).fill(0);
   invoices.forEach(inv => {
     if (!inv.date) return;
     const day = new Date(inv.date).getDay();
     dayData[day] += Number(inv.total || 0);
-    dayCount[day]++;
   });
-  const labels = dayNames;
-  const data = dayData;
   charts.day = new Chart(canvas, {
     type: 'bar',
-    data: { labels, datasets: [{ label: 'المبيعات', data, backgroundColor: dayData.map((v, i) => i === 5 || i === 6 ? '#dc2626' : '#2563eb'), borderRadius: 6 }] },
+    data: { labels: dayNames, datasets: [{ label: 'المبيعات', data: dayData, backgroundColor: dayData.map((v, i) => i === 5 || i === 6 ? '#dc2626' : '#2563eb'), borderRadius: 6 }] },
     options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() + ' ج.م' } } } }
   });
 }
@@ -306,8 +289,9 @@ function drawTopProducts(invoices) {
   }
 }
 
-periodSelect.addEventListener('change', () => { destroyAllCharts(); render(); });
+monthInput.addEventListener('change', () => { destroyAllCharts(); render(); });
 
+// ── Export ──
 document.getElementById('exportBtn').onclick = async () => {
   const invoices = await DB.invoices.all() || [];
   const products = await DB.products.all() || [];
@@ -337,4 +321,163 @@ document.getElementById('exportBtn').onclick = async () => {
   link.click();
 };
 
+// ── Day Close ──
+const dayCloseModal = document.getElementById('dayCloseModal');
+const closeDayClose = document.getElementById('closeDayClose');
+const cancelDayClose = document.getElementById('cancelDayClose');
+const confirmDayClose = document.getElementById('confirmDayClose');
+const dcHistoryBtn = document.getElementById('dcHistoryBtn');
+const dcHistoryModal = document.getElementById('dcHistoryModal');
+const closeDcHistory = document.getElementById('closeDcHistory');
+const closeDcHistoryBtn = document.getElementById('closeDcHistoryBtn');
+
+async function checkDayCloseStatus() {
+  const existing = await DB.daycloses.today();
+  if (existing) {
+    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-check-circle"></i> تم إغلاق اليوم';
+    document.getElementById('dayCloseBtn').disabled = true;
+    document.getElementById('dayCloseBtn').style.opacity = '0.6';
+    document.getElementById('dayCloseBtn').style.cursor = 'not-allowed';
+  } else {
+    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-moon"></i> إغلاق اليوم';
+    document.getElementById('dayCloseBtn').disabled = false;
+    document.getElementById('dayCloseBtn').style.opacity = '1';
+    document.getElementById('dayCloseBtn').style.cursor = 'pointer';
+  }
+}
+
+async function showDayCloseModal() {
+  const allInvoices = await DB.invoices.all() || [];
+  const allExpenses = await DB.expenses.all() || [];
+  const allReturns = await DB.returns.all() || [];
+
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+  const range = { start: todayStart, end: todayEnd };
+
+  const invoices = filterByDate(allInvoices, range);
+  const expenses = filterByDate(allExpenses, range);
+  const returns = filterByDate(allReturns, range);
+  const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+
+  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const cashAmount = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
+  const cardAmount = paidInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
+  const otherAmount = totalSales - cashAmount - cardAmount;
+  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
+  const netProfit = totalSales - totalReturns - totalExpenses;
+  const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
+
+  const todayStr = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('dcDate').textContent = todayStr;
+  document.getElementById('dcSales').textContent = fmtMoney(totalSales);
+  document.getElementById('dcInvoices').textContent = paidInvoices.length;
+  document.getElementById('dcCash').textContent = fmtMoney(cashAmount);
+  document.getElementById('dcCard').textContent = fmtMoney(cardAmount);
+  document.getElementById('dcItemsSold').textContent = itemsSold;
+  document.getElementById('dcExpenses').textContent = fmtMoney(totalExpenses);
+  document.getElementById('dcReturns').textContent = fmtMoney(totalReturns);
+  document.getElementById('dcNet').textContent = fmtMoney(netProfit);
+
+  confirmDayClose.dataset.cashAmount = cashAmount;
+  confirmDayClose.dataset.cardAmount = cardAmount;
+  confirmDayClose.dataset.otherAmount = otherAmount;
+  confirmDayClose.dataset.totalSales = totalSales;
+  confirmDayClose.dataset.paidInvoices = paidInvoices.length;
+  confirmDayClose.dataset.itemsSold = itemsSold;
+  confirmDayClose.dataset.totalExpenses = totalExpenses;
+  confirmDayClose.dataset.totalReturns = totalReturns;
+  confirmDayClose.dataset.netProfit = netProfit;
+
+  dayCloseModal.classList.add('show');
+}
+
+document.getElementById('dayCloseBtn').onclick = async () => {
+  const existing = await DB.daycloses.today();
+  if (existing) {
+    alert('✅ تم إغلاق هذا اليوم بالفعل');
+    return;
+  }
+  showDayCloseModal();
+};
+
+confirmDayClose.onclick = async () => {
+  const btn = confirmDayClose;
+  const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const data = {
+    date: todayISO,
+    totalSales: Number(btn.dataset.totalSales),
+    numInvoices: Number(btn.dataset.paidInvoices),
+    cashAmount: Number(btn.dataset.cashAmount),
+    cardAmount: Number(btn.dataset.cardAmount),
+    otherAmount: Number(btn.dataset.otherAmount),
+    itemsSold: Number(btn.dataset.itemsSold),
+    totalExpenses: Number(btn.dataset.totalExpenses),
+    totalReturns: Number(btn.dataset.totalReturns),
+    netProfit: Number(btn.dataset.netProfit),
+    closedBy: user.name || 'الكاشير',
+    closedAt: new Date().toISOString()
+  };
+  try {
+    await DB.daycloses.close(data);
+    dayCloseModal.classList.remove('show');
+    checkDayCloseStatus();
+    alert('✅ تم إغلاق اليوم بنجاح');
+  } catch (e) {
+    console.error('[dayclose]', e);
+    alert('❌ حدث خطأ أثناء إغلاق اليوم');
+  }
+};
+
+function closeDayCloseModal() { dayCloseModal.classList.remove('show'); }
+if (closeDayClose) closeDayClose.addEventListener('click', closeDayCloseModal);
+if (cancelDayClose) cancelDayClose.addEventListener('click', closeDayCloseModal);
+window.addEventListener('click', e => { if (e.target === dayCloseModal) closeDayCloseModal(); });
+
+// ── Day Close History ──
+dcHistoryBtn.onclick = async () => {
+  const list = document.getElementById('dcHistoryList');
+  list.innerHTML = '<p style="text-align:center;padding:20px;color:#888"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</p>';
+  dcHistoryModal.classList.add('show');
+
+  try {
+    const all = await DB.daycloses.all() || [];
+    all.sort((a, b) => b.date.localeCompare(a.date));
+
+    if (all.length === 0) {
+      list.innerHTML = '<p style="text-align:center;padding:30px;color:#888">لا يوجد سجلات إغلاق أيام بعد</p>';
+      return;
+    }
+
+    let html = '<div class="dc-history-table">';
+    html += '<div class="dc-history-header"><span>التاريخ</span><span>المبيعات</span><span>الدرج</span><span>فيزا</span><span>الفواتير</span><span>صافي الربح</span><span>بواسطة</span></div>';
+    all.forEach(dc => {
+      const dateStr = new Date(dc.date + 'T12:00:00').toLocaleDateString('ar-EG');
+      const isToday = dc.date === new Date().toISOString().slice(0, 10);
+      html += `<div class="dc-history-row${isToday ? ' today' : ''}">
+        <span>${dateStr}</span>
+        <span>${fmtMoney(dc.totalSales || 0)}</span>
+        <span>${fmtMoney(dc.cashAmount || 0)}</span>
+        <span>${fmtMoney(dc.cardAmount || 0)}</span>
+        <span>${dc.numInvoices || 0}</span>
+        <span style="color:var(--success);font-weight:700">${fmtMoney(dc.netProfit || 0)}</span>
+        <span>${dc.closedBy || '—'}</span>
+      </div>`;
+    });
+    html += '</div>';
+    list.innerHTML = html;
+  } catch (e) {
+    console.error('[dchistory]', e);
+    list.innerHTML = '<p style="text-align:center;padding:20px;color:#dc2626">حدث خطأ أثناء تحميل السجل</p>';
+  }
+};
+
+function closeDcHistoryModal() { dcHistoryModal.classList.remove('show'); }
+if (closeDcHistory) closeDcHistory.addEventListener('click', closeDcHistoryModal);
+if (closeDcHistoryBtn) closeDcHistoryBtn.addEventListener('click', closeDcHistoryModal);
+window.addEventListener('click', e => { if (e.target === dcHistoryModal) closeDcHistoryModal(); });
+
+checkDayCloseStatus();
 render();

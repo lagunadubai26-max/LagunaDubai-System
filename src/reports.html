@@ -57,14 +57,13 @@
         <p>تقارير وإحصائيات Laguna Cafe</p>
       </div>
       <div class="report-controls">
-        <select id="reportPeriod">
-          <option value="day">اليوم</option>
-          <option value="week">هذا الأسبوع</option>
-          <option value="month" selected>هذا الشهر</option>
-          <option value="year">هذه السنة</option>
-          <option value="all">كل الفترات</option>
-        </select>
-        <button id="exportBtn"><i class="fa-solid fa-file-export"></i>تصدير</button>
+        <div class="month-picker-wrap">
+          <label><i class="fa-solid fa-calendar"></i> الشهر:</label>
+          <input type="month" id="reportMonth">
+        </div>
+        <button id="dayCloseBtn" class="btn-dayclose"><i class="fa-solid fa-moon"></i> إغلاق اليوم</button>
+        <button id="dcHistoryBtn" class="btn-outline" style="height:50px;padding:0 18px;border-radius:12px;font-size:14px"><i class="fa-solid fa-clock-rotate-left"></i> السجل</button>
+        <button id="exportBtn"><i class="fa-solid fa-file-export"></i> تصدير</button>
       </div>
     </div>
     <div class="topbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;background:#fff;padding:15px 25px;border-radius:18px;box-shadow:var(--shadow);">
@@ -135,6 +134,50 @@
     </section>
   </main>
 </div>
+
+<!-- Day Close Modal -->
+<div class="modal" id="dayCloseModal">
+  <div class="modal-box" style="max-width:600px">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-moon"></i> إغلاق اليوم</h2>
+      <button class="close-modal" id="closeDayClose">&times;</button>
+    </div>
+    <div class="modal-body" id="dayCloseBody">
+      <div class="dc-date" id="dcDate"></div>
+      <div class="dc-stats">
+        <div class="dc-stat"><span>إجمالي المبيعات</span><strong id="dcSales">0</strong></div>
+        <div class="dc-stat"><span>عدد الفواتير</span><strong id="dcInvoices">0</strong></div>
+        <div class="dc-stat"><span>الدرج (كاش)</span><strong id="dcCash">0</strong></div>
+        <div class="dc-stat"><span>شبكة/فيزا</span><strong id="dcCard">0</strong></div>
+        <div class="dc-stat"><span>عدد الأصناف المباعة</span><strong id="dcItemsSold">0</strong></div>
+        <div class="dc-stat"><span>المصروفات</span><strong id="dcExpenses">0</strong></div>
+        <div class="dc-stat"><span>المرتجعات</span><strong id="dcReturns">0</strong></div>
+        <div class="dc-stat dc-highlight"><span>صافي الربح</span><strong id="dcNet">0</strong></div>
+      </div>
+    </div>
+    <div class="modal-footer" id="dcFooter">
+      <button class="cancel-btn" id="cancelDayClose">إلغاء</button>
+      <button class="confirm-btn" id="confirmDayClose"><i class="fa-solid fa-check"></i> تأكيد إغلاق اليوم</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day Close History Modal -->
+<div class="modal" id="dcHistoryModal">
+  <div class="modal-box" style="max-width:800px">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-clock-rotate-left"></i> سجل إغلاق الأيام</h2>
+      <button class="close-modal" id="closeDcHistory">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="dcHistoryList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="confirm-btn" id="closeDcHistoryBtn">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>

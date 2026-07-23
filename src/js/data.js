@@ -118,6 +118,24 @@ const DB = {
     async remove(id) { await FB.removeDoc('users', id); }
   },
 
+  daycloses: {
+    async all() { return await FB.getCollection('daycloses'); },
+    async today() {
+      const all = await FB.getCollection('daycloses');
+      const today = new Date().toISOString().slice(0, 10);
+      return all.find(d => d.date && d.date.slice(0, 10) === today);
+    },
+    async byMonth(year, month) {
+      const all = await FB.getCollection('daycloses');
+      const prefix = `${year}-${String(month).padStart(2, '0')}`;
+      return all.filter(d => d.date && d.date.startsWith(prefix));
+    },
+    async close(data) {
+      if (!data.id) data.id = 'dc-' + data.date;
+      return await FB.addDoc('daycloses', data);
+    },
+  },
+
   products: {
     async all() { return await FB.getCollection('products'); },
     async add(p) { if (!p.id) p.id = Date.now().toString(36); return await FB.addDoc('products', p); },
