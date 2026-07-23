@@ -70,7 +70,7 @@
     <script>
       if (!sessionStorage.getItem('laguna_user')) window.location.href = 'auth.html';
       const _user = JSON.parse(sessionStorage.getItem('laguna_user'));
-      if (_user) { document.getElementById('profileName').textContent = _user.name; document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? 'م/محمد الجوهري' : 'موظف'; }
+      if (_user) { document.getElementById('profileName').textContent = _user.name; document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? 'مالك' : 'موظف'; }
     </script>
     <section class="product-stats">
       <div class="stat-card"><i class="fa-solid fa-box"></i><div><h2 id="prodTotal">0</h2><span>إجمالي المنتجات</span></div></div>

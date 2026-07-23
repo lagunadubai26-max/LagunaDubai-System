@@ -22,7 +22,7 @@
   const role = document.getElementById('sidebarRole');
   if (avatar) avatar.textContent = user.name.charAt(0);
   if (name) name.textContent = user.name;
-  if (role) role.textContent = isOwner ? 'م/محمد الجوهري' : 'موظف';
+  if (role) role.textContent = isOwner ? 'مالك' : 'موظف';
 
   const uidEl = document.getElementById('sidebarUid');
   if (uidEl) {
@@ -44,5 +44,5 @@
   const h4 = document.querySelector('.profile h4');
   const span = document.querySelector('.profile span');
   if (h4) h4.textContent = user.name;
-  if (span) span.textContent = isOwner ? 'م/محمد الجوهري' : 'موظف';
+  if (span) span.textContent = isOwner ? 'مالك' : 'موظف';
 })();
