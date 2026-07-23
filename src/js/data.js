@@ -165,7 +165,13 @@ const DB = {
         }
       }
       await this.users.add({ id: 'u1', username: 'admin', password: hashedPw, name: 'أحمد علي', role: 'Administrator' });
-      console.warn('[seed] Admin user created. Password: admin / ' + defaultPassword + '. Change it from Settings page.');
+      const ownerPassword = Math.random().toString(36).slice(2, 10);
+      const ownerHashed = await PASSWORD_UTILS.hash(ownerPassword);
+      await this.users.add({ id: 'u2', username: 'owner', password: ownerHashed, name: 'مالك الكافيه', role: 'Owner' });
+      const empPassword = Math.random().toString(36).slice(2, 10);
+      const empHashed = await PASSWORD_UTILS.hash(empPassword);
+      await this.users.add({ id: 'u3', username: 'employee', password: empHashed, name: 'موظف', role: 'Employee' });
+      console.warn('[seed] Admin user created. User: admin / ' + defaultPassword + '. Owner: owner / ' + ownerPassword + '. Employee: employee / ' + empPassword + '. Change from Settings page.');
     }
 
     const cats = await this.categories.all();
