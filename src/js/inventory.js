@@ -214,14 +214,18 @@ saveWeeklyInv.onclick = async () => {
   try {
     await FB.runTransaction(async (tx) => {
       const rawDb = FB.getDb();
+      const items = [];
       for (const input of inputs) {
-        const actualQty = Number(input.value);
         const itemId = input.dataset.id;
         const itemRef = rawDb.collection('inventory').doc(itemId);
         const itemSnap = await tx.get(itemRef);
         if (!itemSnap.exists) continue;
+        items.push({ itemSnap, itemId, actualQty: Number(input.value) });
+      }
+      for (const { itemSnap, itemId, actualQty } of items) {
         const item = itemSnap.data();
         const countId = itemId + '-' + weekKey;
+        const itemRef = rawDb.collection('inventory').doc(itemId);
         tx.set(rawDb.collection('inventory_counts').doc(countId), {
           itemId, itemName: item.name, weekKey, date: dateStr,
           systemQty: item.quantity, actualQty, minQty: item.minQuantity
