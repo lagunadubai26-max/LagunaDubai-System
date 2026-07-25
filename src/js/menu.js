@@ -167,7 +167,7 @@ async function loadProducts() {
 async function occupyTable() {
   if (!tableNum) return;
   const count = document.querySelectorAll('.order-box .order-list .order-item .name').length;
-  if (count === 1) {
+  if (count > 0) {
     try {
       await DB.tables.update('t' + tableNum, { status: 'occupied' });
     } catch (e) {
