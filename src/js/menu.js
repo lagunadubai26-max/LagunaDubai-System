@@ -169,7 +169,9 @@ async function occupyTable() {
   const count = document.querySelectorAll('.order-box .order-list .order-item .name').length;
   if (count > 0) {
     try {
-      await DB.tables.update('t' + tableNum, { status: 'occupied' });
+      const allTables = await DB.tables.all() || [];
+      const tbl = allTables.find(t => t.name === 'طاولة ' + tableNum);
+      if (tbl) await DB.tables.update(tbl.id, { status: 'occupied' });
     } catch (e) {
       console.warn('[occupy]', e);
     }
@@ -530,9 +532,10 @@ document.getElementById('confirmCheckout').onclick = async () => {
       await FB.runTransaction(async (tx) => {
         const rawDb = FB.getDb();
         if (tableNum) {
-          const tableRef = rawDb.collection('tables_').doc('t' + tableNum);
-          const tableDoc = await tx.get(tableRef);
-          if (!tableDoc.exists) throw new Error('الطاولة غير موجودة');
+          const allTables = await DB.tables.all() || [];
+          const tbl = allTables.find(t => t.name === 'طاولة ' + tableNum);
+          if (!tbl) throw new Error('الطاولة غير موجودة');
+          const tableRef = rawDb.collection('tables_').doc(tbl.id);
           tx.update(tableRef, { status: 'occupied' });
         }
         const invData = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
