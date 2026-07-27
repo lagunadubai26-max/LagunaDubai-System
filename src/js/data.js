@@ -27,19 +27,36 @@ const DB = {
 
   attendance: {
     async all() { return await FB.getCollection('attendance'); },
+    attDayRange(now) {
+      now = now || new Date();
+      const h = now.getHours();
+      let start, end;
+      if (h >= 17) {
+        start = new Date(now); start.setHours(17, 0, 0, 0);
+        end = new Date(now); end.setDate(end.getDate() + 1); end.setHours(16, 59, 59, 999);
+      } else {
+        start = new Date(now); start.setDate(start.getDate() - 1); start.setHours(17, 0, 0, 0);
+        end = new Date(now); end.setHours(16, 59, 59, 999);
+      }
+      return { start, end };
+    },
     async today() {
       const all = await FB.getCollection('attendance');
-      const today = new Date().toISOString().slice(0, 10);
-      return all.filter(a => a.date && a.date.slice(0, 10) === today);
+      const range = this.attDayRange();
+      return all.filter(a => {
+        if (!a.date) return false;
+        const d = new Date(a.date);
+        return d >= range.start && d <= range.end;
+      });
     },
     async add(rec) { if (!rec.id) rec.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('attendance', rec); },
     async update(id, data) { await FB.updateDoc('attendance', id, data); },
     async remove(id) { await FB.removeDoc('attendance', id); },
     async checkIn(employeeId, name, job) {
       const now = new Date();
-      const hour = now.getHours() * 60 + now.getMinutes();
-      const lateThreshold = 9 * 60; // 9:00 AM
-      const status = hour > lateThreshold ? 'late' : 'present';
+      const minutes = now.getHours() * 60 + now.getMinutes();
+      const lateThreshold = 17 * 60 + 30; // 5:30 PM (30 min grace)
+      const status = minutes > lateThreshold ? 'late' : 'present';
       return await FB.addDoc('attendance', {
         id: 'att-' + crypto.randomUUID().slice(0, 8), employeeId, name, job,
         date: now.toISOString(), checkIn: now.toISOString(), status
