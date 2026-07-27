@@ -15,7 +15,7 @@ async function load() {
   document.getElementById('wsProxyUrl').value = settings.wsProxyUrl || 'ws://localhost:9090';
   if (settings.wsProxyUrl) localStorage.setItem('laguna_printer_proxy', settings.wsProxyUrl);
   document.getElementById('enablePrintAgent').checked = settings.enablePrintAgent !== false;
-  document.getElementById('printAgentUrl').value = settings.printAgentUrl || 'http://localhost:4321';
+  document.getElementById('printAgentUrl').value = settings.printAgentUrl || 'http://localhost:3000';
   if (settings.printAgentUrl) localStorage.setItem('laguna_print_agent_url', settings.printAgentUrl);
   if (settings.printAgentKey) localStorage.setItem('laguna_print_agent_key', settings.printAgentKey);
   localStorage.setItem('laguna_print_agent_enabled', settings.enablePrintAgent !== false);
@@ -123,7 +123,7 @@ document.getElementById('saveSettings').onclick = async () => {
     printCopies: Number(document.getElementById('printCopies').value) || 1,
     wsProxyUrl: document.getElementById('wsProxyUrl').value || 'ws://localhost:9090',
     enablePrintAgent: document.getElementById('enablePrintAgent').checked,
-    printAgentUrl: document.getElementById('printAgentUrl').value || 'http://localhost:4321',
+    printAgentUrl: document.getElementById('printAgentUrl').value || 'http://localhost:3000',
     printAgentKey: document.getElementById('printAgentKey').value || '',
     invoiceTemplateCashier: window._savedTemplates ? (window._savedTemplates.invoiceTemplateCashier || TEMPLATE.defaultCashierTemplate) : TEMPLATE.defaultCashierTemplate,
     invoiceTemplateKitchen: window._savedTemplates ? (window._savedTemplates.invoiceTemplateKitchen || TEMPLATE.defaultKitchenTemplate) : TEMPLATE.defaultKitchenTemplate,
@@ -132,7 +132,7 @@ document.getElementById('saveSettings').onclick = async () => {
   });
   const proxyUrl = document.getElementById('wsProxyUrl').value || 'ws://localhost:9090';
   localStorage.setItem('laguna_printer_proxy', proxyUrl);
-  const agentUrl = document.getElementById('printAgentUrl').value || 'http://localhost:4321';
+  const agentUrl = document.getElementById('printAgentUrl').value || 'http://localhost:3000';
   localStorage.setItem('laguna_print_agent_url', agentUrl);
   const agentKey = document.getElementById('printAgentKey').value || '';
   localStorage.setItem('laguna_print_agent_key', agentKey);

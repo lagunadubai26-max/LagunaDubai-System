@@ -620,16 +620,19 @@ document.getElementById('confirmCheckout').onclick = async () => {
 
         printBtn.onclick = async () => {
           document.getElementById('successModal').classList.remove('show');
+          let printed = false;
           try {
-            if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
-              await PRINTER.printReceipt(inv);
-              if (paid >= totalAmount) await PRINTER.openDrawer();
-            } else {
-              printReceipt(inv);
+            if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
+              const agentResult = await PRINTER.printViaAgent(inv);
+              if (agentResult && agentResult.ok) printed = true;
             }
-          } catch(e) {
-            printReceipt(inv);
-          }
+            if (!printed && typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
+              const result = await PRINTER.printReceipt(inv);
+              if (result && result.ok) printed = true;
+              if (printed && paid >= totalAmount) await PRINTER.openDrawer();
+            }
+          } catch(e) { console.warn('[print]', e); }
+          if (!printed) printReceipt(inv);
         };
         const hideSuccess = () => document.getElementById('successModal').classList.remove('show');
         closeBtn.onclick = hideSuccess;
