@@ -10,7 +10,11 @@ const modal = document.getElementById('prodModal');
 const deleteModal = document.getElementById('deleteProdModal');
 
 async function loadCategories() {
-  categories = await DB.categories.all() || [];
+  const raw = await DB.categories.all() || [];
+  // De-duplicate by slug
+  const seen = {};
+  categories = [];
+  raw.forEach(c => { if (!seen[c.slug]) { seen[c.slug] = true; categories.push(c); } });
   categories.sort((a, b) => (a.order || 0) - (b.order || 0));
   catMap = {};
   categories.forEach(c => catMap[c.slug] = c.name);
@@ -101,10 +105,51 @@ async function render() {
     prodList.appendChild(row);
   });
 
+  // Click on stat cards to filter by availability
+  document.querySelectorAll('.product-stats .stat-card').forEach((card, idx) => {
+    card.style.cursor = 'pointer';
+    card.onclick = () => {
+      if (idx === 2) { // متاح
+        catFilter.value = 'all';
+        searchInput.value = '';
+        renderFiltered(true);
+      } else if (idx === 3) { // غير متاح
+        catFilter.value = 'all';
+        searchInput.value = '';
+        renderFiltered(false);
+      } else {
+        catFilter.value = 'all';
+        searchInput.value = '';
+        render();
+      }
+    };
+  });
   document.getElementById('prodTotal').textContent = products.length;
   document.getElementById('prodCategories').textContent = categories.length;
   document.getElementById('prodActive').textContent = products.filter(p => p.available).length;
   document.getElementById('prodInactive').textContent = products.filter(p => !p.available).length;
+  attachEvents();
+}
+
+function renderFiltered(available) {
+  prodList.innerHTML = '';
+  const filtered = products.filter(p => p.available === available);
+  filtered.forEach(p => {
+    const stCls = p.available ? 'active' : 'stopped';
+    const stTxt = p.available ? 'متاح' : 'غير متاح';
+    const row = document.createElement('div');
+    row.className = 'table-row';
+    row.innerHTML = `
+      <div><img class="thumb" src="${sanitizeUrl(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽</text></svg>'"></div>
+      <span>${escapeHtml(p.name)}</span><span>${escapeHtml(catMap[p.category] || p.category)}</span>
+      <span>${validateNumber(p.price)} ج.م</span>
+      <span class="status ${stCls}">${escapeHtml(stTxt)}</span>
+      <div class="actions">
+        <button class="edit-btn" data-id="${escapeHtml(p.id)}"><i class="fa-solid fa-pen"></i></button>
+        <button class="delete-btn" data-id="${escapeHtml(p.id)}"><i class="fa-solid fa-trash"></i></button>
+      </div>`;
+    prodList.appendChild(row);
+  });
   attachEvents();
 }
 

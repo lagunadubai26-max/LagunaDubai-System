@@ -497,7 +497,48 @@ confirmDayClose.onclick = async () => {
     DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, totalExpenses: data.totalExpenses });
     dayCloseModal.classList.remove('show');
     checkDayCloseStatus();
-    alert('✅ تم إغلاق اليوم بنجاح');
+
+    // Export Excel for today's invoices
+    const allInvoices = await DB.invoices.all() || [];
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+    const todayInvoices = allInvoices.filter(inv => {
+      if (!inv.date) return false;
+      const d = new Date(inv.date);
+      return d >= todayStart && d <= todayEnd;
+    });
+    const products = await DB.products.all() || [];
+    const nameToCat = {};
+    products.forEach(p => { nameToCat[p.name] = p.category || 'أخرى'; });
+
+    function csvEsc(val) {
+      const s = String(val || '');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+    let csv = 'رقم الفاتورة,العميل,الطاولة,التاريخ,طريقة الدفع,الحالة,الإجمالي,المدفوع,المتبقي,خدمة,ضريبة,المنتج,الفئة,الكمية,سعر الوحدة,الإجمالي الفرعي,ملاحظة\n';
+    todayInvoices.forEach(i => {
+      if (i.items && i.items.length > 0) {
+        i.items.forEach(item => {
+          const cat = nameToCat[item.name] || '';
+          const lineTotal = (Number(item.qty || 0) * Number(item.price || 0));
+          csv += [csvEsc(i.id), csvEsc(i.customer), csvEsc(i.table), csvEsc(i.date), csvEsc(i.paymentMethod), csvEsc(i.status), csvEsc(i.total), csvEsc(i.paid), csvEsc(i.remaining), csvEsc(i.serviceAmount), csvEsc(i.taxAmount), csvEsc(item.name), csvEsc(cat), csvEsc(item.qty), csvEsc(item.price), csvEsc(lineTotal), csvEsc(item.note || '')].join(',') + '\n';
+        });
+      } else {
+        csv += [csvEsc(i.id), csvEsc(i.customer), csvEsc(i.table), csvEsc(i.date), csvEsc(i.paymentMethod), csvEsc(i.status), csvEsc(i.total), csvEsc(i.paid), csvEsc(i.remaining), csvEsc(i.serviceAmount), csvEsc(i.taxAmount), '', '', '', '', '', ''].join(',') + '\n';
+      }
+    });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'laguna-close-' + todayISO + '.csv';
+    link.click();
+
+    // Clear today's invoices
+    for (const inv of todayInvoices) {
+      try { await DB.invoices.remove(inv.id); } catch(e) { console.warn('[dayclose] could not delete invoice:', inv.id); }
+    }
+
+    alert('✅ تم إغلاق اليوم بنجاح\n📄 تم تحميل ملف Excel بالفواتير\n🗑️ تم مسح فواتير اليوم');
   } catch (e) {
     console.error('[dayclose]', e);
     alert('❌ حدث خطأ أثناء إغلاق اليوم');

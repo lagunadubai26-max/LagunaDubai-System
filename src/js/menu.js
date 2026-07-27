@@ -171,7 +171,12 @@ async function occupyTable() {
     try {
       const allTables = await DB.tables.all() || [];
       const tbl = allTables.find(t => t.name === 'طاولة ' + tableNum);
-      if (tbl) await DB.tables.update(tbl.id, { status: 'occupied' });
+      if (tbl) {
+        await DB.tables.update(tbl.id, { status: 'occupied' });
+      } else {
+        // Auto-create table if it doesn't exist
+        await DB.tables.add({ id: 't' + tableNum, name: 'طاولة ' + tableNum, capacity: 4, status: 'occupied', currentOrder: null, hasService: false });
+      }
     } catch (e) {
       console.warn('[occupy]', e);
     }
@@ -195,7 +200,7 @@ function attachAddToCart() {
           let qty = parseInt(qtyEl.innerText);
           qty++;
           qtyEl.innerText = qty;
-          const effective = price + (item.dataset.hasMilk === 'true' ? 5 : 0);
+          const effective = price + (item.dataset.hasMilk === 'true' ? 15 : 0);
           item.querySelector(".price").innerText = (qty * effective) + " جنيه";
           total += effective;
           found = true;
@@ -210,7 +215,7 @@ function attachAddToCart() {
           <div class="order-top"><span class="name">${escapeHtml(name)}</span><button class="note-btn" title="أضف ملاحظة"><i class="fa-solid fa-pen"></i>ملاحظة</button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
           <div class="price">${price} جنيه</div>
           <div class="item-note" style="display:none"><input class="note-input" placeholder="إضافة (قهوة محوج، بدون سكر...)" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;background:#fafaf9;margin-bottom:8px"></div>
-          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +حليب 5 ج.م</label></div>`;
+          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +حليب 15 ج.م</label></div>`;
         document.querySelector(".order-box .order-list").appendChild(item);
         total += price;
       }
@@ -222,14 +227,14 @@ function attachAddToCart() {
 }
 
 function getItemPrice(itemEl) {
-  return Number(itemEl.dataset.price) + (itemEl.dataset.hasMilk === 'true' ? 5 : 0);
+  return Number(itemEl.dataset.price) + (itemEl.dataset.hasMilk === 'true' ? 15 : 0);
 }
 
 function formatItemPrice(itemEl) {
   const base = Number(itemEl.dataset.price);
   const milk = itemEl.dataset.hasMilk === 'true';
   const qty = parseInt(itemEl.querySelector('.qty').innerText);
-  const effective = milk ? base + 5 : base;
+  const effective = milk ? base + 15 : base;
   return (qty * effective) + ' جنيه' + (milk ? ' (مع حليب)' : '');
 }
 
@@ -310,7 +315,7 @@ function handleMilkChange(e) {
   targetItem.dataset.hasMilk = ck.checked ? 'true' : 'false';
   const base = parseInt(targetItem.dataset.price);
   const qty = parseInt(targetItem.querySelector('.qty').innerText);
-  total += (ck.checked ? 1 : -1) * 5 * qty;
+  total += (ck.checked ? 1 : -1) * 15 * qty;
   targetItem.querySelector('.price').innerText = formatItemPrice(targetItem);
   document.querySelector('.total strong').innerText = total + ' جنيه';
   syncOrderSheet();
@@ -381,7 +386,7 @@ checkoutBtn.addEventListener("click", () => {
     const noteInput = itemEl.querySelector('.note-input');
     const note = noteInput ? noteInput.value.trim() : '';
     const hasMilk = itemEl.dataset.hasMilk === 'true';
-    const effectivePrice = Number(priceText) + (hasMilk ? 5 : 0);
+    const effectivePrice = Number(priceText) + (hasMilk ? 15 : 0);
     if (priceText) items.push({ name: el.innerText, qty, price: effectivePrice, note, hasMilk });
   });
   if (items.length === 0) return alert("الطلب فارغ، أضف منتجات أولاً");
@@ -511,7 +516,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
       for (const item of items) {
         const catalogPrice = priceMap[item.name];
         if (catalogPrice !== undefined) {
-          const expected = catalogPrice + (item.hasMilk ? 5 : 0);
+          const expected = catalogPrice + (item.hasMilk ? 15 : 0);
           if (item.price !== expected) {
             resetCheckout();
             return alert('خطأ في السعر: "' + item.name + '" - السعر المتوقع ' + expected + ' ج.م ولكن وجد ' + item.price + ' ج.م');
@@ -534,9 +539,10 @@ document.getElementById('confirmCheckout').onclick = async () => {
         if (tableNum) {
           const allTables = await DB.tables.all() || [];
           const tbl = allTables.find(t => t.name === 'طاولة ' + tableNum);
-          if (!tbl) throw new Error('الطاولة غير موجودة');
-          const tableRef = rawDb.collection('tables_').doc(tbl.id);
-          tx.update(tableRef, { status: 'occupied' });
+          if (tbl) {
+            const tableRef = rawDb.collection('tables_').doc(tbl.id);
+            tx.update(tableRef, { status: 'occupied' });
+          }
         }
         const invData = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
         const uid = FB.getUid();

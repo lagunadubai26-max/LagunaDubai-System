@@ -28,6 +28,7 @@ async function render() {
       <span class="badge" style="background:${colorMap[t.status]}">${statusMap[t.status]}</span>
       <div class="table-actions">
         <button class="edit-btn" data-id="${t.id}"><i class="fa-solid fa-pen"></i></button>
+        <button class="qr-btn" data-id="${t.id}" data-num="${t.name.replace(/\D/g, '')}" title="عرض QR كود"><i class="fa-solid fa-qrcode"></i></button>
         <select class="status-select" data-id="${t.id}">
           <option value="available" ${t.status === 'available' ? 'selected' : ''}>متاحة</option>
           <option value="occupied" ${t.status === 'occupied' ? 'selected' : ''}>مشغولة</option>
@@ -69,6 +70,11 @@ function attachEvents() {
     sel.onchange = async function () {
       await DB.tables.update(this.dataset.id, { status: this.value });
       render();
+    };
+  });
+  document.querySelectorAll('.qr-btn').forEach(btn => {
+    btn.onclick = () => {
+      window.open('qr.html', '_blank');
     };
   });
 }
