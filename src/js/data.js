@@ -52,17 +52,20 @@ const DB = {
     async add(rec) { if (!rec.id) rec.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('attendance', rec); },
     async update(id, data) { await FB.updateDoc('attendance', id, data); },
     async remove(id) { await FB.removeDoc('attendance', id); },
-    async checkIn(employeeId, name, job) {
-      const now = new Date();
-      const minutes = now.getHours() * 60 + now.getMinutes();
+    async checkIn(employeeId, name, job, customTime) {
+      const time = customTime ? new Date(customTime) : new Date();
+      const minutes = time.getHours() * 60 + time.getMinutes();
       const lateThreshold = 17 * 60 + 30; // 5:30 PM (30 min grace)
       const status = minutes > lateThreshold ? 'late' : 'present';
       return await FB.addDoc('attendance', {
         id: 'att-' + crypto.randomUUID().slice(0, 8), employeeId, name, job,
-        date: now.toISOString(), checkIn: now.toISOString(), status
+        date: time.toISOString(), checkIn: time.toISOString(), status
       });
     },
-    async checkOut(id) { await FB.updateDoc('attendance', id, { checkOut: new Date().toISOString() }); }
+    async checkOut(id, customTime) {
+      const time = customTime ? new Date(customTime) : new Date();
+      await FB.updateDoc('attendance', id, { checkOut: time.toISOString() });
+    }
   },
 
   returns: {

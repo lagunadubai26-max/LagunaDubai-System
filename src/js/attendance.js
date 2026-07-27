@@ -74,7 +74,18 @@ function attachEvents(employees, todayRecords) {
     const checkBtn = row.querySelector(".check-btn");
     if (checkBtn && !checkBtn.disabled) {
       checkBtn.onclick = async () => {
-        await DB.attendance.checkIn(emp.id, emp.name, emp.job || '');
+        const now = new Date();
+        const def = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        const input = prompt('وقت الحضور (HH:MM)', def);
+        if (input === null) return;
+        const parts = input.trim().split(':');
+        if (parts.length === 2) {
+          const h = parseInt(parts[0]), m = parseInt(parts[1]);
+          if (!isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+            now.setHours(h, m, 0, 0);
+          }
+        }
+        await DB.attendance.checkIn(emp.id, emp.name, emp.job || '', now.toISOString());
         render();
       };
     }
@@ -83,7 +94,18 @@ function attachEvents(employees, todayRecords) {
     const leaveBtn = row.querySelector(".leave-btn");
     if (leaveBtn && !leaveBtn.disabled) {
       leaveBtn.onclick = async () => {
-        await DB.attendance.checkOut(recordId);
+        const now = new Date();
+        const def = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        const input = prompt('وقت الانصراف (HH:MM)', def);
+        if (input === null) return;
+        const parts = input.trim().split(':');
+        if (parts.length === 2) {
+          const h = parseInt(parts[0]), m = parseInt(parts[1]);
+          if (!isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+            now.setHours(h, m, 0, 0);
+          }
+        }
+        await DB.attendance.checkOut(recordId, now.toISOString());
         render();
       };
     }
