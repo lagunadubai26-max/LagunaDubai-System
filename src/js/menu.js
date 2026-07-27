@@ -116,7 +116,10 @@ function syncOrderSheet() {
 }
 
 async function loadProducts() {
-  const categories = await DB.categories.all() || [];
+  const rawCats = await DB.categories.all() || [];
+  const seen = {};
+  const categories = [];
+  rawCats.forEach(c => { if (!seen[c.slug]) { seen[c.slug] = true; categories.push(c); } });
   categories.sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const menuCategories = document.getElementById('menuCategories');
@@ -631,7 +634,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
         const hideSuccess = () => document.getElementById('successModal').classList.remove('show');
         closeBtn.onclick = hideSuccess;
 
-        if (autoPrintReceipt) {
+        const autoPrintDisabled = localStorage.getItem('laguna_auto_print_disabled') === 'true';
+        if (autoPrintReceipt && !autoPrintDisabled) {
           let printed = false;
           if (hasPrinter) {
             try {
@@ -650,10 +654,10 @@ document.getElementById('confirmCheckout').onclick = async () => {
             await DB.invoices.update(inv.id, { printed: false, pendingPrint: true });
             printBtn.innerHTML = '<i class="fa-solid fa-hourglass"></i> الطباعة معلقة - اضغط لإعادة المحاولة';
           }
-        }
-        let agentEnabled = localStorage.getItem('laguna_print_agent_enabled') === 'true';
-        if (agentEnabled) {
-          try { await PRINTER.printViaAgent(inv); } catch (e) { console.warn('[print-agent]', e); }
+          let agentEnabled = localStorage.getItem('laguna_print_agent_enabled') === 'true';
+          if (agentEnabled) {
+            try { await PRINTER.printViaAgent(inv); } catch (e) { console.warn('[print-agent]', e); }
+          }
         }
       }
     } else {
@@ -715,6 +719,27 @@ async function autoConnectPrinter() {
 }
 if (!isCustomer && window.innerWidth > 768) autoConnectPrinter();
 loadProducts();
+
+// ── Auto-print toggle ──
+(function() {
+  const btn = document.getElementById('autoPrintToggle');
+  const status = document.getElementById('autoPrintStatus');
+  if (!btn || !status) return;
+  function update() {
+    const disabled = localStorage.getItem('laguna_auto_print_disabled') === 'true';
+    btn.style.borderColor = disabled ? '#dc2626' : '#059669';
+    btn.style.background = disabled ? '#fef2f2' : '#f0fdf4';
+    status.textContent = disabled ? 'متوقفة' : 'مفعلة';
+    status.style.background = disabled ? '#dc2626' : '#059669';
+    status.style.color = '#fff';
+  }
+  update();
+  btn.onclick = () => {
+    const cur = localStorage.getItem('laguna_auto_print_disabled') === 'true';
+    localStorage.setItem('laguna_auto_print_disabled', cur ? 'false' : 'true');
+    update();
+  };
+})();
 
 function printReceipt(inv) {
   TEMPLATE.getTemplate('cashier').then(cashierTpl => {
