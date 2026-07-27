@@ -27,7 +27,7 @@ async function updateDashboard() {
   document.getElementById('visaPercent').textContent = Math.round(methods.Visa / total * 100) + '%';
   document.getElementById('walletPercent').textContent = Math.round(methods.Wallet / total * 100) + '%';
 
-  updateChart(invoices);
+  updateChart(paidInvoices);
   checkDashDayClose();
 }
 

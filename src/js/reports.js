@@ -107,7 +107,7 @@ async function render() {
 
     const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
-    drawAnomalies(invoices, expenses, range);
+    drawAnomalies(paidInvoices, expenses, range);
     drawSalesChart(paidInvoices, range);
     drawPaymentChart(paidInvoices);
     drawCategoryChart(paidInvoices, products);

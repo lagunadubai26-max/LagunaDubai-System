@@ -39,14 +39,14 @@ async function render() {
     tableBody.appendChild(row);
   });
 
-  const active = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
+  const paid = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
   const cards = document.querySelectorAll('.invoice-stats .stat-card h2');
   if (cards.length >= 5) {
     cards[0].textContent = invoices.length;
-    cards[1].textContent = active.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
-    cards[2].textContent = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').length;
+    cards[1].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
+    cards[2].textContent = paid.length;
     cards[3].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
-    cards[4].textContent = active.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
+    cards[4].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
   }
   attachActions();
 }
@@ -222,14 +222,14 @@ function renderWithData() {
     tableBody.appendChild(row);
   });
 
-  const active = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
+  const paid = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
   const cards = document.querySelectorAll('.invoice-stats .stat-card h2');
   if (cards.length >= 5) {
     cards[0].textContent = invoices.length;
-    cards[1].textContent = active.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
-    cards[2].textContent = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').length;
+    cards[1].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
+    cards[2].textContent = paid.length;
     cards[3].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
-    cards[4].textContent = active.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
+    cards[4].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
   }
   attachActions();
 }

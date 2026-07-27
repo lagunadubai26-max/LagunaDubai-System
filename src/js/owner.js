@@ -208,7 +208,7 @@ function showCustDetail(id) {
   const range = getMonthRange();
   const custInvoices = g.invoices.filter(i => i.customer === c.name && i.status !== 'returned' && i.status !== 'مرتجعة');
   const allPaid = custInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
-  const monthInvoices = filterByDate(custInvoices, range);
+  const monthInvoices = filterByDate(allPaid, range);
   const monthTotal = monthInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
   const allTotal = allPaid.reduce((s, i) => s + Number(i.total || 0), 0);
   const monthCount = monthInvoices.length;

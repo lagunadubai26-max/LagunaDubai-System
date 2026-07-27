@@ -16,14 +16,21 @@ const statusSelect = document.getElementById('empStatus');
 const pinInput = document.getElementById('empPin');
 
 async function render() {
-  employees = await DB.employees.all() || [];
+  let data;
+  try {
+    data = await DB.employees.all();
+  } catch (e) {
+    console.error('[employees] fetch error:', e);
+    data = [];
+  }
+  employees = data || [];
   const existing = tableBody.querySelectorAll('.table-row:not(.table-header)');
   existing.forEach(r => r.remove());
 
   const val = searchInput ? searchInput.value.toLowerCase() : '';
   const jobVal = jobFilter ? jobFilter.value : 'كل الوظائف';
   const filtered = employees.filter(e => {
-    return e.name.toLowerCase().includes(val) && (jobVal === 'كل الوظائف' || e.job === jobVal);
+    return e.name && e.name.toLowerCase().includes(val) && (jobVal === 'كل الوظائف' || e.job === jobVal);
   });
 
   filtered.forEach(emp => {
