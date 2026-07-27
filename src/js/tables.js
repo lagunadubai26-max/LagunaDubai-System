@@ -95,7 +95,7 @@ saveBtn.onclick = async () => {
   if (editTableId) {
     await DB.tables.update(editTableId, { name, capacity, hasService });
   } else {
-    const tnum = name.replace(/\D/g, ''').trim() || Date.now(); await DB.tables.add({ id: 't' + tnum, name, capacity, status: 'available', currentOrder: null, hasService });
+    const tnum = name.replace(/\D/g, '').trim() || Date.now(); await DB.tables.add({ id: 't' + tnum, name, capacity, status: 'available', currentOrder: null, hasService });
   }
   modal.classList.remove('show');
   render();
