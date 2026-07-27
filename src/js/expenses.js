@@ -1,16 +1,40 @@
 let expenses = [];
+let allExpenses = [];
 const expList = document.getElementById('expList');
+const expMonth = document.getElementById('expMonth');
 const _expUser = (() => { try { return JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return {}; } })();
 
+expMonth.value = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+
+function getMonthRange(value) {
+  if (!value) { const d = new Date(); value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+  const [year, month] = value.split('-').map(Number);
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0, 23, 59, 59, 999);
+  return { start, end, year, month };
+}
+
+function filterByDate(items, range) {
+  if (!range || !range.start) return items;
+  return items.filter(item => {
+    if (!item.date) return false;
+    const d = new Date(item.date);
+    return d >= range.start && d <= range.end;
+  });
+}
+
 async function render() {
-  expenses = await DB.expenses.all() || [];
+  allExpenses = await DB.expenses.all() || [];
+  const range = getMonthRange(expMonth.value);
+  expenses = filterByDate(allExpenses, range);
+
   expList.innerHTML = '';
   const total = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const todayTotal = expenses.filter(e => e.date && new Date(e.date).toDateString() === new Date().toDateString()).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const monthTotal = allExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
 
   document.getElementById('expTotal').textContent = total.toLocaleString() + ' ج.م';
-  document.getElementById('expToday').textContent = todayTotal.toLocaleString() + ' ج.م';
-  document.getElementById('expCount').textContent = expenses.length;
+  document.getElementById('expToday').textContent = expenses.length;
+  document.getElementById('expCount').textContent = monthTotal.toLocaleString() + ' ج.م';
 
   expenses.forEach(e => {
     const row = document.createElement('div');
@@ -32,6 +56,23 @@ async function render() {
   });
 }
 
+function csvEsc(val) {
+  const s = String(val || '');
+  return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+document.getElementById('exportExpBtn').onclick = () => {
+  let csv = 'الوصف,القسم,المبلغ,التاريخ\n';
+  expenses.forEach(e => {
+    csv += [csvEsc(e.description), csvEsc(e.category), csvEsc(e.amount), csvEsc(e.date)].join(',') + '\n';
+  });
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'laguna-expenses-' + expMonth.value + '.csv';
+  link.click();
+};
+
 if (_expUser.role !== 'Owner') {
   document.getElementById('addExpBtn').onclick = async () => {
     const description = document.getElementById('expDesc').value.trim();
@@ -44,7 +85,9 @@ if (_expUser.role !== 'Owner') {
     render();
   };
 } else {
-  document.querySelector('.expense-form').style.display = 'none';
+  const form = document.querySelector('.expense-form');
+  if (form) form.style.display = 'none';
 }
 
+expMonth.addEventListener('change', render);
 render();

@@ -64,6 +64,7 @@ function attachActions() {
       nameInput.value = emp.name;
       jobInput.value = emp.job;
       phoneInput.value = emp.phone || '';
+      salaryInput.value = emp.salary || '';
       hireDateInput.value = emp.hireDate || '';
       statusSelect.value = emp.status || 'active';
       pinInput.value = '';
@@ -102,7 +103,7 @@ document.getElementById('saveEmp').onclick = async () => {
     name,
     job,
     phone: phoneInput.value.trim(),
-    salary: '',
+    salary: salaryInput.value.trim() || '',
     hireDate: hireDateInput.value,
     status: statusSelect.value,
     pin: null

@@ -80,9 +80,16 @@
     </script>
     <section class="expense-stats">
       <div class="stat-card"><i class="fa-solid fa-money-bill-wave"></i><div><h2 id="expTotal">0</h2><span>إجمالي المصروفات</span></div></div>
-      <div class="stat-card"><i class="fa-solid fa-calendar-day"></i><div><h2 id="expToday">0</h2><span>مصروفات اليوم</span></div></div>
-      <div class="stat-card"><i class="fa-solid fa-list"></i><div><h2 id="expCount">0</h2><span>عدد المصروفات</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-calendar-day"></i><div><h2 id="expToday">0</h2><span>عدد مصروفات الشهر</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-list"></i><div><h2 id="expCount">0</h2><span>إجمالي كل المصروفات</span></div></div>
     </section>
+    <div class="report-controls" style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+      <div class="month-picker-wrap" style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:14px;color:var(--text-secondary)"><i class="fa-solid fa-calendar"></i> الشهر:</label>
+        <input type="month" id="expMonth" style="padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:#fff">
+      </div>
+      <button id="exportExpBtn" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit"><i class="fa-solid fa-file-export"></i> تصدير CSV</button>
+    </div>
     <div class="expense-form">
       <input type="text" id="expDesc" placeholder="وصف المصروف">
       <input type="number" id="expAmount" placeholder="المبلغ">
