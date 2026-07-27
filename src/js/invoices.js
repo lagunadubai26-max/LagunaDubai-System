@@ -35,7 +35,7 @@ async function render() {
     const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
     const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '"><i class="fa-solid fa-print"></i></button>';
     const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
-    row.innerHTML = '<td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
+    row.innerHTML = '<td><input type="checkbox" class="inv-checkbox" data-id="' + safeId + '"></td><td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
     tableBody.appendChild(row);
   });
 
@@ -49,6 +49,7 @@ async function render() {
     cards[4].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
   }
   attachActions();
+  updateMergeBtn();
 }
 
 function attachActions() {
@@ -181,6 +182,82 @@ if (statusSelect) statusSelect.addEventListener('change', render);
 
 render();
 
+// Merge invoices
+document.getElementById('selectAllInvoices').addEventListener('change', function () {
+  document.querySelectorAll('.inv-checkbox').forEach(cb => cb.checked = this.checked);
+  updateMergeBtn();
+});
+
+document.addEventListener('change', function (e) {
+  if (e.target.classList.contains('inv-checkbox')) updateMergeBtn();
+});
+
+function updateMergeBtn() {
+  const checked = document.querySelectorAll('.inv-checkbox:checked');
+  const btn = document.getElementById('mergeInvoicesBtn');
+  if (btn) btn.style.display = checked.length >= 2 ? 'inline-flex' : 'none';
+}
+
+document.getElementById('mergeInvoicesBtn').onclick = async function () {
+  const checked = document.querySelectorAll('.inv-checkbox:checked');
+  if (checked.length < 2) return;
+  const ids = Array.from(checked).map(cb => cb.dataset.id);
+  const toMerge = ids.map(id => invoices.find(i => i.id === id)).filter(Boolean);
+  if (toMerge.length < 2) { alert('لم يتم العثور على الفواتير'); return; }
+
+  const mergedItems = [];
+  const itemMap = {};
+  let total = 0;
+  let paid = 0;
+
+  for (const inv of toMerge) {
+    total += Number(inv.total || 0);
+    paid += Number(inv.paid ?? inv.total ?? 0);
+    if (inv.items) {
+      for (const item of inv.items) {
+        const key = (item.name || '') + (item.hasMilk ? '|milk' : '') + (item.note ? '|' + item.note : '');
+        if (itemMap[key]) {
+          itemMap[key].qty += item.qty;
+          itemMap[key].qty = Number(itemMap[key].qty);
+        } else {
+          const clone = {};
+          for (const k in item) clone[k] = item[k];
+          itemMap[key] = clone;
+          mergedItems.push(clone);
+        }
+      }
+    }
+  }
+
+  if (!confirm('دمج ' + toMerge.length + ' فاتورة في فاتورة واحدة؟\n' +
+    'الإجمالي: ' + total.toLocaleString() + ' ج.م\n' +
+    'العميل: ' + toMerge[0].customer)) return;
+
+  try {
+    const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 4);
+    const remaining = Math.max(0, total - paid);
+    await DB.invoices.add({
+      id: newId,
+      customer: toMerge[0].customer,
+      date: new Date().toISOString(),
+      items: mergedItems,
+      total: total,
+      paid: paid,
+      remaining: remaining,
+      status: remaining <= 0 ? 'paid' : 'pending',
+      table: toMerge[0].table || '',
+      mergedFrom: ids.join(', '),
+      paymentMethod: toMerge[0].paymentMethod || 'كاش',
+      createdBy: _invUser?.name || ''
+    });
+    for (const id of ids) await DB.invoices.remove(id);
+    render();
+  } catch (e) {
+    console.error('[merge] error:', e);
+    alert('حدث خطأ أثناء دمج الفواتير');
+  }
+};
+
 FB.onCollection('invoices', (data) => {
   invoices = data;
   renderWithData();
@@ -218,7 +295,7 @@ function renderWithData() {
     const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
     const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '"><i class="fa-solid fa-print"></i></button>';
     const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
-    row.innerHTML = '<td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
+    row.innerHTML = '<td><input type="checkbox" class="inv-checkbox" data-id="' + safeId + '"></td><td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
     tableBody.appendChild(row);
   });
 
@@ -232,5 +309,6 @@ function renderWithData() {
     cards[4].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
   }
   attachActions();
+  updateMergeBtn();
 }
 

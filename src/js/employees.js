@@ -1,5 +1,6 @@
 let employees = [];
 let editId = null;
+let renderBusy = false;
 
 const tableBody = document.querySelector('.employees-table');
 const searchInput = document.querySelector('.filter-box input');
@@ -16,49 +17,62 @@ const statusSelect = document.getElementById('empStatus');
 const pinInput = document.getElementById('empPin');
 
 async function render() {
-  let data;
+  if (renderBusy) return;
+  renderBusy = true;
   try {
-    data = await DB.employees.all();
+    let data;
+    try {
+      data = await DB.employees.all();
+    } catch (e) {
+      console.error('[employees] fetch error:', e);
+      data = [];
+    }
+    employees = data || [];
+
+    const val = searchInput ? searchInput.value.toLowerCase() : '';
+    const jobVal = jobFilter ? jobFilter.value : 'كل الوظائف';
+    const filtered = [];
+    for (const e of employees) {
+      try {
+        if (e && e.name && e.name.toLowerCase().includes(val) && (jobVal === 'كل الوظائف' || e.job === jobVal)) {
+          filtered.push(e);
+        }
+      } catch (_) {}
+    }
+
+    const existing = tableBody.querySelectorAll('.table-row:not(.table-header)');
+    existing.forEach(r => r.remove());
+
+    for (const emp of filtered) {
+      const row = document.createElement('div');
+      row.className = 'table-row';
+      row.dataset.id = emp.id;
+      const stCls = emp.status === 'active' ? 'active' : emp.status === 'vacation' ? 'vacation' : 'stopped';
+      const stTxt = emp.status === 'active' ? 'يعمل' : emp.status === 'vacation' ? 'إجازة' : 'موقوف';
+      row.innerHTML = `
+        <span>${escapeHtml(emp.name)}</span><span>${escapeHtml(emp.job)}</span><span>${escapeHtml(emp.phone || '—')}</span>
+        <span style="display:none">${emp.salary ? Number(emp.salary).toLocaleString() + ' ج.م' : '—'}</span>
+        <span>${escapeHtml(emp.hireDate || '—')}</span>
+        <span class="status ${stCls}">${stTxt}</span>
+        <div class="actions">
+          <button class="edit-btn" data-id="${emp.id}"><i class="fa-solid fa-pen"></i></button>
+          <button class="delete-btn" data-id="${emp.id}"><i class="fa-solid fa-trash"></i></button>
+        </div>`;
+      tableBody.appendChild(row);
+    }
+
+    const cards = document.querySelectorAll('.employee-stats .stat-card h2');
+    if (cards.length >= 4) {
+      cards[0].textContent = employees.length;
+      cards[1].textContent = employees.filter(e => e.status === 'active').length;
+      cards[2].textContent = employees.filter(e => e.status === 'vacation').length;
+      cards[3].textContent = employees.filter(e => e.status === 'stopped').length;
+    }
+    attachActions();
   } catch (e) {
-    console.error('[employees] fetch error:', e);
-    data = [];
+    console.error('[employees] render error:', e);
   }
-  employees = data || [];
-  const existing = tableBody.querySelectorAll('.table-row:not(.table-header)');
-  existing.forEach(r => r.remove());
-
-  const val = searchInput ? searchInput.value.toLowerCase() : '';
-  const jobVal = jobFilter ? jobFilter.value : 'كل الوظائف';
-  const filtered = employees.filter(e => {
-    return e.name && e.name.toLowerCase().includes(val) && (jobVal === 'كل الوظائف' || e.job === jobVal);
-  });
-
-  filtered.forEach(emp => {
-    const row = document.createElement('div');
-    row.className = 'table-row';
-    row.dataset.id = emp.id;
-    const stCls = emp.status === 'active' ? 'active' : emp.status === 'vacation' ? 'vacation' : 'stopped';
-    const stTxt = emp.status === 'active' ? 'يعمل' : emp.status === 'vacation' ? 'إجازة' : 'موقوف';
-    row.innerHTML = `
-      <span>${escapeHtml(emp.name)}</span><span>${escapeHtml(emp.job)}</span><span>${escapeHtml(emp.phone || '—')}</span>
-      <span style="display:none">${emp.salary ? Number(emp.salary).toLocaleString() + ' ج.م' : '—'}</span>
-      <span>${escapeHtml(emp.hireDate || '—')}</span>
-      <span class="status ${stCls}">${stTxt}</span>
-      <div class="actions">
-        <button class="edit-btn" data-id="${emp.id}"><i class="fa-solid fa-pen"></i></button>
-        <button class="delete-btn" data-id="${emp.id}"><i class="fa-solid fa-trash"></i></button>
-      </div>`;
-    tableBody.appendChild(row);
-  });
-
-  const cards = document.querySelectorAll('.employee-stats .stat-card h2');
-  if (cards.length >= 4) {
-    cards[0].textContent = employees.length;
-    cards[1].textContent = employees.filter(e => e.status === 'active').length;
-    cards[2].textContent = employees.filter(e => e.status === 'vacation').length;
-    cards[3].textContent = employees.filter(e => e.status === 'stopped').length;
-  }
-  attachActions();
+  renderBusy = false;
 }
 
 function attachActions() {
