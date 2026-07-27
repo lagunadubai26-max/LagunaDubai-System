@@ -80,7 +80,29 @@
     </script>
     <section class="settings-grid">
       <div class="settings-card">
-        <h3><i class="fa-solid fa-print"></i>إعدادات Print Agent</h3>
+        <h3><i class="fa-solid fa-shop"></i>معلومات المطعم</h3>
+        <label>اسم المطعم</label>
+        <input type="text" id="cafeName">
+        <label>العملة</label>
+        <select id="currency">
+          <option value="ج.م">ج.م (جنيه مصري)</option>
+          <option value="$">$ (دولار)</option>
+          <option value="€">€ (يورو)</option>
+        </select>
+      </div>
+      <div class="settings-card">
+        <h3><i class="fa-solid fa-percentage"></i>الضرائب والرسوم</h3>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-weight:400;font-size:14px;cursor:pointer">
+          <input type="checkbox" id="enableTax"> تفعيل ضريبة القيمة المضافة (VAT)
+        </label>
+        <input type="number" id="taxRate" min="0" max="100" placeholder="14">
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:4px;margin-top:10px;font-weight:400;font-size:14px;cursor:pointer">
+          <input type="checkbox" id="enableService"> تفعيل خدمة الضيافة
+        </label>
+        <input type="number" id="serviceTax" min="0" max="100" value="10" placeholder="10">
+      </div>
+      <div class="settings-card">
+        <h3><i class="fa-solid fa-gear"></i>إعدادات الطباعة</h3>
         <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:400;font-size:14px;cursor:pointer">
           <input type="checkbox" id="autoPrintReceipt" checked> طباعة الفاتورة تلقائياً بعد الدفع
         </label>
@@ -89,20 +111,127 @@
         </label>
         <label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px">عدد النسخ</label>
         <input type="number" id="printCopies" min="1" max="5" value="1" style="width:80px;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;margin-bottom:10px">
+        <label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px">رابط WebSocket Proxy (لطابعات WiFi)</label>
+        <input type="text" id="wsProxyUrl" placeholder="ws://localhost:9090" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
         <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
         <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:600;font-size:13px">
           <input type="checkbox" id="enablePrintAgent"> استخدام Print Agent
         </label>
         <label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px">رابط Print Agent</label>
-        <input type="text" id="printAgentUrl" placeholder="http://192.168.1.100:3000" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
+        <input type="text" id="printAgentUrl" placeholder="http://192.168.1.100:4321" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
         <label style="display:block;margin-bottom:4px;margin-top:8px;font-weight:600;font-size:13px">مفتاح API للـ Print Agent</label>
-        <input type="password" id="printAgentKey" placeholder="اتركه فارغ لو مش عاوز حماية" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
-        <p style="font-size:12px;color:#888;margin-top:4px">برنامج محلي عشان يطبع على الطابعات. شوف مجلد print-agent</p>
+        <input type="password" id="printAgentKey" placeholder="اتركه فارغ لو مش عايز حماية" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
+        <p style="font-size:12px;color:#888;margin-top:4px">برنامج محلي عشان يطبع على الطابعات (شوف print-agent/README.md)</p>
+      </div>
+        <div class="settings-card">
+          <h3><i class="fa-solid fa-file-pen"></i>تخصيص الفواتير</h3>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:14px">عدّل شكل فاتورة الكاشير وأمر المطبخ HTML والطباعة الحرارية ESCPOS.</p>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button class="type-tab-btn active" data-type="cashier" style="flex:1;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-family:inherit;font-size:13px;font-weight:700">فاتورة الكاشير</button>
+            <button class="type-tab-btn" data-type="kitchen" style="flex:1;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-family:inherit;font-size:13px;font-weight:700">أمر المطبخ</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button class="fmt-tab-btn active" data-fmt="html" style="flex:1;height:34px;border-radius:8px;border:1px solid #ddd;background:var(--bg);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600">HTML (المتصفح)</button>
+            <button class="fmt-tab-btn" data-fmt="escpos" style="flex:1;height:34px;border-radius:8px;border:1px solid #ddd;background:var(--bg);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600">ESCPOS (الطابعة الحرارية)</button>
+          </div>
+          <div id="placeholderHelp" style="font-size:12px;color:#888;margin-bottom:8px;padding:8px;background:#f5f5f4;border-radius:8px">
+            <strong style="display:block;margin-bottom:4px">الوسوم المتاحة:</strong>
+            <code id="placeholderList" style="font-size:11px;line-height:1.8"></code>
+          </div>
+          <textarea id="templateEditor" dir="ltr" style="width:100%;height:280px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:'Courier New',monospace;font-size:12px;direction:ltr;text-align:left;resize:vertical;background:#1c1917;color:#f5f5f4"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="add-btn" id="resetTemplateBtn" style="background:#dc2626"><i class="fa-solid fa-rotate-left"></i> استعادة القالب الافتراضي</button>
+            <button class="add-btn" id="previewTemplateBtn" style="background:#059669"><i class="fa-solid fa-eye"></i> معاينة</button>
+          </div>
+        </div>
+        <div class="settings-card" id="printerCard">
+          <h3><i class="fa-solid fa-print"></i>الطابعات + درج الكاشير</h3>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:14px">أضف طابعات متعددة (USB، WiFi، Bluetooth). اربطها بالسيستم عشان تطبع الفواتير وطلبات المطبخ وتفتح الدرج أتوماتيك.</p>
+        <div id="printerList" style="margin-bottom:12px"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <button class="add-btn" id="addUsbPrinterBtn"><i class="fa-solid fa-usb"></i> إضافة طابعة USB</button>
+          <button class="add-btn" id="addWifiPrinterBtn" style="background:#2563eb"><i class="fa-solid fa-wifi"></i> إضافة طابعة WiFi</button>
+          <button class="add-btn" id="addBtPrinterBtn" style="background:#7c3aed"><i class="fa-solid fa-bluetooth-b"></i> إضافة طابعة Bluetooth</button>
+        </div>
+        <div id="wifiForm" style="display:none;margin-top:14px;padding:14px;background:#f5f5f4;border-radius:12px">
+          <label style="display:block;margin-bottom:6px;font-weight:600;font-size:13px">اسم الطابعة</label>
+          <input type="text" id="wifiName" placeholder="مثال: طابعة المطبخ" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;margin-bottom:10px">
+          <label style="display:block;margin-bottom:6px;font-weight:600;font-size:13px">عنوان IP</label>
+          <input type="text" id="wifiHost" placeholder="مثال: 192.168.1.100" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;margin-bottom:10px">
+          <label style="display:block;margin-bottom:6px;font-weight:600;font-size:13px">المنفذ (عادة 9100)</label>
+          <input type="number" id="wifiPort" value="9100" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px"><input type="checkbox" id="wifiForKitchen"> طابعة مطبخ (أوامر الشيف)</label>
+          <button class="add-btn" id="saveWifiBtn" style="background:#2563eb">توصيل</button>
+          <button class="cancel-btn" id="cancelWifiBtn" style="margin-right:8px">إلغاء</button>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:8px"><i class="fa-solid fa-info-circle"></i> للطابعات WiFi: شغّل الـ proxy على نفس الجهاز:</p>
+          <code style="display:block;background:#1c1917;color:#f5f5f4;padding:8px 12px;border-radius:8px;font-size:12px;direction:ltr;text-align:left">node printer-proxy-server.js</code>
+          <p style="font-size:12px;color:#888;margin-top:6px">الـ proxy بيشتغل على port 9090 ويستقبل أوامر الطباعة من المتصفح ويحولها للطابعة.</p>
+        </div>
+      </div>
+      <div class="settings-card">
+        <h3><i class="fa-solid fa-user-shield"></i>إدارة الحسابات</h3>
+        <label>اسم المستخدم الجديد</label>
+        <input type="text" id="newUsername" placeholder="اسم المستخدم">
+        <label>كلمة المرور</label>
+        <input type="password" id="newPassword" placeholder="كلمة المرور">
+        <label>الاسم الكامل</label>
+        <input type="text" id="newFullName" placeholder="الاسم الكامل">
+        <label>الصلاحية</label>
+        <select id="newRole">
+          <option value="Administrator">مدير</option>
+          <option value="Owner">محمد الجوهري</option>
+          <option value="Employee">موظف</option>
+        </select>
+        <button class="add-btn" id="addUserBtn"><i class="fa-solid fa-user-plus"></i>إضافة حساب</button>
+      </div>
+      <div class="settings-card">
+        <h3><i class="fa-solid fa-link"></i>صلاحيات المستخدمين (Role Mappings)</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">اربط الـ UID المجهول للمستخدم بصلاحية معينة. يقدر الموظف يسجل بنفسه تلقائي. Owner و Admin محتاجين Admin يضيفهم هنا.</p>
+        <div id="userMappingList" style="margin-bottom:12px">
+          <p style="color:#888;font-size:13px;text-align:center;padding:12px">جاري التحميل...</p>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+        <label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px">الـ UID المجهول (من المتصفح)</label>
+        <input type="text" id="mappingUid" placeholder="اسأل المستخدم يكتبلك UID بتاعه من Console F12" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:13px;direction:ltr">
+        <label style="display:block;margin-top:8px;margin-bottom:4px;font-weight:600;font-size:13px">اختر المستخدم</label>
+        <select id="mappingUserId" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:13px"></select>
+        <label style="display:block;margin-top:8px;margin-bottom:4px;font-weight:600;font-size:13px">الصلاحية</label>
+        <select id="mappingRole" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:13px">
+          <option value="Administrator">مدير</option>
+          <option value="Owner">محمد الجوهري</option>
+          <option value="Employee">موظف</option>
+        </select>
+        <button class="add-btn" id="addUserMappingBtn" style="margin-top:12px"><i class="fa-solid fa-plus"></i>إضافة صلاحية</button>
       </div>
     </section>
+    <div class="settings-actions">
+      <button class="save-settings" id="saveSettings"><i class="fa-solid fa-floppy-disk"></i>حفظ الإعدادات</button>
+      <button class="reset-btn" id="resetData"><i class="fa-solid fa-trash-can"></i>مسح كل البيانات</button>
+    </div>
   </main>
 </div>
 
+<div class="modal" id="resetConfirmModal">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-header">
+      <h2>⚠️ تأكيد مسح البيانات</h2>
+      <button class="close-modal" id="closeResetConfirm"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:25px">
+      <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+      <p style="font-size:15px;font-weight:700;color:#dc2626;margin-bottom:8px">هذا الإجراء لا يمكن التراجع عنه!</p>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">سيتم حذف كل الفواتير والطلبات والموظفين والمخزون والإعدادات من Firebase.</p>
+      <p style="font-size:13px;margin-bottom:10px">اكتب <strong style="color:#dc2626">تأكيد</strong> للمتابعة:</p>
+      <input type="text" id="resetConfirmWord" placeholder="اكتب تأكيد" style="width:100%;height:44px;border:2px solid var(--border);border-radius:10px;padding:0 14px;font-family:inherit;font-size:16px;text-align:center;outline:none">
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px;padding:16px 25px">
+      <button class="cancel-btn" id="cancelResetConfirm" style="flex:1;height:44px;font-size:15px">إلغاء</button>
+      <button class="confirm-btn" id="confirmResetBtn" style="flex:1;height:44px;font-size:15px;background:#dc2626" disabled>حذف كل البيانات</button>
+    </div>
+  </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -113,6 +242,7 @@
 <script src="js/data.js"></script>
         <script src="js/notifications.js"></script>
         <script src="js/printer.js"></script>
+<script src="js/template-engine.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/daily-inventory-check.js"></script>
 <script src="js/role.js?v=3"></script>
