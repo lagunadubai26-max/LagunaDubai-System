@@ -16,6 +16,7 @@ async function load() {
   if (settings.wsProxyUrl) localStorage.setItem('laguna_printer_proxy', settings.wsProxyUrl);
   document.getElementById('enablePrintAgent').checked = settings.enablePrintAgent !== false;
   document.getElementById('printAgentUrl').value = settings.printAgentUrl || 'http://localhost:3000';
+  document.getElementById('printAgentKey').value = settings.printAgentKey || '';
   if (settings.printAgentUrl) localStorage.setItem('laguna_print_agent_url', settings.printAgentUrl);
   if (settings.printAgentKey) localStorage.setItem('laguna_print_agent_key', settings.printAgentKey);
   localStorage.setItem('laguna_print_agent_enabled', settings.enablePrintAgent !== false);
