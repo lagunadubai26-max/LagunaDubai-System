@@ -3,6 +3,16 @@ const _ownerUser = (() => {
 })();
 if (!_ownerUser || _ownerUser.role !== 'Owner') window.location.href = 'auth.html';
 
+function formatTime12h(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  let h = d.getHours();
+  const ampm = h >= 12 ? 'م' : 'ص';
+  h = h % 12 || 12;
+  return h.toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0') + ' ' + ampm;
+}
+
 function logout() {
   sessionStorage.removeItem('laguna_user');
   sessionStorage.removeItem('laguna_token');
@@ -346,8 +356,8 @@ function renderAttendance() {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td><strong>${escapeHtml(emp.name)}</strong></td>
       <td><span class="badge ${stCls}">${stTxt}</span></td>
-      <td style="color:var(--text-secondary);font-size:12px">${rec && rec.checkIn ? new Date(rec.checkIn).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-      <td style="color:var(--text-secondary);font-size:12px">${rec && rec.checkOut ? new Date(rec.checkOut).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>`;
+      <td style="color:var(--text-secondary);font-size:12px">${rec && rec.checkIn ? formatTime12h(rec.checkIn) : '—'}</td>
+      <td style="color:var(--text-secondary);font-size:12px">${rec && rec.checkOut ? formatTime12h(rec.checkOut) : '—'}</td>`;
     tbody.appendChild(tr);
   });
 }

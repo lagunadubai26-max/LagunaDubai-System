@@ -2,7 +2,30 @@ function formatTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
   if (isNaN(d)) return iso;
-  return d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  let h = d.getHours();
+  const ampm = h >= 12 ? 'م' : 'ص';
+  h = h % 12 || 12;
+  return h.toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0') + ' ' + ampm;
+}
+
+function nowTime12h() {
+  const now = new Date();
+  let h = now.getHours();
+  const ampm = h >= 12 ? 'م' : 'ص';
+  h = h % 12 || 12;
+  return h.toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ' ' + ampm;
+}
+
+function parseTime12h(str) {
+  const match = str.trim().match(/^(\d{1,2}):(\d{2})\s*(ص|م)?$/);
+  if (!match) return null;
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const ampm = match[3];
+  if (isNaN(h) || isNaN(m) || h < 1 || h > 12 || m < 0 || m > 59) return null;
+  if (ampm === 'م' && h < 12) h += 12;
+  if (ampm === 'ص' && h === 12) h = 0;
+  return { h, m };
 }
 
 const table = document.querySelector(".attendance-table");
@@ -75,16 +98,11 @@ function attachEvents(employees, todayRecords) {
     if (checkBtn && !checkBtn.disabled) {
       checkBtn.onclick = async () => {
         const now = new Date();
-        const def = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-        const input = prompt('وقت الحضور (HH:MM)', def);
+        const def = nowTime12h();
+        const input = prompt('وقت الحضور (مثال: 09:30 ص أو 05:45 م)', def);
         if (input === null) return;
-        const parts = input.trim().split(':');
-        if (parts.length === 2) {
-          const h = parseInt(parts[0]), m = parseInt(parts[1]);
-          if (!isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59) {
-            now.setHours(h, m, 0, 0);
-          }
-        }
+        const parsed = parseTime12h(input);
+        if (parsed) now.setHours(parsed.h, parsed.m, 0, 0);
         await DB.attendance.checkIn(emp.id, emp.name, emp.job || '', now.toISOString());
         render();
       };
@@ -95,16 +113,11 @@ function attachEvents(employees, todayRecords) {
     if (leaveBtn && !leaveBtn.disabled) {
       leaveBtn.onclick = async () => {
         const now = new Date();
-        const def = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-        const input = prompt('وقت الانصراف (HH:MM)', def);
+        const def = nowTime12h();
+        const input = prompt('وقت الانصراف (مثال: 05:30 م أو 11:00 ص)', def);
         if (input === null) return;
-        const parts = input.trim().split(':');
-        if (parts.length === 2) {
-          const h = parseInt(parts[0]), m = parseInt(parts[1]);
-          if (!isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59) {
-            now.setHours(h, m, 0, 0);
-          }
-        }
+        const parsed = parseTime12h(input);
+        if (parsed) now.setHours(parsed.h, parsed.m, 0, 0);
         await DB.attendance.checkOut(recordId, now.toISOString());
         render();
       };
