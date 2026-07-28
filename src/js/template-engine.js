@@ -39,9 +39,8 @@ window.TEMPLATE = (() => {
       const noteTxt = safeNote ? '<br><small>' + safeNote + '</small>' : '';
       return '<tr>'
         + '<td class="item-name">' + safeName + milkTxt + noteTxt + '</td>'
-        + '<td>' + item.qty + '</td>'
-        + '<td>' + item.price + ' ج.م</td>'
-        + '<td>' + (item.qty * item.price) + ' ج.م</td>'
+        + '<td style="text-align:center;">' + item.qty + '</td>'
+        + '<td style="text-align:center;">' + item.price + ' ج.م</td>'
         + '</tr>';
     }).join('');
   }
@@ -58,13 +57,14 @@ window.TEMPLATE = (() => {
   }
 
   function defaultCashierTemplate() {
-    return '<div style="width:300px;margin:0 auto;font-family:\'Cairo\',sans-serif;direction:rtl;background:#fff;padding:10px 6px;color:#222;">\n'
-      + '  <div style="text-align:center;margin-bottom:4px;">\n'
+    return '<div style="width:100%;max-width:320px;margin:0 auto;font-family:\'Cairo\',sans-serif;direction:rtl;background:#fff;padding:12px 10px;color:#222;">\n'
+      + '  <div style="text-align:center;margin-bottom:6px;">\n'
       + '    {logo}\n'
-      + '    <div style="font-size:22px;font-weight:900;color:#1a1a2e;">لاجونا دبي</div>\n'
+      + '    <div style="font-size:24px;font-weight:900;color:#1a1a2e;margin-top:4px;">لاجونا دبي</div>\n'
       + '    <div style="font-size:10px;color:#888;margin-top:2px;">كافيه - مطعم | Laguna Dubai</div>\n'
-      + '    <div style="font-size:11px;font-weight:700;color:#b8860b;margin-top:4px;letter-spacing:1px;">فاتورة ضريبية</div>\n'
       + '  </div>\n'
+      + '  <div style="text-align:center;font-size:12px;color:#b8860b;margin:4px 0 2px;">❋ ❋ ❋ ❋ ❋</div>\n'
+      + '  <div style="text-align:center;font-size:15px;font-weight:700;color:#1a1a2e;margin:2px 0;">فاتورة ضريبية</div>\n'
       + '  <div style="border-top:2px solid #1a1a2e;margin:6px 0;"></div>\n'
       + '  <table style="width:100%;font-size:11px;line-height:1.9;margin:4px 0;">\n'
       + '    <tr><td style="color:#888;">رقم الفاتورة</td><td style="text-align:left;font-weight:700;direction:ltr">#{id}</td></tr>\n'
@@ -76,21 +76,19 @@ window.TEMPLATE = (() => {
       + '  <table style="width:100%;font-size:11px;border-collapse:collapse;margin:4px 0;">\n'
       + '    <tr style="border-bottom:2px solid #1a1a2e;font-weight:700;font-size:11px;">\n'
       + '      <td style="padding:4px 2px;">الصنف</td>\n'
-      + '      <td style="width:28px;text-align:center;">الكمية</td>\n'
-      + '      <td style="width:38px;text-align:center;">السعر</td>\n'
-      + '      <td style="width:45px;text-align:left;">الإجمالي</td>\n'
+      + '      <td style="width:30px;text-align:center;">الكمية</td>\n'
+      + '      <td style="width:50px;text-align:center;">السعر</td>\n'
       + '    </tr>\n'
       + '    {items}\n'
       + '  </table>\n'
       + '  <div style="border-top:1px dashed #bbb;margin:4px 0;"></div>\n'
       + '  <table style="width:100%;font-size:11px;line-height:1.8;">\n'
-      + '    <tr><td style="color:#888;">المجموع الفرعي</td><td style="text-align:left;">{subtotal}</td></tr>\n'
       + '    {taxAmount}\n'
       + '    {serviceAmount}\n'
       + '  </table>\n'
-      + '  <div style="background:#1a1a2e;color:#fff;border-radius:6px;padding:8px 12px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;">\n'
-      + '    <span style="font-size:12px;">الإجمالي الكلي</span>\n'
-      + '    <span style="font-size:20px;font-weight:900;">{total}</span>\n'
+      + '  <div style="background:#1a1a2e;color:#fff;border-radius:8px;padding:10px 14px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">\n'
+      + '    <span style="font-size:14px;font-weight:700;">الإجمالي</span>\n'
+      + '    <span style="font-size:22px;font-weight:900;">{total}</span>\n'
       + '  </div>\n'
       + '  <table style="width:100%;font-size:11px;line-height:1.8;">\n'
       + '    <tr><td style="color:#888;">طريقة الدفع</td><td style="text-align:left;font-weight:700;">{paymentMethod}</td></tr>\n'
@@ -98,7 +96,7 @@ window.TEMPLATE = (() => {
       + '    <tr><td style="color:#888;">المتبقي</td><td style="text-align:left;color:#c0392b;font-weight:600;">{remaining}</td></tr>\n'
       + '  </table>\n'
       + '  <div style="border-top:2px solid #1a1a2e;margin:6px 0 4px;"></div>\n'
-      + '  <div style="text-align:center;font-size:11px;color:#888;margin-top:4px;">شكراً لزيارتكم</div>\n'
+      + '  <div style="text-align:center;font-size:12px;font-weight:700;color:#1a1a2e;">شكرًا لزيارتكم</div>\n'
       + '  <div style="text-align:center;font-size:10px;color:#999;margin-top:2px;">{footer}</div>\n'
       + '  <script>window.print();window.close();<\/script>\n'
       + '</div>';
@@ -220,7 +218,7 @@ window.TEMPLATE = (() => {
     // Wrap in full HTML if not already (for proper @page CSS in thermal printing)
     if (!result.match(/<html/i)) {
       result = '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">'
-        + '<style>@media print{@page{margin:0;size:58mm 300mm}}body{margin:0;padding:0}</style>'
+        + '<style>@media print{@page{margin:0;size:80mm 400mm}}body{margin:0;padding:0;font-family:\'Cairo\',sans-serif}</style>'
         + '</head><body>' + result + '</body></html>';
     }
     return result;
@@ -268,7 +266,7 @@ window.TEMPLATE = (() => {
   }
 
   function defaultEscposCashier() {
-    return '{init}{center}{size=double}لاجونا دبي\n{size=normal}كافيه - مطعم\n{bold}فاتورة ضريبية\n{bold=off}{left}\n{date}\n#{id}\n{customer}{table}\n---\n{items:name:qty:total}\n---\n{subtotal}\n{serviceAmount}\n{taxAmount}\n{bold}{total}\n{bold=off}{paid}\n{change}\n{remaining}\n{paymentMethod}\n---\nشكراً لزيارتكم\n{footer}\n{cut}';
+    return '{init}{center}{size=double}لاجونا دبي\n{size=normal}كافيه - مطعم\n{bold}فاتورة ضريبية\n{bold=off}\n❋ ❋ ❋ ❋ ❋\n{left}\n#{id}\n{date}\n{customer}{table}\n---\n{items:name:qty:price}\n---\n{taxAmount}\n{serviceAmount}\n{bold}{total}\n{bold=off}{paid}\n{change}\n{remaining}\n{paymentMethod}\n---\nشكراً لزيارتكم\n{footer}\n{cut}';
   }
 
   function defaultEscposKitchen() {
@@ -330,8 +328,9 @@ window.TEMPLATE = (() => {
           if (cols.length === 3) {
             const name = ('\u2022 ' + safeName + milkTxt).substring(0, maxLen - 8);
             const qty = '' + item.qty + 'x';
-            const total_price = '' + (item.qty * item.price);
-            const padded = name.padEnd(maxLen - qty.length - total_price.length) + qty + total_price;
+            const lastCol = cols[2] === 'price' ? item.price : (item.qty * item.price);
+            const lastColStr = '' + lastCol;
+            const padded = name.padEnd(maxLen - qty.length - lastColStr.length) + qty + lastColStr;
             buf = padded;
           } else {
             buf = '\u2022 ' + safeName + milkTxt + noteTxt;
