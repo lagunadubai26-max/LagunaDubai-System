@@ -304,17 +304,20 @@ window.PRINTER = (function() {
     }
   }
 
-  async function printViaAgent(invoice) {
+  async function printViaAgent(invoice, type) {
     var url = localStorage.getItem('laguna_print_agent_url');
     if (!url) return { ok: false, skipped: true };
     try {
       var headers = { 'Content-Type': 'application/json' };
       var apiKey = localStorage.getItem('laguna_print_agent_key');
       if (apiKey) headers['X-API-Key'] = apiKey;
+      var payload = {};
+      for (var k in invoice) payload[k] = invoice[k];
+      if (type) payload.type = type;
       var resp = await fetch(url.replace(/\/+$/, '') + '/print-invoice', {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify(invoice)
+        body: JSON.stringify(payload)
       });
       return await resp.json();
     } catch (err) {

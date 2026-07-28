@@ -33,7 +33,7 @@ async function render() {
     const safeId = escapeHtml(inv.id);
     const remainingHtml = remaining > 0 ? '<span style="color:#dc2626;font-size:12px">باقي ' + Number(remaining).toLocaleString() + '</span>' : '<span style="color:#059669;font-size:12px">مدفوع كامل</span>';
     const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
-    const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '"><i class="fa-solid fa-print"></i></button>';
+    const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '" title="طباعة الكاشير"><i class="fa-solid fa-receipt"></i></button><button class="kitchen-print-btn" data-id="' + safeId + '" title="طباعة المطبخ"><i class="fa-solid fa-utensils"></i></button>';
     const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
     row.innerHTML = '<td><input type="checkbox" class="inv-checkbox" data-id="' + safeId + '"></td><td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
     tableBody.appendChild(row);
@@ -71,58 +71,68 @@ function attachActions() {
       if (!inv) return;
       if (inv.printed && !confirm('الفاتورة مطبوعة من قبل.\nهل تريد إعادة الطباعة؟')) return;
 
-      // Try print agent first (if enabled)
-      let agentPrinted = false;
+      let printed = false;
       if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
         try {
-          const result = await PRINTER.printViaAgent(inv);
-          if (result && result.ok) {
-            agentPrinted = true;
-          }
-        } catch (e) {
-          console.warn('[printer] agent failed:', e);
-        }
+          const result = await PRINTER.printViaAgent(inv, 'invoice');
+          if (result && result.ok) printed = true;
+        } catch (e) { console.warn('[printer] agent failed:', e); }
       }
 
-      if (agentPrinted) {
-        if (!inv.printed) await DB.invoices.update(inv.id, { printed: true, pendingPrint: false });
-        render();
-        return;
-      }
-
-      if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
-        alert('تعذر الطباعة عبر الـ Agent. تأكد من:' + String.fromCharCode(10) + '1- تشغيل start-agent.bat' + String.fromCharCode(10) + '2- السماح بالمحتوى غير الآمن في إعدادات الموقع');
-        return;
-      }
-
-      if (typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
+      if (!printed && typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
         try {
-          var prResult = await PRINTER.printReceipt(inv);
-          if (prResult && prResult.ok) {
-            await PRINTER.printKitchenOrder(inv);
-            await PRINTER.openDrawer();
-            await DB.invoices.update(inv.id, { printed: true, pendingPrint: false });
-            render();
-            return;
-          } else {
-            await DB.invoices.update(inv.id, { pendingPrint: true });
-          }
-        } catch (e) {
-          console.warn('[printer] print failed, falling back to browser print:', e);
-        }
+          const result = await PRINTER.printReceipt(inv);
+          if (result && result.ok) { printed = true; await PRINTER.openDrawer(); }
+        } catch (e) { console.warn('[printer] usb failed:', e); }
       }
-      TEMPLATE.getTemplate('cashier').then(cashierTpl => {
-        if (!cashierTpl) cashierTpl = TEMPLATE.defaultCashierTemplate;
-        const w = window.open('', '_blank', 'width=400,height=600');
-        const rendered = TEMPLATE.renderCashier(inv, cashierTpl);
-        w.document.write(rendered);
-        w.document.close();
-      }).catch(() => {
-        const w = window.open('', '_blank', 'width=400,height=600');
-        const rendered = TEMPLATE.renderCashier(inv);
-        w.document.write(rendered);
-        w.document.close();
-      });
+
+      if (printed) {
+        await DB.invoices.update(inv.id, { printed: true, pendingPrint: false });
+      } else {
+        await DB.invoices.update(inv.id, { pendingPrint: true });
+        TEMPLATE.getTemplate('cashier').then(cashierTpl => {
+          if (!cashierTpl) cashierTpl = TEMPLATE.defaultCashierTemplate;
+          const w = window.open('', '_blank', 'width=400,height=600');
+          w.document.write(TEMPLATE.renderCashier(inv, cashierTpl));
+          w.document.close();
+        }).catch(() => {
+          const w = window.open('', '_blank', 'width=400,height=600');
+          w.document.write(TEMPLATE.renderCashier(inv));
+          w.document.close();
+        });
+      }
+      render();
+    };
+  });
+  document.querySelectorAll('.kitchen-print-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const inv = invoices.find(i => i.id === btn.dataset.id);
+      if (!inv) return;
+
+      let printed = false;
+      if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
+        try {
+          const result = await PRINTER.printViaAgent(inv, 'kitchen');
+          if (result && result.ok) printed = true;
+        } catch (e) { console.warn('[printer] agent failed:', e); }
+      }
+
+      if (!printed && typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
+        try { await PRINTER.printKitchenOrder(inv); printed = true; } catch (e) { console.warn('[printer] usb failed:', e); }
+      }
+
+      if (!printed) {
+        TEMPLATE.getTemplate('kitchen').then(kitchenTpl => {
+          if (!kitchenTpl) kitchenTpl = TEMPLATE.defaultKitchenTemplate;
+          const w = window.open('', '_blank', 'width=400,height=600');
+          w.document.write(TEMPLATE.renderKitchen(inv, kitchenTpl));
+          w.document.close();
+        }).catch(() => {
+          const w = window.open('', '_blank', 'width=400,height=600');
+          w.document.write(TEMPLATE.renderKitchen(inv));
+          w.document.close();
+        });
+      }
     };
   });
   document.querySelectorAll('.pay-btn').forEach(btn => {
@@ -293,7 +303,7 @@ function renderWithData() {
     const safeId = escapeHtml(inv.id);
     const remainingHtml = remaining > 0 ? '<span style="color:#dc2626;font-size:12px">باقي ' + Number(remaining).toLocaleString() + '</span>' : '<span style="color:#059669;font-size:12px">مدفوع كامل</span>';
     const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
-    const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '"><i class="fa-solid fa-print"></i></button>';
+    const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '" title="طباعة الكاشير"><i class="fa-solid fa-receipt"></i></button><button class="kitchen-print-btn" data-id="' + safeId + '" title="طباعة المطبخ"><i class="fa-solid fa-utensils"></i></button>';
     const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
     row.innerHTML = '<td><input type="checkbox" class="inv-checkbox" data-id="' + safeId + '"></td><td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
     tableBody.appendChild(row);

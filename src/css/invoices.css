@@ -390,6 +390,12 @@
 
 }
 
+.kitchen-print-btn{
+
+    background:#dc2626;
+
+}
+
 .actions button:hover{
 
     transform:translateY(-3px);

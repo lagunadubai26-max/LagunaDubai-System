@@ -23,6 +23,9 @@ if (isCustomer) {
   if (custSec) custSec.style.display = 'none';
   if (paidSec) paidSec.style.display = 'none';
   if (remSec) remSec.style.display = 'none';
+  // Lock table input for customer QR
+  const ti = document.getElementById('tableInput');
+  if (ti) { ti.disabled = true; ti.value = tableNum; }
 }
 (async () => {
   try {
@@ -168,22 +171,27 @@ async function loadProducts() {
 }
 
 async function occupyTable() {
-  if (!tableNum) return;
+  const tn = tableNum || getTableInput();
+  if (!tn) return;
   const count = document.querySelectorAll('.order-box .order-list .order-item .name').length;
   if (count > 0) {
     try {
       const allTables = await DB.tables.all() || [];
-      const tbl = allTables.find(t => t.name === 'طاولة ' + tableNum);
+      const tbl = allTables.find(t => t.name === 'طاولة ' + tn);
       if (tbl) {
         await DB.tables.update(tbl.id, { status: 'occupied' });
       } else {
-        // Auto-create table if it doesn't exist
-        await DB.tables.add({ id: 't' + tableNum, name: 'طاولة ' + tableNum, capacity: 4, status: 'occupied', currentOrder: null, hasService: false });
+        await DB.tables.add({ id: 't' + tn, name: 'طاولة ' + tn, capacity: 4, status: 'occupied', currentOrder: null, hasService: false });
       }
     } catch (e) {
       console.warn('[occupy]', e);
     }
   }
+}
+
+function getTableInput() {
+  const el = document.getElementById('tableInput');
+  return el && !el.disabled ? el.value.trim() : '';
 }
 
 function attachAddToCart() {
@@ -509,7 +517,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     const items = window._checkoutItems || [];
     const serviceAmount = window._checkoutService || 0;
     const taxAmount = window._checkoutTax || 0;
-    const table = tableNum ? 'طاولة ' + tableNum : null;
+    const table = (tableNum || getTableInput()) ? 'طاولة ' + (tableNum || getTableInput()) : null;
     const paid = Math.max(0, Number(document.getElementById('checkoutPaid').value) || 0);
     const change = Math.max(0, paid - totalAmount);
     if (custType !== 'special') {
@@ -539,9 +547,10 @@ document.getElementById('confirmCheckout').onclick = async () => {
     try {
       await FB.runTransaction(async (tx) => {
         const rawDb = FB.getDb();
-        if (tableNum) {
+        const tn = tableNum || getTableInput();
+        if (tn) {
           const allTables = await DB.tables.all() || [];
-          const tbl = allTables.find(t => t.name === 'طاولة ' + tableNum);
+          const tbl = allTables.find(t => t.name === 'طاولة ' + tn);
           if (tbl) {
             const tableRef = rawDb.collection('tables_').doc(tbl.id);
             tx.update(tableRef, { status: 'occupied' });
@@ -605,25 +614,30 @@ document.getElementById('confirmCheckout').onclick = async () => {
 
         const btnContainer = document.getElementById('successButtons');
         btnContainer.innerHTML = '';
-        const printBtn = document.createElement('button');
-        printBtn.style.cssText = 'flex:1;height:44px;border-radius:12px;font-size:14px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;border:none;cursor:pointer';
-        printBtn.innerHTML = '<i class="fa-solid fa-print"></i> طباعة الفاتورة';
+
+        const cashierBtn = document.createElement('button');
+        cashierBtn.style.cssText = 'flex:1;height:44px;border-radius:12px;font-size:13px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;border:none;cursor:pointer';
+        cashierBtn.innerHTML = '<i class="fa-solid fa-receipt"></i> طباعة الكاشير';
+
+        const kitchenBtn = document.createElement('button');
+        kitchenBtn.style.cssText = 'flex:1;height:44px;border-radius:12px;font-size:13px;font-weight:700;background:#dc2626;color:#fff;border:none;cursor:pointer';
+        kitchenBtn.innerHTML = '<i class="fa-solid fa-utensils"></i> طباعة المطبخ';
 
         const closeBtn = document.createElement('button');
         closeBtn.style.cssText = 'flex:1;height:44px;border-radius:12px;font-size:14px;font-weight:600;background:#f5f5f4;color:var(--primary);border:none;cursor:pointer';
         closeBtn.textContent = 'إغلاق';
 
+        btnContainer.appendChild(cashierBtn);
+        btnContainer.appendChild(kitchenBtn);
         btnContainer.appendChild(closeBtn);
-        btnContainer.appendChild(printBtn);
 
         document.getElementById('successModal').classList.add('show');
 
-        printBtn.onclick = async () => {
-          document.getElementById('successModal').classList.remove('show');
+        const printCashier = async () => {
           let printed = false;
           try {
             if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
-              const agentResult = await PRINTER.printViaAgent(inv);
+              const agentResult = await PRINTER.printViaAgent(inv, 'invoice');
               if (agentResult && agentResult.ok) printed = true;
             }
             if (!printed && typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
@@ -632,34 +646,68 @@ document.getElementById('confirmCheckout').onclick = async () => {
               if (printed && paid >= totalAmount) await PRINTER.openDrawer();
             }
           } catch(e) { console.warn('[print]', e); }
-          if (!printed) printReceipt(inv);
+          if (!printed) {
+            const tpl = await TEMPLATE.getTemplate('cashier');
+            const w = window.open('', '_blank', 'width=400,height=600');
+            w.document.write(TEMPLATE.renderCashier(inv, tpl || TEMPLATE.defaultCashierTemplate));
+            w.document.close();
+          }
         };
+
+        const printKitchen = async () => {
+          let printed = false;
+          try {
+            if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
+              const agentResult = await PRINTER.printViaAgent(inv, 'kitchen');
+              if (agentResult && agentResult.ok) printed = true;
+            }
+            if (!printed && typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
+              await PRINTER.printKitchenOrder(inv);
+              printed = true;
+            }
+          } catch(e) { console.warn('[print]', e); }
+          if (!printed) {
+            const tpl = await TEMPLATE.getTemplate('kitchen');
+            const w = window.open('', '_blank', 'width=400,height=600');
+            w.document.write(TEMPLATE.renderKitchen(inv, tpl || TEMPLATE.defaultKitchenTemplate));
+            w.document.close();
+          }
+        };
+
+        cashierBtn.onclick = async () => { document.getElementById('successModal').classList.remove('show'); await printCashier(); };
+        kitchenBtn.onclick = async () => { document.getElementById('successModal').classList.remove('show'); await printKitchen(); };
         const hideSuccess = () => document.getElementById('successModal').classList.remove('show');
         closeBtn.onclick = hideSuccess;
 
         const autoPrintDisabled = localStorage.getItem('laguna_auto_print_disabled') === 'true';
         if (autoPrintReceipt && !autoPrintDisabled) {
-          let printed = false;
-          if (hasPrinter) {
+          let cashierPrinted = false;
+          let kitchenPrinted = false;
+
+          if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
             try {
-              let result = await PRINTER.printReceipt(inv);
-              printed = result && result.ok;
-              for (let ci = 1; ci < copies && printed; ci++) await PRINTER.printReceipt(inv);
-              if (printed && paid >= totalAmount) await PRINTER.openDrawer();
-              if (printed && autoPrintKitchen) await PRINTER.printKitchenOrder(inv);
-            } catch (e) {
-              console.warn('[printer] error:', e);
-            }
+              const agentResult = await PRINTER.printViaAgent(inv, 'invoice');
+              if (agentResult && agentResult.ok) { cashierPrinted = true; kitchenPrinted = true; }
+            } catch(e) { console.warn('[print-agent]', e); }
           }
-          if (printed) {
+
+          if (!cashierPrinted && hasPrinter) {
+            try {
+              const result = await PRINTER.printReceipt(inv);
+              cashierPrinted = result && result.ok;
+              for (let ci = 1; ci < copies && cashierPrinted; ci++) await PRINTER.printReceipt(inv);
+              if (cashierPrinted && paid >= totalAmount) await PRINTER.openDrawer();
+            } catch (e) { console.warn('[printer] cashier error:', e); }
+          }
+
+          if (!kitchenPrinted && hasPrinter && autoPrintKitchen) {
+            try { await PRINTER.printKitchenOrder(inv); kitchenPrinted = true; } catch (e) { console.warn('[printer] kitchen error:', e); }
+          }
+
+          if (cashierPrinted) {
             await DB.invoices.update(inv.id, { printed: true, pendingPrint: false });
           } else {
             await DB.invoices.update(inv.id, { printed: false, pendingPrint: true });
-            printBtn.innerHTML = '<i class="fa-solid fa-hourglass"></i> الطباعة معلقة - اضغط لإعادة المحاولة';
-          }
-          let agentEnabled = localStorage.getItem('laguna_print_agent_enabled') === 'true';
-          if (agentEnabled) {
-            try { await PRINTER.printViaAgent(inv); } catch (e) { console.warn('[print-agent]', e); }
           }
         }
       }
