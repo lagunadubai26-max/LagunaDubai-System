@@ -678,44 +678,6 @@ document.getElementById('confirmCheckout').onclick = async () => {
         kitchenBtn.onclick = async () => { document.getElementById('successModal').classList.remove('show'); await printKitchen(); };
         const hideSuccess = () => document.getElementById('successModal').classList.remove('show');
         closeBtn.onclick = hideSuccess;
-
-        const autoPrintDisabled = localStorage.getItem('laguna_auto_print_disabled') === 'true';
-        if (autoPrintReceipt && !autoPrintDisabled) {
-          let cashierPrinted = false;
-          let kitchenPrinted = false;
-
-          if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
-            try {
-              const agentResult = await PRINTER.printViaAgent(inv, 'invoice', { noAutoKitchen: true, openDrawer: paid >= totalAmount });
-              if (agentResult && agentResult.ok) { cashierPrinted = true; }
-            } catch(e) { console.warn('[print-agent]', e); }
-          }
-
-          if (!cashierPrinted && hasPrinter) {
-            try {
-              const result = await PRINTER.printReceipt(inv);
-              cashierPrinted = result && result.ok;
-              for (let ci = 1; ci < copies && cashierPrinted; ci++) await PRINTER.printReceipt(inv);
-              if (cashierPrinted && paid >= totalAmount) await PRINTER.openDrawer();
-            } catch (e) { console.warn('[printer] cashier error:', e); }
-          }
-
-          if (!kitchenPrinted && hasPrinter && autoPrintKitchen) {
-            try {
-              if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
-                const agentResult = await PRINTER.printViaAgent(inv, 'kitchen');
-                if (agentResult && agentResult.ok) kitchenPrinted = true;
-              }
-              if (!kitchenPrinted) { await PRINTER.printKitchenOrder(inv); kitchenPrinted = true; }
-            } catch (e) { console.warn('[printer] kitchen error:', e); }
-          }
-
-          if (cashierPrinted) {
-            await DB.invoices.update(inv.id, { printed: true, pendingPrint: false });
-          } else {
-            await DB.invoices.update(inv.id, { printed: false, pendingPrint: true });
-          }
-        }
       }
     } else {
       alert(`تم إنشاء الفاتورة\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${paid} ج.م`);
