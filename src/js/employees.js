@@ -15,6 +15,7 @@ const salaryInput = document.getElementById('empSalary');
 const hireDateInput = document.getElementById('empHireDate');
 const statusSelect = document.getElementById('empStatus');
 const pinInput = document.getElementById('empPin');
+const shiftTimeInput = document.getElementById('empShiftTime');
 
 async function render() {
   if (renderBusy) return;
@@ -53,6 +54,7 @@ async function render() {
         <span>${escapeHtml(emp.name)}</span><span>${escapeHtml(emp.job)}</span><span>${escapeHtml(emp.phone || '—')}</span>
         <span style="display:none">${emp.salary ? Number(emp.salary).toLocaleString() + ' ج.م' : '—'}</span>
         <span>${escapeHtml(emp.hireDate || '—')}</span>
+        <span>${emp.shiftTime ? shiftTime12h(emp.shiftTime) : '—'}</span>
         <span class="status ${stCls}">${stTxt}</span>
         <div class="actions">
           <button class="edit-btn" data-id="${emp.id}"><i class="fa-solid fa-pen"></i></button>
@@ -75,6 +77,17 @@ async function render() {
   renderBusy = false;
 }
 
+function shiftTime12h(val) {
+  if (!val) return '—';
+  const parts = val.split(':');
+  if (parts.length < 2) return val;
+  let h = parseInt(parts[0], 10);
+  const m = parts[1];
+  const ampm = h >= 12 ? 'م' : 'ص';
+  h = h % 12 || 12;
+  return h.toString().padStart(2,'0') + ':' + m + ' ' + ampm;
+}
+
 function attachActions() {
   document.querySelectorAll('.edit-btn').forEach(btn => {
     btn.onclick = () => {
@@ -89,6 +102,7 @@ function attachActions() {
       hireDateInput.value = emp.hireDate || '';
       statusSelect.value = emp.status || 'active';
       pinInput.value = '';
+      shiftTimeInput.value = emp.shiftTime || '';
       modal.classList.add('show');
     };
   });
@@ -127,6 +141,7 @@ document.getElementById('saveEmp').onclick = async () => {
     salary: salaryInput.value.trim() || '',
     hireDate: hireDateInput.value,
     status: statusSelect.value,
+    shiftTime: shiftTimeInput.value || '',
     pin: null
   };
   if (pin) {

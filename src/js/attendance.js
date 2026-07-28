@@ -1,3 +1,14 @@
+function shiftTime12h(val) {
+  if (!val) return '—';
+  const parts = val.split(':');
+  if (parts.length < 2) return val;
+  let h = parseInt(parts[0], 10);
+  const m = parts[1];
+  const ampm = h >= 12 ? 'م' : 'ص';
+  h = h % 12 || 12;
+  return h.toString().padStart(2,'0') + ':' + m + ' ' + ampm;
+}
+
 function formatTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -53,9 +64,12 @@ async function render() {
     const checkInTime = record && record.checkIn ? formatTime(record.checkIn) : '—';
     const checkOutTime = record && record.checkOut ? formatTime(record.checkOut) : '—';
 
+    const expectedTime = shiftTime12h(emp.shiftTime);
+
     row.innerHTML = `
       <span class="emp-name-click" style="cursor:pointer;color:var(--primary);font-weight:600;text-decoration:underline">${escapeHtml(emp.name)}</span>
       <span>${escapeHtml(emp.job || '—')}</span>
+      <span class="expected-time" style="font-size:12px;color:var(--muted)">${expectedTime}</span>
       <span class="in-time">${escapeHtml(checkInTime)}</span>
       <span class="out-time">${escapeHtml(checkOutTime)}</span>
       <span class="status ${stCls}">${stTxt}</span>
@@ -98,7 +112,17 @@ function attachEvents(employees, todayRecords) {
     if (checkBtn && !checkBtn.disabled) {
       checkBtn.onclick = async () => {
         const now = new Date();
-        const def = nowTime12h();
+        let def;
+        if (emp.shiftTime) {
+          const parts = emp.shiftTime.split(':');
+          if (parts.length >= 2) {
+            let h = parseInt(parts[0], 10);
+            const m = parts[1];
+            const ampm = h >= 12 ? 'م' : 'ص';
+            h = h % 12 || 12;
+            def = h.toString().padStart(2,'0') + ':' + m + ' ' + ampm;
+          } else { def = nowTime12h(); }
+        } else { def = nowTime12h(); }
         const input = prompt('وقت الحضور (مثال: 09:30 ص أو 05:45 م)', def);
         if (input === null) return;
         const parsed = parseTime12h(input);
