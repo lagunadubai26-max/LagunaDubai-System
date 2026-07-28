@@ -75,6 +75,39 @@ async function render() {
       link.click();
     };
   });
+
+  // Download All / Print All
+  const downloadAllBtn = document.getElementById('downloadAllQr');
+  if (downloadAllBtn) {
+    downloadAllBtn.onclick = () => {
+      const modal = document.getElementById('qrPrintModal');
+      const grid = document.getElementById('qrPrintGrid');
+      grid.innerHTML = '';
+      document.querySelectorAll('.qr-card').forEach(card => {
+        const canvas = card.querySelector('canvas');
+        if (!canvas) return;
+        const name = card.querySelector('h2')?.textContent || '';
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'text-align:center;background:#fff;border-radius:12px;padding:12px;border:1px solid #eee;break-inside:avoid';
+        const img = document.createElement('img');
+        img.src = canvas.toDataURL('image/png');
+        img.style.cssText = 'width:180px;height:180px;display:block;margin:0 auto';
+        const label = document.createElement('div');
+        label.style.cssText = 'margin-top:8px;font-size:14px;font-weight:700;color:#1c1917;direction:rtl';
+        label.textContent = name;
+        wrap.appendChild(img);
+        wrap.appendChild(label);
+        grid.appendChild(wrap);
+      });
+      modal.style.display = 'block';
+    };
+  }
+
+  const closeBtn = document.getElementById('closeQrPrint');
+  if (closeBtn) closeBtn.onclick = () => { document.getElementById('qrPrintModal').style.display = 'none'; };
+
+  const printBtn = document.getElementById('printAllQr');
+  if (printBtn) printBtn.onclick = () => { window.print(); };
 }
 
 render();
