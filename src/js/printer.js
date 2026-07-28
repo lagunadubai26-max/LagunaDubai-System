@@ -304,7 +304,7 @@ window.PRINTER = (function() {
     }
   }
 
-  async function printViaAgent(invoice, type) {
+  async function printViaAgent(invoice, type, opts) {
     var url = localStorage.getItem('laguna_print_agent_url');
     if (!url) return { ok: false, skipped: true };
     try {
@@ -314,6 +314,7 @@ window.PRINTER = (function() {
       var payload = {};
       for (var k in invoice) payload[k] = invoice[k];
       if (type) payload.type = type;
+      if (opts) { for (var ok in opts) payload[ok] = opts[ok]; }
       var resp = await fetch(url.replace(/\/+$/, '') + '/print-invoice', {
         method: 'POST',
         headers: headers,

@@ -23,7 +23,10 @@ async function render() {
   try {
     let data;
     try {
-      data = await DB.employees.all();
+      data = await Promise.race([
+        DB.employees.all(),
+        new Promise(function(_, rej) { setTimeout(function() { rej(new Error('timeout')); }, 8000); })
+      ]);
     } catch (e) {
       console.error('[employees] fetch error:', e);
       data = [];
@@ -73,8 +76,9 @@ async function render() {
     attachActions();
   } catch (e) {
     console.error('[employees] render error:', e);
+  } finally {
+    renderBusy = false;
   }
-  renderBusy = false;
 }
 
 function shiftTime12h(val) {
@@ -172,3 +176,8 @@ if (searchInput) searchInput.addEventListener('keyup', render);
 if (jobFilter) jobFilter.addEventListener('change', render);
 
 render();
+
+// Auto-recovery: re-render every 30s in case of silent failures
+setInterval(function() {
+  if (!renderBusy) render();
+}, 30000);

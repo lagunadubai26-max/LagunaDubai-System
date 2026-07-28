@@ -637,7 +637,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
           let printed = false;
           try {
             if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
-              const agentResult = await PRINTER.printViaAgent(inv, 'invoice');
+              const agentResult = await PRINTER.printViaAgent(inv, 'invoice', { noAutoKitchen: true, openDrawer: paid >= totalAmount });
               if (agentResult && agentResult.ok) printed = true;
             }
             if (!printed && typeof PRINTER !== 'undefined' && PRINTER.isConnected()) {
@@ -686,8 +686,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
 
           if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
             try {
-              const agentResult = await PRINTER.printViaAgent(inv, 'invoice');
-              if (agentResult && agentResult.ok) { cashierPrinted = true; kitchenPrinted = true; }
+              const agentResult = await PRINTER.printViaAgent(inv, 'invoice', { noAutoKitchen: true, openDrawer: paid >= totalAmount });
+              if (agentResult && agentResult.ok) { cashierPrinted = true; }
             } catch(e) { console.warn('[print-agent]', e); }
           }
 
@@ -701,7 +701,13 @@ document.getElementById('confirmCheckout').onclick = async () => {
           }
 
           if (!kitchenPrinted && hasPrinter && autoPrintKitchen) {
-            try { await PRINTER.printKitchenOrder(inv); kitchenPrinted = true; } catch (e) { console.warn('[printer] kitchen error:', e); }
+            try {
+              if (localStorage.getItem('laguna_print_agent_enabled') === 'true') {
+                const agentResult = await PRINTER.printViaAgent(inv, 'kitchen');
+                if (agentResult && agentResult.ok) kitchenPrinted = true;
+              }
+              if (!kitchenPrinted) { await PRINTER.printKitchenOrder(inv); kitchenPrinted = true; }
+            } catch (e) { console.warn('[printer] kitchen error:', e); }
           }
 
           if (cashierPrinted) {
