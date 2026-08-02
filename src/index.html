@@ -78,7 +78,7 @@
                 <p>مرحبًا بك في نظام Laguna Cafe</p>
             </div>
             <div style="display:flex;align-items:center;gap:12px">
-                <button id="dashDayCloseBtn" class="btn-dayclose" style="height:46px;padding:0 20px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.3s"><i class="fa-solid fa-sun"></i> ابدأ اليوم</button>
+                <button id="dashDayCloseBtn" class="btn-dayclose" style="height:46px;padding:0 20px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.3s"><i class="fa-solid fa-sun"></i> فتح الشيفت</button>
                 <div class="profile-top" style="display:flex;align-items:center;gap:12px">
                     <div class="avatar" id="topAvatar">أ</div>
                     <div class="info">
@@ -184,8 +184,9 @@
 <!-- Start Day Modal -->
 <div class="modal" id="dashStartDayModal">
   <div class="modal-box" style="max-width:460px;text-align:center">
-    <div class="modal-header" style="justify-content:center">
+    <div class="modal-header" style="justify-content:center;position:relative">
       <h2><i class="fa-solid fa-sun" style="color:var(--accent)"></i> ابدأ اليوم</h2>
+      <button class="close-modal" id="dashCloseStartDay" style="position:absolute;left:16px;top:50%;transform:translateY(-50%)">&times;</button>
     </div>
     <div class="modal-body">
       <div style="font-size:64px;margin-bottom:12px">☀️</div>
@@ -235,7 +236,7 @@
 <script src="js/sanitize.js"></script>
 <script src="js/data.js?v=4"></script>
         <script src="js/notifications.js?v=2"></script>
-        <script src="js/dashboard.js?v=2"></script>
+        <script src="js/dashboard.js?v=3"></script>
 <script src="js/daily-inventory-check.js?v=1"></script>
 <script src="js/role.js?v=3"></script>
 

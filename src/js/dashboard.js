@@ -67,12 +67,12 @@ async function checkDashDayClose() {
   const shift = await DB.shifts.getOpen();
   const btn = document.getElementById('dashDayCloseBtn');
   if (shift) {
-    btn.innerHTML = '<i class="fa-solid fa-moon"></i> إغلاق اليوم';
+    btn.innerHTML = '<i class="fa-solid fa-moon"></i> غلق الشيفت';
     btn.disabled = false;
     btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
   } else {
-    btn.innerHTML = '<i class="fa-solid fa-sun"></i> ابدأ اليوم';
+    btn.innerHTML = '<i class="fa-solid fa-sun"></i> فتح الشيفت';
     btn.disabled = false;
     btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
@@ -111,7 +111,8 @@ document.getElementById('dashConfirmStartDay').onclick = async () => {
 };
 
 function closeDashStartDay() { document.getElementById('dashStartDayModal').classList.remove('show'); }
-document.getElementById('dashCloseStartDay').onclick = closeDashStartDay;
+const dashCloseStartDayEl = document.getElementById('dashCloseStartDay');
+if (dashCloseStartDayEl) dashCloseStartDayEl.onclick = closeDashStartDay;
 document.getElementById('dashCancelStartDay').onclick = closeDashStartDay;
 window.addEventListener('click', e => { if (e.target === document.getElementById('dashStartDayModal')) closeDashStartDay(); });
 

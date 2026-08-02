@@ -62,7 +62,7 @@
           <label><i class="fa-solid fa-calendar"></i> الشهر:</label>
           <input type="month" id="reportMonth">
         </div>
-        <button id="dayCloseBtn" class="btn-dayclose"><i class="fa-solid fa-moon"></i> إغلاق اليوم</button>
+        <button id="dayCloseBtn" class="btn-dayclose"><i class="fa-solid fa-sun"></i> فتح الشيفت</button>
         <button id="dcHistoryBtn" class="btn-outline" style="height:50px;padding:0 18px;border-radius:12px;font-size:14px"><i class="fa-solid fa-clock-rotate-left"></i> السجل</button>
         <button id="exportBtn"><i class="fa-solid fa-file-export"></i> تصدير</button>
         <button id="monthlyPdfBtn" class="btn-outline" style="height:50px;padding:0 18px;border-radius:12px;font-size:14px"><i class="fa-solid fa-file-pdf"></i> تحميل PDF</button>
@@ -149,8 +149,9 @@
 <!-- Start Day Modal -->
 <div class="modal" id="dcStartDayModal">
   <div class="modal-box" style="max-width:460px;text-align:center">
-    <div class="modal-header" style="justify-content:center">
+    <div class="modal-header" style="justify-content:center;position:relative">
       <h2><i class="fa-solid fa-sun" style="color:var(--accent)"></i> ابدأ اليوم</h2>
+      <button class="close-modal" id="dcCloseStartDay" style="position:absolute;left:16px;top:50%;transform:translateY(-50%)">&times;</button>
     </div>
     <div class="modal-body">
       <div style="font-size:64px;margin-bottom:12px">☀️</div>
@@ -218,7 +219,7 @@
 <script src="js/sanitize.js"></script>
 <script src="js/data.js?v=4"></script>
         <script src="js/notifications.js?v=2"></script>
-        <script src="js/reports.js?v=9"></script>
+        <script src="js/reports.js?v=10"></script>
 <script src="js/daily-inventory-check.js?v=1"></script>
 <script src="js/role.js?v=3"></script>
 </body>

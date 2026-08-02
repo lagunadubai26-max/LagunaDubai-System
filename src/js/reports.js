@@ -444,12 +444,12 @@ const closeDcHistoryBtn = document.getElementById('closeDcHistoryBtn');
 async function checkDayCloseStatus() {
   const shift = await DB.shifts.getOpen();
   if (shift) {
-    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-moon"></i> إغلاق اليوم';
+    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-moon"></i> غلق الشيفت';
     document.getElementById('dayCloseBtn').disabled = false;
     document.getElementById('dayCloseBtn').style.opacity = '1';
     document.getElementById('dayCloseBtn').style.cursor = 'pointer';
   } else {
-    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-sun"></i> ابدأ اليوم';
+    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-sun"></i> فتح الشيفت';
     document.getElementById('dayCloseBtn').disabled = false;
     document.getElementById('dayCloseBtn').style.opacity = '1';
     document.getElementById('dayCloseBtn').style.cursor = 'pointer';
@@ -539,7 +539,8 @@ document.getElementById('dcConfirmStartDay').onclick = async () => {
 };
 
 function closeStartDayModal() { document.getElementById('dcStartDayModal').classList.remove('show'); }
-document.getElementById('dcCloseStartDay').onclick = closeStartDayModal;
+const dcCloseStartDayEl = document.getElementById('dcCloseStartDay');
+if (dcCloseStartDayEl) dcCloseStartDayEl.onclick = closeStartDayModal;
 document.getElementById('dcCancelStartDay').onclick = closeStartDayModal;
 window.addEventListener('click', e => { if (e.target === document.getElementById('dcStartDayModal')) closeStartDayModal(); });
 
