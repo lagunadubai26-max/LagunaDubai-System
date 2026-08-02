@@ -5,6 +5,13 @@ function localGet(key, def) {
 }
 function localSet(key, val) { localStorage.setItem('laguna_' + key, JSON.stringify(val)); }
 
+function localDateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
 const DB = {
   mode: DB_MODE,
 
@@ -158,7 +165,7 @@ const DB = {
     async all() { return await FB.getCollection('daycloses'); },
     async today() {
       const all = await FB.getCollection('daycloses');
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateKey(new Date());
       return all.find(d => d.date && d.date.slice(0, 10) === today);
     },
     async byMonth(year, month) {
@@ -182,7 +189,7 @@ const DB = {
       const now = new Date();
       const shift = {
         id: 'sh-' + crypto.randomUUID().slice(0, 8),
-        openDate: now.toISOString().slice(0, 10),
+        openDate: localDateKey(now),
         openedAt: now.toISOString(),
         openedBy: name || 'الكاشير',
         closedAt: null

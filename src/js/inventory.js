@@ -110,7 +110,7 @@ document.getElementById('postponeInvBtn').onclick = () => {
 };
 
 async function checkDailyInventoryBanner() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey(new Date());
   const doneKey = 'laguna_inv_done_' + today;
   if (localStorage.getItem(doneKey)) return;
 
@@ -154,7 +154,7 @@ async function checkDailyInventoryBanner() {
 }
 
 function postponeInventory() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey(new Date());
   localStorage.setItem('laguna_inv_done_' + today, '1');
   localStorage.setItem('laguna_inv_remind_' + today, '1');
 
@@ -204,10 +204,10 @@ weeklyInvBtn.onclick = async () => {
 };
 
 saveWeeklyInv.onclick = async () => {
-  const dateStr = new Date().toISOString().slice(0, 10);
+  const dateStr = localDateKey(new Date());
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const weekKey = weekStart.toISOString().slice(0, 10);
+  const weekKey = localDateKey(weekStart);
 
   const lowStockItems = [];
   const inputs = document.querySelectorAll('.weekly-qty');

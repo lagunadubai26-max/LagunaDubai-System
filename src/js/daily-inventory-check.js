@@ -6,7 +6,7 @@
 
     var now = new Date();
     if (now.getHours() < 6) now.setDate(now.getDate() - 1);
-    var invDate = now.toISOString().slice(0, 10);
+    var invDate = localDateKey(now);
     var doneKey = 'laguna_inv_done_' + invDate;
     var remindKey = 'laguna_inv_remind_' + invDate;
 

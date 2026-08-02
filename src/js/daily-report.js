@@ -5,9 +5,7 @@ const dayReportImgBtn = document.getElementById('dayReportImgBtn');
 const dayReportEl = document.getElementById('dayReport');
 
 function setDayReportDate() {
-  const d = new Date();
-  d.setHours(d.getHours() - 12);
-  dayReportDate.value = d.toISOString().slice(0, 10);
+  dayReportDate.value = localDateKey(new Date());
 }
 
 function fmtMoney(v) {

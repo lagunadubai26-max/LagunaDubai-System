@@ -197,7 +197,7 @@ function drawAnomalies(invoices, expenses, range) {
   // Aggregate per day
   var cursor = new Date(range.start);
   while (cursor <= range.end) {
-    var key = cursor.toISOString().slice(0, 10);
+    var key = localDateKey(cursor);
     dailySales[key] = 0;
     dailyExpenses[key] = 0;
     dayCount++;
@@ -206,13 +206,13 @@ function drawAnomalies(invoices, expenses, range) {
 
   invoices.forEach(function(inv) {
     if (!inv.date) return;
-    var day = inv.date.slice(0, 10);
+    var day = localDateKey(new Date(inv.date));
     if (dailySales[day] !== undefined) dailySales[day] += Number(inv.total || 0);
   });
 
   expenses.forEach(function(exp) {
     if (!exp.date) return;
-    var day = exp.date.slice(0, 10);
+    var day = localDateKey(new Date(exp.date));
     if (dailyExpenses[day] !== undefined) dailyExpenses[day] += Number(exp.amount || 0);
   });
 
@@ -357,6 +357,41 @@ function drawTopProducts(invoices) {
 }
 
 monthInput.addEventListener('change', () => { destroyAllCharts(); render(); });
+
+// ── Export Monthly Report (PDF / Image) ──
+async function exportMonthlyReport(asImage) {
+  const el = document.getElementById('monthlyReport');
+  if (!el) return;
+  try {
+    const labelEl = document.getElementById('monthlyReportLabel');
+    if (labelEl) {
+      const [y, m] = monthInput.value.split('-').map(Number);
+      labelEl.textContent = new Date(y, m - 1, 1).toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+    }
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#f6f8fb', windowWidth: 1200 });
+    const imgData = canvas.toDataURL('image/png');
+    const fileName = 'تقرير-شهري-' + monthInput.value;
+    if (asImage) {
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = fileName + '.png';
+      link.click();
+    } else {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(fileName + '.pdf');
+    }
+  } catch (e) {
+    console.error('[monthly-export]', e);
+    alert('حدث خطأ أثناء تحميل التقرير: ' + (e.message || e));
+  }
+}
+
+const monthlyPdfBtn = document.getElementById('monthlyPdfBtn');
+const monthlyImgBtn = document.getElementById('monthlyImgBtn');
+if (monthlyPdfBtn) monthlyPdfBtn.onclick = () => exportMonthlyReport(false);
+if (monthlyImgBtn) monthlyImgBtn.onclick = () => exportMonthlyReport(true);
 
 // ── Export ──
 document.getElementById('exportBtn').onclick = async () => {
@@ -598,7 +633,7 @@ dcHistoryBtn.onclick = async () => {
     html += '<div class="dc-history-header"><span>التاريخ</span><span>المبيعات</span><span>الدرج</span><span>فيزا</span><span>الفواتير</span><span>صافي الربح</span><span>بواسطة</span></div>';
     all.forEach(dc => {
       const dateStr = new Date(dc.date + 'T12:00:00').toLocaleDateString('ar-EG');
-      const isToday = dc.date === new Date().toISOString().slice(0, 10);
+      const isToday = dc.date === localDateKey(new Date());
       html += `<div class="dc-history-row${isToday ? ' today' : ''}">
         <span>${dateStr}</span>
         <span>${fmtMoney(dc.totalSales || 0)}</span>
