@@ -78,7 +78,7 @@
                 <p>مرحبًا بك في نظام Laguna Cafe</p>
             </div>
             <div style="display:flex;align-items:center;gap:12px">
-                <button id="dashDayCloseBtn" class="btn-dayclose" style="height:46px;padding:0 20px;border:none;border-radius:12px;background:#1c1917;color:#fff;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.3s"><i class="fa-solid fa-moon"></i> إغلاق اليوم</button>
+                <button id="dashDayCloseBtn" class="btn-dayclose" style="height:46px;padding:0 20px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.3s"><i class="fa-solid fa-sun"></i> ابدأ اليوم</button>
                 <div class="profile-top" style="display:flex;align-items:center;gap:12px">
                     <div class="avatar" id="topAvatar">أ</div>
                     <div class="info">
@@ -181,6 +181,25 @@
 
 </div>
 
+<!-- Start Day Modal -->
+<div class="modal" id="dashStartDayModal">
+  <div class="modal-box" style="max-width:460px;text-align:center">
+    <div class="modal-header" style="justify-content:center">
+      <h2><i class="fa-solid fa-sun" style="color:var(--accent)"></i> ابدأ اليوم</h2>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:64px;margin-bottom:12px">☀️</div>
+      <div class="dc-date" id="dashStartDate" style="font-size:20px;font-weight:800;color:var(--primary)"></div>
+      <div style="font-size:16px;color:var(--muted);margin-top:6px" id="dashStartTime"></div>
+      <p style="color:var(--muted);font-size:13px;margin-top:16px;line-height:1.8">افتح الشيفون وابدأ اليوم<br>اليوم يظل ثابتًا حتى تغلقه يدويًا في نهاية الشيفت — لا يتغير بعد منتصف الليل</p>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px">
+      <button class="cancel-btn" id="dashCancelStartDay"><i class="fa-solid fa-xmark"></i> لاحقًا</button>
+      <button class="confirm-btn" id="dashConfirmStartDay" style="background:var(--accent);color:#fff"><i class="fa-solid fa-play"></i> بدء اليوم الآن</button>
+    </div>
+  </div>
+</div>
+
 <!-- Day Close Modal -->
 <div class="modal" id="dashDayCloseModal">
   <div class="modal-box" style="max-width:600px">
@@ -214,9 +233,9 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/firebase-client.js"></script>
 <script src="js/sanitize.js"></script>
-<script src="js/data.js"></script>
-        <script src="js/notifications.js"></script>
-        <script src="js/dashboard.js"></script>
+<script src="js/data.js?v=3"></script>
+        <script src="js/notifications.js?v=2"></script>
+        <script src="js/dashboard.js?v=1"></script>
 <script src="js/daily-inventory-check.js"></script>
 <script src="js/role.js?v=3"></script>
 

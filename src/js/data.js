@@ -27,8 +27,14 @@ const DB = {
 
   attendance: {
     async all() { return await FB.getCollection('attendance'); },
-    attDayRange(now) {
+    async attDayRange(now) {
       now = now || new Date();
+      let shift = null;
+      try { shift = await DB.shifts.getOpen(); } catch(e) {}
+      if (shift && shift.openDate) {
+        const start = new Date(shift.openDate + 'T00:00:00');
+        return { start, end: now };
+      }
       const h = now.getHours();
       let start, end;
       if (h >= 17) {
@@ -164,6 +170,29 @@ const DB = {
       if (!data.id) data.id = 'dc-' + crypto.randomUUID().slice(0, 8);
       return await FB.addDoc('daycloses', data);
     },
+  },
+
+  shifts: {
+    async all() { return await FB.getCollection('shifts'); },
+    async getOpen() {
+      const all = await FB.getCollection('shifts');
+      return all.find(s => s && !s.closedAt) || null;
+    },
+    async open(name) {
+      const now = new Date();
+      const shift = {
+        id: 'sh-' + crypto.randomUUID().slice(0, 8),
+        openDate: now.toISOString().slice(0, 10),
+        openedAt: now.toISOString(),
+        openedBy: name || 'الكاشير',
+        closedAt: null
+      };
+      await FB.addDoc('shifts', shift);
+      return shift;
+    },
+    async close(id, data) {
+      await FB.updateDoc('shifts', id, data);
+    }
   },
 
   audit: {

@@ -43,7 +43,7 @@ async function showDayReport() {
 
   try {
     const [allInvoices, allExpenses, allReturns, menu] = await Promise.all([
-      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.menu.all()
+      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all()
     ]);
 
     const start = new Date(dateVal + 'T00:00:00');

@@ -64,15 +64,15 @@ function filterDate(items, start, end) {
 }
 
 async function checkDashDayClose() {
-  const existing = await DB.daycloses.today();
+  const shift = await DB.shifts.getOpen();
   const btn = document.getElementById('dashDayCloseBtn');
-  if (existing) {
-    btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> تم إغلاق اليوم';
-    btn.disabled = true;
-    btn.style.opacity = '0.6';
-    btn.style.cursor = 'not-allowed';
-  } else {
+  if (shift) {
     btn.innerHTML = '<i class="fa-solid fa-moon"></i> إغلاق اليوم';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.innerHTML = '<i class="fa-solid fa-sun"></i> ابدأ اليوم';
     btn.disabled = false;
     btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
@@ -80,22 +80,52 @@ async function checkDashDayClose() {
 }
 
 document.getElementById('dashDayCloseBtn').onclick = async () => {
-  const existing = await DB.daycloses.today();
-  if (existing) { alert('✅ تم إغلاق هذا اليوم بالفعل'); return; }
-  showDashDayCloseModal();
+  const shift = await DB.shifts.getOpen();
+  if (shift) {
+    showDashDayCloseModal(shift);
+  } else {
+    showDashStartDayModal();
+  }
 };
 
-async function showDashDayCloseModal() {
+// ── Start Day (Open Shift) ──
+function showDashStartDayModal() {
+  const now = new Date();
+  document.getElementById('dashStartDate').textContent = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('dashStartTime').textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('dashStartDayModal').classList.add('show');
+}
+
+document.getElementById('dashConfirmStartDay').onclick = async () => {
+  const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
+  try {
+    const shift = await DB.shifts.open(user.name || 'الكاشير');
+    DB.audit.log('shift_open', { openDate: shift.openDate, openedBy: shift.openedBy });
+    closeDashStartDay();
+    checkDashDayClose();
+    alert('✅ تم بدء اليوم ' + new Date(shift.openDate + 'T12:00:00').toLocaleDateString('ar-EG') + '\nاليوم ثابت حتى إغلاق الشيفت يدويًا');
+  } catch (e) {
+    console.error('[startday]', e);
+    alert('❌ حدث خطأ أثناء بدء اليوم');
+  }
+};
+
+function closeDashStartDay() { document.getElementById('dashStartDayModal').classList.remove('show'); }
+document.getElementById('dashCloseStartDay').onclick = closeDashStartDay;
+document.getElementById('dashCancelStartDay').onclick = closeDashStartDay;
+window.addEventListener('click', e => { if (e.target === document.getElementById('dashStartDayModal')) closeDashStartDay(); });
+
+async function showDashDayCloseModal(shift) {
   const allInvoices = await DB.invoices.all() || [];
   const allExpenses = await DB.expenses.all() || [];
   const allReturns = await DB.returns.all() || [];
 
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+  const start = new Date(shift.openDate + 'T00:00:00');
+  const end = new Date();
 
-  const invoices = filterDate(allInvoices, todayStart, todayEnd);
-  const expenses = filterDate(allExpenses, todayStart, todayEnd);
-  const returns = filterDate(allReturns, todayStart, todayEnd);
+  const invoices = filterDate(allInvoices, start, end);
+  const expenses = filterDate(allExpenses, start, end);
+  const returns = filterDate(allReturns, start, end);
   const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
   const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
@@ -107,7 +137,8 @@ async function showDashDayCloseModal() {
   const netProfit = totalSales - totalReturns - totalExpenses;
   const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
-  const todayStr = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const shiftDate = new Date(shift.openDate + 'T12:00:00');
+  const todayStr = 'شيفت ' + shiftDate.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + ' (من ' + (shift.openedAt ? new Date(shift.openedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—') + ')';
   document.getElementById('dashDcDate').textContent = todayStr;
   document.getElementById('dashDcSales').textContent = fmtMoney(totalSales);
   document.getElementById('dashDcInvoices').textContent = paidInvoices.length;
@@ -127,6 +158,7 @@ async function showDashDayCloseModal() {
   confBtn.dataset.totalExpenses = totalExpenses;
   confBtn.dataset.totalReturns = totalReturns;
   confBtn.dataset.netProfit = netProfit;
+  confBtn.dataset.openDate = shift.openDate;
 
   document.getElementById('dashDayCloseModal').classList.add('show');
 }
@@ -134,9 +166,11 @@ async function showDashDayCloseModal() {
 document.getElementById('dashConfirmDayClose').onclick = async () => {
   const btn = document.getElementById('dashConfirmDayClose');
   const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const shift = await DB.shifts.getOpen();
+  if (!shift) { alert('❌ لا يوجد شيفت مفتوح حاليًا'); return; }
+  const openDate = btn.dataset.openDate || shift.openDate;
   const data = {
-    date: todayISO,
+    date: openDate,
     totalSales: Number(btn.dataset.totalSales),
     numInvoices: Number(btn.dataset.paidInvoices),
     cashAmount: Number(btn.dataset.cashAmount),
@@ -150,6 +184,7 @@ document.getElementById('dashConfirmDayClose').onclick = async () => {
   };
   try {
     await DB.daycloses.close(data);
+    await DB.shifts.close(shift.id, { closedAt: new Date().toISOString(), closedBy: user.name || 'الكاشير' });
     DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, cashInDrawer: data.cashInDrawer });
     document.getElementById('dashDayCloseModal').classList.remove('show');
     checkDashDayClose();
@@ -166,3 +201,12 @@ document.getElementById('dashCancelDayClose').onclick = closeDashDayClose;
 window.addEventListener('click', e => { if (e.target === document.getElementById('dashDayCloseModal')) closeDashDayClose(); });
 
 updateDashboard();
+
+(async function autoStartDay() {
+  try {
+    const shift = await DB.shifts.getOpen();
+    if (!shift) showDashStartDayModal();
+  } catch (e) {
+    console.warn('[autostart]', e);
+  }
+})();

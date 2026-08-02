@@ -399,14 +399,14 @@ const closeDcHistory = document.getElementById('closeDcHistory');
 const closeDcHistoryBtn = document.getElementById('closeDcHistoryBtn');
 
 async function checkDayCloseStatus() {
-  const existing = await DB.daycloses.today();
-  if (existing) {
-    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-check-circle"></i> تم إغلاق اليوم';
-    document.getElementById('dayCloseBtn').disabled = true;
-    document.getElementById('dayCloseBtn').style.opacity = '0.6';
-    document.getElementById('dayCloseBtn').style.cursor = 'not-allowed';
-  } else {
+  const shift = await DB.shifts.getOpen();
+  if (shift) {
     document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-moon"></i> إغلاق اليوم';
+    document.getElementById('dayCloseBtn').disabled = false;
+    document.getElementById('dayCloseBtn').style.opacity = '1';
+    document.getElementById('dayCloseBtn').style.cursor = 'pointer';
+  } else {
+    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-sun"></i> ابدأ اليوم';
     document.getElementById('dayCloseBtn').disabled = false;
     document.getElementById('dayCloseBtn').style.opacity = '1';
     document.getElementById('dayCloseBtn').style.cursor = 'pointer';
@@ -418,9 +418,13 @@ async function showDayCloseModal() {
   const allExpenses = await DB.expenses.all() || [];
   const allReturns = await DB.returns.all() || [];
 
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
-  const range = { start: todayStart, end: todayEnd };
+  const shift = await DB.shifts.getOpen();
+  const rangeStart = shift ? new Date(shift.openDate + 'T00:00:00') : null;
+  const range = { start: rangeStart, end: new Date() };
+  if (!rangeStart) {
+    alert('❌ لا يوجد شيفت مفتوح حاليًا');
+    return;
+  }
 
   const invoices = filterByDate(allInvoices, range);
   const expenses = filterByDate(allExpenses, range);
@@ -436,7 +440,8 @@ async function showDayCloseModal() {
   const netProfit = totalSales - totalReturns - totalExpenses;
   const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
-  const todayStr = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const shiftForDate = shift ? new Date(shift.openDate + 'T12:00:00') : new Date();
+  const todayStr = 'شيفت ' + shiftForDate.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + (shift && shift.openedAt ? ' (من ' + new Date(shift.openedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) + ')' : '');
   document.getElementById('dcDate').textContent = todayStr;
   document.getElementById('dcSales').textContent = fmtMoney(totalSales);
   document.getElementById('dcInvoices').textContent = paidInvoices.length;
@@ -461,18 +466,46 @@ async function showDayCloseModal() {
 }
 
 document.getElementById('dayCloseBtn').onclick = async () => {
-    const existing = await DB.daycloses.today();
-    if (existing) {
-      alert('✅ تم إغلاق هذا اليوم بالفعل');
+    const shift = await DB.shifts.getOpen();
+    if (!shift) {
+      showStartDayModal();
       return;
     }
     showDayCloseModal();
   };
 
+function showStartDayModal() {
+  const now = new Date();
+  document.getElementById('dcStartDate').textContent = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('dcStartTime').textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('dcStartDayModal').classList.add('show');
+}
+
+document.getElementById('dcConfirmStartDay').onclick = async () => {
+  const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
+  try {
+    const shift = await DB.shifts.open(user.name || 'الكاشير');
+    DB.audit.log('shift_open', { openDate: shift.openDate, openedBy: shift.openedBy });
+    closeStartDayModal();
+    checkDayCloseStatus();
+    alert('✅ تم بدء اليوم ' + new Date(shift.openDate + 'T12:00:00').toLocaleDateString('ar-EG') + '\nاليوم ثابت حتى إغلاق الشيفت يدويًا');
+  } catch (e) {
+    console.error('[startday]', e);
+    alert('❌ حدث خطأ أثناء بدء اليوم');
+  }
+};
+
+function closeStartDayModal() { document.getElementById('dcStartDayModal').classList.remove('show'); }
+document.getElementById('dcCloseStartDay').onclick = closeStartDayModal;
+document.getElementById('dcCancelStartDay').onclick = closeStartDayModal;
+window.addEventListener('click', e => { if (e.target === document.getElementById('dcStartDayModal')) closeStartDayModal(); });
+
 confirmDayClose.onclick = async () => {
   const btn = confirmDayClose;
   const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const shift = await DB.shifts.getOpen();
+  if (!shift) { alert('❌ لا يوجد شيفت مفتوح حاليًا'); return; }
+  const todayISO = shift.openDate;
   const data = {
     date: todayISO,
     totalSales: Number(btn.dataset.totalSales),
@@ -489,14 +522,15 @@ confirmDayClose.onclick = async () => {
   };
   try {
     await DB.daycloses.close(data);
+    await DB.shifts.close(shift.id, { closedAt: new Date().toISOString(), closedBy: user.name || 'الكاشير' });
     DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, totalExpenses: data.totalExpenses });
     dayCloseModal.classList.remove('show');
     checkDayCloseStatus();
 
     // Export Excel for today's invoices
     const allInvoices = await DB.invoices.all() || [];
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+    const todayStart = new Date(todayISO + 'T00:00:00');
+    const todayEnd = new Date();
     const todayInvoices = allInvoices.filter(inv => {
       if (!inv.date) return false;
       const d = new Date(inv.date);

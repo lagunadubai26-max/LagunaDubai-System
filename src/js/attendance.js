@@ -47,6 +47,121 @@ const detailsModal = document.getElementById("employeeDetailsModal");
 const closeDetailsModal = document.getElementById("closeDetailsModal");
 const closeDetailsBtn = document.getElementById("closeDetailsBtn");
 
+// ── Time Picker Modal ──
+const attTimeModal = document.getElementById('attTimeModal');
+const attTimeHour = document.getElementById('attTimeHour');
+const attTimeMinute = document.getElementById('attTimeMinute');
+let attTimeMode = 'in';
+let attTimeEmp = null;
+let attTimeRecordId = null;
+
+(function populateTimeSelects() {
+  for (let i = 1; i <= 12; i++) {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = i < 10 ? '0' + i : String(i);
+    attTimeHour.appendChild(opt);
+  }
+  for (let i = 0; i < 60; i++) {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = i < 10 ? '0' + i : String(i);
+    attTimeMinute.appendChild(opt);
+  }
+})();
+
+function attSetAmpm(ampm) {
+  const am = document.getElementById('attTimeAm');
+  const pm = document.getElementById('attTimePm');
+  if (ampm === 'ص') {
+    am.style.background = 'var(--accent)'; am.style.color = '#fff'; am.style.borderColor = 'var(--accent)';
+    pm.style.background = '#fff'; pm.style.color = 'var(--muted)'; pm.style.borderColor = '#e7e5e4';
+  } else {
+    pm.style.background = 'var(--accent)'; pm.style.color = '#fff'; pm.style.borderColor = 'var(--accent)';
+    am.style.background = '#fff'; am.style.color = 'var(--muted)'; am.style.borderColor = '#e7e5e4';
+  }
+}
+
+function attTime12hToHm(timeStr) {
+  if (!timeStr) return null;
+  const parts = String(timeStr).split(':');
+  if (parts.length < 2) return null;
+  let h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (isNaN(h) || isNaN(m)) return null;
+  const ampm = h >= 12 ? 'م' : 'ص';
+  h = h % 12 || 12;
+  return { h, m, ampm };
+}
+
+function openTimeModal(mode, emp, recordId) {
+  attTimeMode = mode;
+  attTimeEmp = emp;
+  attTimeRecordId = recordId;
+  const title = document.getElementById('attTimeTitle');
+  title.innerHTML = mode === 'in'
+    ? '<i class="fa-solid fa-right-to-bracket" style="color:var(--accent)"></i> تسجيل الحضور'
+    : '<i class="fa-solid fa-right-from-bracket" style="color:var(--accent)"></i> تسجيل الانصراف';
+  document.getElementById('attTimeEmpName').textContent = emp ? emp.name : '';
+  document.getElementById('attTimeEmpJob').textContent = emp ? (emp.job || '') : '';
+
+  let hm = attTime12hToHm(emp && emp.shiftTime);
+  if (!hm) {
+    const now = new Date();
+    const h24 = now.getHours();
+    hm = { h: h24 % 12 || 12, m: now.getMinutes(), ampm: h24 >= 12 ? 'م' : 'ص' };
+  }
+  attTimeHour.value = String(hm.h);
+  attTimeMinute.value = String(hm.m);
+  attSetAmpm(hm.ampm);
+  attTimeModal.classList.add('show');
+}
+
+function closeTimeModal() { attTimeModal.classList.remove('show'); }
+
+document.getElementById('attTimeClose').onclick = closeTimeModal;
+document.getElementById('attTimeCancel').onclick = closeTimeModal;
+window.addEventListener('click', e => { if (e.target === attTimeModal) closeTimeModal(); });
+
+document.getElementById('attTimeAm').onclick = () => attSetAmpm('ص');
+document.getElementById('attTimePm').onclick = () => attSetAmpm('م');
+
+document.getElementById('attTimeNow').onclick = () => {
+  const now = new Date();
+  const h24 = now.getHours();
+  attTimeHour.value = String(h24 % 12 || 12);
+  attTimeMinute.value = String(now.getMinutes());
+  attSetAmpm(h24 >= 12 ? 'م' : 'ص');
+};
+
+document.getElementById('attTimeConfirm').onclick = async () => {
+  const h12 = parseInt(attTimeHour.value, 10) || 12;
+  const m = parseInt(attTimeMinute.value, 10) || 0;
+  const amBtn = document.getElementById('attTimeAm');
+  const isAm = amBtn.style.background === 'var(--accent)';
+  let h24 = h12 % 12;
+  if (!isAm) h24 += 12;
+  const d = new Date();
+  d.setHours(h24, m, 0, 0);
+  const btn = document.getElementById('attTimeConfirm');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري...';
+  try {
+    if (attTimeMode === 'in') {
+      await DB.attendance.checkIn(attTimeEmp.id, attTimeEmp.name, attTimeEmp.job || '', d.toISOString(), attTimeEmp.shiftTime);
+    } else {
+      await DB.attendance.checkOut(attTimeRecordId, d.toISOString());
+    }
+    closeTimeModal();
+    render();
+  } catch (e) {
+    console.error('[att-time]', e);
+    alert('❌ حدث خطأ أثناء التسجيل');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-check"></i> تأكيد';
+};
+
 let cachedEmployees = [];
 let cachedRecords = [];
 
@@ -117,40 +232,12 @@ function attachEvents(employees, records) {
 
     const checkBtn = row.querySelector(".check-btn");
     if (checkBtn && !checkBtn.disabled) {
-      checkBtn.onclick = async () => {
-        const now = new Date();
-        let def;
-        if (emp.shiftTime) {
-          const parts = emp.shiftTime.split(':');
-          if (parts.length >= 2) {
-            let h = parseInt(parts[0], 10);
-            const m = parts[1];
-            const ampm = h >= 12 ? 'م' : 'ص';
-            h = h % 12 || 12;
-            def = h.toString().padStart(2,'0') + ':' + m + ' ' + ampm;
-          } else { def = nowTime12h(); }
-        } else { def = nowTime12h(); }
-        const input = prompt('وقت الحضور (مثال: 09:30 ص أو 05:45 م)', def);
-        if (input === null) return;
-        const parsed = parseTime12h(input);
-        if (parsed) now.setHours(parsed.h, parsed.m, 0, 0);
-        await DB.attendance.checkIn(emp.id, emp.name, emp.job || '', now.toISOString(), emp.shiftTime);
-        render();
-      };
+      checkBtn.onclick = () => { openTimeModal('in', emp); };
     }
 
     const leaveBtn = row.querySelector(".leave-btn");
     if (leaveBtn && !leaveBtn.disabled) {
-      leaveBtn.onclick = async () => {
-        const now = new Date();
-        const def = nowTime12h();
-        const input = prompt('وقت الانصراف (مثال: 05:30 م أو 11:00 ص)', def);
-        if (input === null) return;
-        const parsed = parseTime12h(input);
-        if (parsed) now.setHours(parsed.h, parsed.m, 0, 0);
-        await DB.attendance.checkOut(recordId, now.toISOString());
-        render();
-      };
+      leaveBtn.onclick = () => { openTimeModal('out', emp, recordId); };
     }
 
     const delBtn = row.querySelector(".delete-btn");
