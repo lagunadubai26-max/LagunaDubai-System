@@ -134,7 +134,7 @@ function attachEvents(employees, records) {
         if (input === null) return;
         const parsed = parseTime12h(input);
         if (parsed) now.setHours(parsed.h, parsed.m, 0, 0);
-        await DB.attendance.checkIn(emp.id, emp.name, emp.job || '', now.toISOString());
+        await DB.attendance.checkIn(emp.id, emp.name, emp.job || '', now.toISOString(), emp.shiftTime);
         render();
       };
     }

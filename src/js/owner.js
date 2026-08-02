@@ -238,7 +238,7 @@ function showCustDetail(id) {
     monthInvoices.forEach(inv => {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td style="font-family:monospace;font-size:12px">${escapeHtml(inv.id)}</td>
-        <td style="color:var(--text-secondary);font-size:12px">${new Date(inv.date).toLocaleDateString('ar-EG')}</td>
+        <td style="color:var(--text-secondary);font-size:12px">${new Date(inv.date).toLocaleString('ar-EG')}</td>
         <td>${escapeHtml(inv.paymentMethod || 'كاش')}</td>
         <td style="color:var(--accent);font-weight:600">${fmt(inv.total || 0)}</td>
         <td>${fmt(inv.paid != null ? inv.paid : inv.total)}</td>`;

@@ -593,5 +593,149 @@ if (closeDcHistory) closeDcHistory.addEventListener('click', closeDcHistoryModal
 if (closeDcHistoryBtn) closeDcHistoryBtn.addEventListener('click', closeDcHistoryModal);
 window.addEventListener('click', e => { if (e.target === dcHistoryModal) closeDcHistoryModal(); });
 
+// ── Daily Report (تفصيل اليوم كامل) ──
+const dayReportDate = document.getElementById('dayReportDate');
+const dayReportShowBtn = document.getElementById('dayReportShowBtn');
+const dayReportDownloadBtn = document.getElementById('dayReportDownloadBtn');
+const dayReportSummary = document.getElementById('dayReportSummary');
+const dayReportList = document.getElementById('dayReportList');
+let _dayReportData = null;
+
+function setDayReportDate() {
+  const d = new Date();
+  d.setHours(d.getHours() - 12);
+  dayReportDate.value = d.toISOString().slice(0, 10);
+}
+
+async function showDayReport() {
+  const dateVal = dayReportDate.value;
+  if (!dateVal) return alert('اختر التاريخ أولاً');
+  dayReportList.innerHTML = '<p style="text-align:center;padding:20px;color:#888"><i class="fa-solid fa-spinner fa-spin"></i> جاري تحميل التقرير...</p>';
+
+  try {
+    const [allInvoices, allExpenses, allReturns] = await Promise.all([
+      DB.invoices.all(), DB.expenses.all(), DB.returns.all()
+    ]);
+
+    const start = new Date(dateVal + 'T00:00:00');
+    const end = new Date(dateVal + 'T23:59:59.999');
+    const dayInvoices = (allInvoices || []).filter(i => {
+      if (!i.date) return false;
+      const d = new Date(i.date);
+      return d >= start && d <= end;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const dayExpenses = (allExpenses || []).filter(e => {
+      if (!e.date) return false;
+      const d = new Date(e.date);
+      return d >= start && d <= end;
+    });
+    const dayReturns = (allReturns || []).filter(r => {
+      if (!r.date) return false;
+      const d = new Date(r.date);
+      return d >= start && d <= end;
+    });
+
+    const paidInvoices = dayInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+    const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+    const totalCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
+    const totalCard = paidInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
+    const totalExpenses = dayExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const totalReturns = dayReturns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
+    const netProfit = totalSales - totalReturns - totalExpenses;
+
+    _dayReportData = { dateVal, dayInvoices, paidInvoices, dayExpenses, dayReturns, totalSales, totalCash, totalCard, totalExpenses, totalReturns, netProfit };
+
+    dayReportSummary.innerHTML = 'فواتير: <b>' + dayInvoices.length + '</b> | مبيعات: <b>' + fmtMoney(totalSales) + '</b> | كاش: <b>' + fmtMoney(totalCash) + '</b> | فيزا: <b>' + fmtMoney(totalCard) + '</b> | مصروفات: <b>' + fmtMoney(totalExpenses) + '</b> | مرتجعات: <b>' + fmtMoney(totalReturns) + '</b> | صافي: <b style="color:var(--success)">' + fmtMoney(netProfit) + '</b>';
+
+    if (dayInvoices.length === 0 && dayExpenses.length === 0) {
+      dayReportList.innerHTML = '<p style="text-align:center;padding:30px;color:#888">لا توجد بيانات في هذا اليوم</p>';
+      return;
+    }
+
+    let html = '<div class="dc-history-table">';
+    html += '<div class="dc-history-header"><span>الوقت</span><span>الفاتورة</span><span>العميل</span><span>الطاولة</span><span>الأصناف</span><span>طريقة الدفع</span><span>الإجمالي</span><span>الحالة</span></div>';
+
+    dayInvoices.forEach(inv => {
+      const t = inv.date ? new Date(inv.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—';
+      const itemsTxt = inv.items && inv.items.length
+        ? inv.items.map(it => escapeHtml(it.name) + ' ×' + it.qty + (it.hasMilk ? ' (+حليب)' : '')).join('<br>')
+        : '—';
+      const pay = inv.paymentMethod === 'Card' ? 'فيزا' : inv.paymentMethod === 'Cash' ? 'كاش' : (inv.paymentMethod || 'كاش');
+      const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
+      const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
+      html += '<div class="dc-history-row">' +
+        '<span>' + t + '</span>' +
+        '<span>' + escapeHtml(inv.id || '') + '</span>' +
+        '<span>' + escapeHtml(inv.customer || '') + '</span>' +
+        '<span>' + escapeHtml(inv.table || '—') + '</span>' +
+        '<span style="text-align:right;font-size:12px">' + itemsTxt + '</span>' +
+        '<span>' + pay + '</span>' +
+        '<span>' + fmtMoney(inv.total || 0) + '</span>' +
+        '<span><span class="' + stCls + '">' + stTxt + '</span></span>' +
+      '</div>';
+    });
+
+    if (dayExpenses.length > 0) {
+      html += '<div class="dc-history-row" style="background:#fff7ed">' +
+        '<span colspan="2">مصروفات اليوم</span>' +
+        '<span></span><span></span>' +
+        '<span>' + dayExpenses.map(e => escapeHtml(e.title || e.name || 'مصروف') + ' -' + fmtMoney(e.amount || 0)).join('<br>') + '</span>' +
+        '<span>مصروف</span><span></span>' +
+        '<span style="color:#dc2626;font-weight:700">-' + fmtMoney(totalExpenses) + '</span>' +
+      '</div>';
+    }
+
+    html += '</div>';
+    dayReportList.innerHTML = html;
+  } catch (e) {
+    console.error('[dayreport]', e);
+    dayReportList.innerHTML = '<p style="text-align:center;padding:20px;color:#dc2626">حدث خطأ أثناء تحميل التقرير: ' + escapeHtml(e.message || e) + '</p>';
+  }
+}
+
+function downloadDayReport() {
+  if (!_dayReportData) return alert('اعرض اليوم أولاً قبل التحميل');
+  const { dateVal, dayInvoices, dayExpenses, totalSales, totalCash, totalCard, totalExpenses, totalReturns, netProfit } = _dayReportData;
+
+  function csvEsc(val) {
+    const s = String(val == null ? '' : val);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  let csv = '\uFEFFتقرير يومي - ' + dateVal + '\n';
+  csv += '\nالمبيعات,عدد الفواتير,كاش,فيزا,المصروفات,المرتجعات,صافي الربح\n';
+  csv += [csvEsc(totalSales), csvEsc(dayInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').length), csvEsc(totalCash), csvEsc(totalCard), csvEsc(totalExpenses), csvEsc(totalReturns), csvEsc(netProfit)].join(',') + '\n';
+  csv += '\nالوقت,رقم الفاتورة,العميل,الطاولة,المنتج,الكمية,السعر,الإجمالي,طريقة الدفع,الحالة\n';
+  dayInvoices.forEach(inv => {
+    const t = inv.date ? new Date(inv.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const pay = inv.paymentMethod === 'Card' ? 'فيزا' : inv.paymentMethod === 'Cash' ? 'كاش' : (inv.paymentMethod || 'كاش');
+    if (inv.items && inv.items.length) {
+      inv.items.forEach(it => {
+        csv += [csvEsc(t), csvEsc(inv.id), csvEsc(inv.customer), csvEsc(inv.table), csvEsc(it.name), csvEsc(it.qty), csvEsc(it.price), csvEsc(it.qty * it.price), csvEsc(pay), csvEsc(inv.status)].join(',') + '\n';
+      });
+    } else {
+      csv += [csvEsc(t), csvEsc(inv.id), csvEsc(inv.customer), csvEsc(inv.table), '', '', '', csvEsc(inv.total), csvEsc(pay), csvEsc(inv.status)].join(',') + '\n';
+    }
+  });
+  if (dayExpenses.length > 0) {
+    csv += '\nمصروفات اليوم\nالوقت,الوصف,المبلغ\n';
+    dayExpenses.forEach(e => {
+      const t = e.date ? new Date(e.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—';
+      csv += [csvEsc(t), csvEsc(e.title || e.name || 'مصروف'), csvEsc(e.amount)].join(',') + '\n';
+    });
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'تقرير-يومي-' + dateVal + '.csv';
+  link.click();
+}
+
+if (dayReportShowBtn) dayReportShowBtn.onclick = showDayReport;
+if (dayReportDownloadBtn) dayReportDownloadBtn.onclick = downloadDayReport;
+setDayReportDate();
+
 checkDayCloseStatus();
 render();

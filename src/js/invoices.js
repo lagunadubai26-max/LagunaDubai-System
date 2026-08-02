@@ -22,21 +22,8 @@ async function render() {
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
-    const row = document.createElement('tr');
-    const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
-    const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
-    const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '—';
-    const paid = inv.paid ?? inv.total;
-    const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
-    const safeCustomer = escapeHtml(inv.customer || '');
-    const safeTable = escapeHtml(inv.table || '');
-    const safeId = escapeHtml(inv.id);
-    const remainingHtml = remaining > 0 ? '<span style="color:#dc2626;font-size:12px">باقي ' + Number(remaining).toLocaleString() + '</span>' : '<span style="color:#059669;font-size:12px">مدفوع كامل</span>';
-    const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
-    const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '" title="طباعة الكاشير"><i class="fa-solid fa-receipt"></i></button><button class="kitchen-print-btn" data-id="' + safeId + '" title="طباعة المطبخ"><i class="fa-solid fa-utensils"></i></button>';
-    const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
-    row.innerHTML = '<td><input type="checkbox" class="inv-checkbox" data-id="' + safeId + '"></td><td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
-    tableBody.appendChild(row);
+    const frag = buildInvoiceRow(inv);
+    tableBody.appendChild(frag);
   });
 
   const paid = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
@@ -50,6 +37,37 @@ async function render() {
   }
   attachActions();
   updateMergeBtn();
+}
+
+function buildInvoiceRow(inv) {
+  const frag = document.createDocumentFragment();
+  const row = document.createElement('tr');
+  const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
+  const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
+  const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : '—';
+  const paid = inv.paid ?? inv.total;
+  const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
+  const safeCustomer = escapeHtml(inv.customer || '');
+  const safeTable = escapeHtml(inv.table || '');
+  const safeId = escapeHtml(inv.id);
+  const remainingHtml = remaining > 0 ? '<span style="color:#dc2626;font-size:12px">باقي ' + Number(remaining).toLocaleString() + '</span>' : '<span style="color:#059669;font-size:12px">مدفوع كامل</span>';
+  const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
+  const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="edit-btn" data-id="' + safeId + '" title="تعديل الفاتورة"><i class="fa-solid fa-pen"></i></button><button class="print-btn" data-id="' + safeId + '" title="طباعة الكاشير"><i class="fa-solid fa-receipt"></i></button><button class="kitchen-print-btn" data-id="' + safeId + '" title="طباعة المطبخ"><i class="fa-solid fa-utensils"></i></button>';
+  const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
+  row.innerHTML = '<td><input type="checkbox" class="inv-checkbox" data-id="' + safeId + '"></td><td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
+  frag.appendChild(row);
+
+  if (inv.items && inv.items.length > 0) {
+    const itemsRow = document.createElement('tr');
+    itemsRow.className = 'inv-items-row';
+    let itemsHtml = '';
+    inv.items.forEach(item => {
+      itemsHtml += '<span class="inv-item-chip">' + escapeHtml(item.name) + ' × ' + item.qty + ' = ' + Number(item.qty * item.price).toLocaleString() + ' ج.م' + (item.hasMilk ? ' (+حليب)' : '') + (item.note ? ' <em>(' + escapeHtml(item.note) + ')</em>' : '') + '</span>';
+    });
+    itemsRow.innerHTML = '<td></td><td colspan="9" class="inv-items-cell"><div class="inv-items-wrap">' + itemsHtml + '</div></td>';
+    frag.appendChild(itemsRow);
+  }
+  return frag;
 }
 
 function attachActions() {
@@ -185,6 +203,18 @@ function attachActions() {
       render();
     };
   });
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const inv = invoices.find(i => i.id === btn.dataset.id);
+      if (!inv) return;
+      const currentTable = inv.table || '';
+      const newTable = prompt('رقم الطاولة الحالي: ' + currentTable + '\nأدخل رقم الطاولة الجديد:', currentTable.replace('طاولة ', ''));
+      if (newTable === null) return;
+      const tableVal = newTable.trim() ? 'طاولة ' + newTable.trim() : '';
+      await DB.invoices.update(inv.id, { table: tableVal });
+      render();
+    };
+  });
 }
 
 if (searchInput) searchInput.addEventListener('keyup', render);
@@ -292,21 +322,8 @@ function renderWithData() {
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
-    const row = document.createElement('tr');
-    const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
-    const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
-    const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '—';
-    const paid = inv.paid ?? inv.total;
-    const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
-    const safeCustomer = escapeHtml(inv.customer || '');
-    const safeTable = escapeHtml(inv.table || '');
-    const safeId = escapeHtml(inv.id);
-    const remainingHtml = remaining > 0 ? '<span style="color:#dc2626;font-size:12px">باقي ' + Number(remaining).toLocaleString() + '</span>' : '<span style="color:#059669;font-size:12px">مدفوع كامل</span>';
-    const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
-    const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="print-btn" data-id="' + safeId + '" title="طباعة الكاشير"><i class="fa-solid fa-receipt"></i></button><button class="kitchen-print-btn" data-id="' + safeId + '" title="طباعة المطبخ"><i class="fa-solid fa-utensils"></i></button>';
-    const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
-    row.innerHTML = '<td><input type="checkbox" class="inv-checkbox" data-id="' + safeId + '"></td><td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
-    tableBody.appendChild(row);
+    const frag = buildInvoiceRow(inv);
+    tableBody.appendChild(frag);
   });
 
   const paid = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
