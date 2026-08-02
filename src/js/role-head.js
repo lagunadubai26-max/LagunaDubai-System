@@ -23,11 +23,8 @@
     if (!sessionStart) sessionStorage.setItem('laguna_session_start', String(now));
 
     var role = u.role;
-    if (role === 'Owner' && window.location.pathname.indexOf('owner.html') === -1 && window.location.pathname.indexOf('auth.html') === -1) {
-      window.location.replace('owner.html');
-      return;
-    }
     if (role === 'Admin') return;
+    if (role === 'Owner') role = 'Admin';
     var s = document.createElement('style');
     var rules = [];
     if (role === 'Employee') {

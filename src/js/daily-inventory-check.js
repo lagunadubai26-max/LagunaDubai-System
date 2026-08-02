@@ -3,7 +3,6 @@
     let user;
     try { user = JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return; }
     if (!user) return;
-    if (user.role === 'Owner') return;
 
     var now = new Date();
     if (now.getHours() < 6) now.setDate(now.getDate() - 1);

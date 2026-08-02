@@ -6,13 +6,6 @@
   }
 
   const stored = sessionStorage.getItem('laguna_user');
-  let allUsers;
-  try { allUsers = await DB.users.all() || []; } catch(e) { allUsers = []; }
-  if (!allUsers.some(u => u.role === 'Owner')) {
-    setTimeout(() => {
-      console.log('[auth] لم يتم العثور على حساب Owner. سيتم توجيهك إلى صفحة الإعدادات.');
-    }, 500);
-  }
   if (stored) try { const u = JSON.parse(stored); if (u && u.id) { window.location.href = 'index.html'; return; } } catch {}
 
   const loginBtn = document.getElementById('loginBtn');
@@ -153,7 +146,7 @@
           }
         }).catch(function() {});
       }
-      if (firebaseUid && (user.role === 'Administrator' || user.role === 'Owner')) {
+      if (firebaseUid && user.role === 'Administrator') {
         FB.getDb().collection('user_mappings').doc(firebaseUid).get().then(function(snap) {
           if (!snap.exists) {
             console.warn('[auth] No role mapping for ' + user.role + ' "' + user.username + '". UID: ' + firebaseUid + '. Ask an Admin to add it from Settings > Role Mappings.');

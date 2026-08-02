@@ -13,11 +13,9 @@ async function updateDashboard() {
   document.getElementById('totalCustomers').textContent = customers || '0';
   document.getElementById('totalOrders').textContent = totalOrders || '0';
 
-  // Hide day close for Owner
-  const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
+  // Day close button (Owner role removed — always visible)
   const dayCloseBtn = document.getElementById('dashDayCloseBtn');
-  if (user.role === 'Owner') { dayCloseBtn.style.display = 'none'; }
-  else { dayCloseBtn.style.display = 'flex'; }
+  if (dayCloseBtn) dayCloseBtn.style.display = 'flex';
 
   // Payment percentages
   const methods = { Cash: 0, Visa: 0, Wallet: 0 };

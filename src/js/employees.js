@@ -1,6 +1,8 @@
 ﻿let employees = [];
 let editId = null;
 let renderBusy = false;
+let renderPending = false;
+let loadedOnce = false;
 
 const tableBody = document.querySelector('.employees-table');
 const searchInput = document.querySelector('.filter-box input');
@@ -17,8 +19,45 @@ const statusSelect = document.getElementById('empStatus');
 const pinInput = document.getElementById('empPin');
 const shiftTimeInput = document.getElementById('empShiftTime');
 
-async function render() {
-  if (renderBusy) return;
+function safeStr(v) { return v == null ? '' : String(v); }
+
+function shiftTime12h(val) {
+  const s = safeStr(val);
+  if (!s || s === '—') return '—';
+  const parts = s.split(':');
+  if (parts.length < 2) return s;
+  let h = parseInt(parts[0], 10);
+  if (isNaN(h)) return s;
+  const m = parts[1];
+  const ampm = h >= 12 ? 'م' : 'ص';
+  h = h % 12 || 12;
+  return h.toString().padStart(2,'0') + ':' + m + ' ' + ampm;
+}
+
+function buildRow(emp) {
+  const row = document.createElement('div');
+  row.className = 'table-row';
+  row.dataset.id = emp.id;
+  const stCls = emp.status === 'active' ? 'active' : emp.status === 'vacation' ? 'vacation' : 'stopped';
+  const stTxt = emp.status === 'active' ? 'يعمل' : emp.status === 'vacation' ? 'إجازة' : 'موقوف';
+  const salary = !isNaN(Number(emp.salary)) && emp.salary !== '' && emp.salary != null
+    ? Number(emp.salary).toLocaleString() + ' ج.م'
+    : '—';
+  row.innerHTML = `
+    <span>${escapeHtml(safeStr(emp.name))}</span><span>${escapeHtml(safeStr(emp.job))}</span><span>${escapeHtml(safeStr(emp.phone) || '—')}</span>
+    <span style="display:none">${salary}</span>
+    <span>${escapeHtml(safeStr(emp.hireDate) || '—')}</span>
+    <span>${shiftTime12h(emp.shiftTime)}</span>
+    <span class="status ${stCls}">${stTxt}</span>
+    <div class="actions">
+      <button class="edit-btn" data-id="${escapeHtml(safeStr(emp.id))}"><i class="fa-solid fa-pen"></i></button>
+      <button class="delete-btn" data-id="${escapeHtml(safeStr(emp.id))}"><i class="fa-solid fa-trash"></i></button>
+    </div>`;
+  return row;
+}
+
+async function render(force) {
+  if (renderBusy) { renderPending = true; return; }
   renderBusy = true;
   try {
     let data;
@@ -26,16 +65,23 @@ async function render() {
       data = await DB.employees.all();
     } catch (e) {
       console.error('[employees] fetch error:', e);
+      showEmptyState('حدث خطأ أثناء تحميل الموظفين. اضغط "بحث" للمحاولة مرة أخرى.');
       return;
     }
-    employees = data || [];
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      if (loadedOnce && !force) return;
+      employees = [];
+    } else {
+      employees = data;
+      loadedOnce = true;
+    }
 
     const val = searchInput ? searchInput.value.toLowerCase() : '';
     const jobVal = jobFilter ? jobFilter.value : 'كل الوظائف';
     const filtered = [];
     for (const e of employees) {
       try {
-        if (e && e.name && e.name.toLowerCase().includes(val) && (jobVal === 'كل الوظائف' || e.job === jobVal)) {
+        if (e && e.name && safeStr(e.name).toLowerCase().includes(val) && (jobVal === 'كل الوظائف' || safeStr(e.job) === jobVal)) {
           filtered.push(e);
         }
       } catch (_) {}
@@ -44,23 +90,17 @@ async function render() {
     const existing = tableBody.querySelectorAll('.table-row:not(.table-header)');
     existing.forEach(r => r.remove());
 
-    for (const emp of filtered) {
-      const row = document.createElement('div');
-      row.className = 'table-row';
-      row.dataset.id = emp.id;
-      const stCls = emp.status === 'active' ? 'active' : emp.status === 'vacation' ? 'vacation' : 'stopped';
-      const stTxt = emp.status === 'active' ? 'يعمل' : emp.status === 'vacation' ? 'إجازة' : 'موقوف';
-      row.innerHTML = `
-        <span>${escapeHtml(emp.name)}</span><span>${escapeHtml(emp.job)}</span><span>${escapeHtml(emp.phone || '—')}</span>
-        <span style="display:none">${emp.salary ? Number(emp.salary).toLocaleString() + ' ج.م' : '—'}</span>
-        <span>${escapeHtml(emp.hireDate || '—')}</span>
-        <span>${emp.shiftTime ? shiftTime12h(emp.shiftTime) : '—'}</span>
-        <span class="status ${stCls}">${stTxt}</span>
-        <div class="actions">
-          <button class="edit-btn" data-id="${emp.id}"><i class="fa-solid fa-pen"></i></button>
-          <button class="delete-btn" data-id="${emp.id}"><i class="fa-solid fa-trash"></i></button>
-        </div>`;
-      tableBody.appendChild(row);
+    if (filtered.length === 0) {
+      showEmptyState('لا يوجد موظفون مطابقون للبحث');
+    } else {
+      hideEmptyState();
+      for (const emp of filtered) {
+        try {
+          tableBody.appendChild(buildRow(emp));
+        } catch (e) {
+          console.error('[employees] row build error:', e);
+        }
+      }
     }
 
     const cards = document.querySelectorAll('.employee-stats .stat-card h2');
@@ -75,18 +115,25 @@ async function render() {
     console.error('[employees] render error:', e);
   } finally {
     renderBusy = false;
+    if (renderPending) {
+      renderPending = false;
+      render();
+    }
   }
 }
 
-function shiftTime12h(val) {
-  if (!val) return '—';
-  const parts = val.split(':');
-  if (parts.length < 2) return val;
-  let h = parseInt(parts[0], 10);
-  const m = parts[1];
-  const ampm = h >= 12 ? 'م' : 'ص';
-  h = h % 12 || 12;
-  return h.toString().padStart(2,'0') + ':' + m + ' ' + ampm;
+function showEmptyState(msg) {
+  hideEmptyState();
+  const div = document.createElement('div');
+  div.id = 'empEmptyState';
+  div.style.cssText = 'padding:40px;text-align:center;color:#888;font-size:15px';
+  div.textContent = msg;
+  tableBody.appendChild(div);
+}
+
+function hideEmptyState() {
+  const el = document.getElementById('empEmptyState');
+  if (el) el.remove();
 }
 
 function attachActions() {
@@ -96,21 +143,27 @@ function attachActions() {
       if (!emp) return;
       editId = emp.id;
       modalTitle.textContent = 'تعديل موظف';
-      nameInput.value = emp.name;
-      jobInput.value = emp.job;
-      phoneInput.value = emp.phone || '';
-      salaryInput.value = emp.salary || '';
-      hireDateInput.value = emp.hireDate || '';
-      statusSelect.value = emp.status || 'active';
+      nameInput.value = safeStr(emp.name);
+      jobInput.value = safeStr(emp.job);
+      phoneInput.value = safeStr(emp.phone);
+      salaryInput.value = safeStr(emp.salary);
+      hireDateInput.value = safeStr(emp.hireDate);
+      statusSelect.value = safeStr(emp.status) || 'active';
       pinInput.value = '';
-      shiftTimeInput.value = emp.shiftTime || '';
+      shiftTimeInput.value = safeStr(emp.shiftTime);
       modal.classList.add('show');
     };
   });
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.onclick = async () => {
       if (!confirm('هل تريد حذف الموظف؟')) return;
-      await DB.employees.remove(btn.dataset.id);
+      try {
+        await DB.employees.remove(btn.dataset.id);
+      } catch (e) {
+        console.error('[employees] delete error:', e);
+        alert('حدث خطأ أثناء الحذف');
+        return;
+      }
       render();
     };
   });
@@ -126,6 +179,7 @@ if (addBtn) {
     hireDateInput.value = '';
     statusSelect.value = 'active';
     pinInput.value = '';
+    shiftTimeInput.value = '';
     modal.classList.add('show');
   };
 }
@@ -156,13 +210,18 @@ document.getElementById('saveEmp').onclick = async () => {
   } else if (editId) {
     delete data.pin;
   }
-  if (editId) {
-    await DB.employees.update(editId, data);
-  } else {
-    await DB.employees.add(data);
+  try {
+    if (editId) {
+      await DB.employees.update(editId, data);
+    } else {
+      await DB.employees.add(data);
+    }
+    modal.classList.remove('show');
+    render();
+  } catch (e) {
+    console.error('[employees] save error:', e);
+    alert('حدث خطأ أثناء الحفظ');
   }
-  modal.classList.remove('show');
-  render();
 };
 
 document.getElementById('cancelEmp').onclick = () => modal.classList.remove('show');
@@ -172,6 +231,6 @@ window.addEventListener('click', (e) => { if (e.target === modal) modal.classLis
 if (searchInput) searchInput.addEventListener('keyup', render);
 if (jobFilter) jobFilter.addEventListener('change', render);
 const searchBtn = document.querySelector('.search-btn');
-if (searchBtn) searchBtn.addEventListener('click', render);
+if (searchBtn) searchBtn.addEventListener('click', () => render(true));
 
 render();

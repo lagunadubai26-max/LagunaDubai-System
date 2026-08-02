@@ -43,7 +43,7 @@ async function render() {
       <span>${escapeHtml(e.description)}</span><span>${escapeHtml(e.category)}</span>
       <span>${Number(e.amount).toLocaleString()} ج.م</span>
       <span>${new Date(e.date).toLocaleDateString('ar-EG')}</span>
-      <div class="actions">${_expUser.role !== 'Owner' ? `<button class="delete-btn" data-id="${e.id}"><i class="fa-solid fa-trash"></i></button>` : ''}</div>`;
+      <div class="actions"><button class="delete-btn" data-id="${e.id}"><i class="fa-solid fa-trash"></i></button></div>`;
     expList.appendChild(row);
   });
 
@@ -73,8 +73,7 @@ document.getElementById('exportExpBtn').onclick = () => {
   link.click();
 };
 
-if (_expUser.role !== 'Owner') {
-  document.getElementById('addExpBtn').onclick = async () => {
+document.getElementById('addExpBtn').onclick = async () => {
     const description = document.getElementById('expDesc').value.trim();
     const amount = Number(document.getElementById('expAmount').value);
     const category = document.getElementById('expCategory').value;
@@ -84,10 +83,6 @@ if (_expUser.role !== 'Owner') {
     document.getElementById('expAmount').value = '';
     render();
   };
-} else {
-  const form = document.querySelector('.expense-form');
-  if (form) form.style.display = 'none';
-}
 
 expMonth.addEventListener('change', render);
 render();

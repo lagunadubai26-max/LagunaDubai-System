@@ -31,8 +31,8 @@ async function render() {
       <span class="status ${stCls}">${stTxt}</span>
       <div class="actions">
         <button class="view-btn" data-id="${item.id}"><i class="fa-solid fa-eye"></i></button>
-        ${_retUser.role !== 'Owner' ? `<button class="edit-btn" data-id="${item.id}"><i class="fa-solid fa-pen"></i></button>
-        <button class="delete-btn" data-id="${item.id}"><i class="fa-solid fa-trash"></i></button>` : ''}
+        <button class="edit-btn" data-id="${item.id}"><i class="fa-solid fa-pen"></i></button>
+        <button class="delete-btn" data-id="${item.id}"><i class="fa-solid fa-trash"></i></button>
       </div>`;
     table.appendChild(row);
   });

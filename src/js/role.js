@@ -5,10 +5,9 @@
   var role = user.role || 'Admin';
 
   var page = window.location.pathname.split('/').pop();
-  var ownerRestricted = ['settings.html','products.html'];
   var employeeRestricted = ['employees.html','customers.html','qr.html','settings.html','products.html'];
 
-  if (role === 'Owner' && page !== 'owner.html' && page !== 'auth.html') { window.location.replace('owner.html'); return; }
+  if (role === 'Owner') role = 'Admin';
   if (role === 'Employee' && employeeRestricted.includes(page)) { window.location.replace('index.html'); return; }
 
   var avatar = document.getElementById('sidebarAvatar');
@@ -17,8 +16,7 @@
   if (avatar) avatar.textContent = user.name.charAt(0);
   if (name) name.textContent = user.name;
   if (roleEl) {
-    if (role === 'Owner') roleEl.textContent = 'م/ محمد الجوهري';
-    else if (role === 'Admin') roleEl.textContent = 'كاشير';
+    if (role === 'Admin') roleEl.textContent = 'كاشير';
     else roleEl.textContent = 'موظف';
   }
 
@@ -46,8 +44,7 @@
   var span = document.querySelector('.profile span');
   if (h4) h4.textContent = user.name;
   if (span) {
-    if (role === 'Owner') span.textContent = 'م/ محمد الجوهري';
-    else if (role === 'Admin') span.textContent = 'كاشير';
+    if (role === 'Admin') span.textContent = 'كاشير';
     else span.textContent = 'موظف';
   }
 

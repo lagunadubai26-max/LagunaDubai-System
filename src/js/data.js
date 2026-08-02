@@ -239,13 +239,9 @@ const DB = {
     }
     const ownerUser = users.find(u => u.username === 'owner');
     if (ownerUser) {
-      const ownerHashed = await PASSWORD_UTILS.hash('owner123');
-      await this.users.update(ownerUser.id, { password: ownerHashed });
-    } else {
-      const ownerHashed = await PASSWORD_UTILS.hash('owner123');
-      await this.users.add({ id: 'u2', username: 'owner', password: ownerHashed, name: 'محمد الجوهري', role: 'Owner' });
+      await this.users.remove(ownerUser.id);
     }
-    console.warn('%c[seed] 👤 كاشير: admin / admin123  |  🏠 محمد الجوهري: owner / owner123', 'font-size:14px;font-weight:bold');
+    console.warn('%c[seed] 👤 كاشير: admin / admin123', 'font-size:14px;font-weight:bold');
 
     const settings = await this.settings.get();
     if (settings._seeded) return;

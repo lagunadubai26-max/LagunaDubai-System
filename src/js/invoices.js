@@ -52,8 +52,8 @@ function buildInvoiceRow(inv) {
   const safeId = escapeHtml(inv.id);
   const remainingHtml = remaining > 0 ? '<span style="color:#dc2626;font-size:12px">باقي ' + Number(remaining).toLocaleString() + '</span>' : '<span style="color:#059669;font-size:12px">مدفوع كامل</span>';
   const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
-  const btns = '<button class="view-btn" data-id="' + safeId + '"><i class="fa-solid fa-eye"></i></button><button class="edit-btn" data-id="' + safeId + '" title="تعديل الفاتورة"><i class="fa-solid fa-pen"></i></button><button class="print-btn" data-id="' + safeId + '" title="طباعة الكاشير"><i class="fa-solid fa-receipt"></i></button><button class="kitchen-print-btn" data-id="' + safeId + '" title="طباعة المطبخ"><i class="fa-solid fa-utensils"></i></button>';
-  const adminBtns = _invUser.role !== 'Owner' ? (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>' : '';
+  const btns = '<button class="edit-btn" data-id="' + safeId + '" title="تعديل الفاتورة"><i class="fa-solid fa-pen"></i></button><button class="print-btn" data-id="' + safeId + '" title="طباعة الكاشير"><i class="fa-solid fa-receipt"></i></button><button class="kitchen-print-btn" data-id="' + safeId + '" title="طباعة المطبخ"><i class="fa-solid fa-utensils"></i></button>';
+  const adminBtns = (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>';
   row.innerHTML = '<td><input type="checkbox" class="inv-checkbox" data-id="' + safeId + '"></td><td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
   frag.appendChild(row);
 
@@ -71,18 +71,6 @@ function buildInvoiceRow(inv) {
 }
 
 function attachActions() {
-  document.querySelectorAll('.view-btn').forEach(btn => {
-    btn.onclick = () => {
-      const inv = invoices.find(i => i.id === btn.dataset.id);
-      if (!inv) return;
-      let items = '';
-      if (inv.items) inv.items.forEach(item => { items += `\n• ${escapeHtml(item.name)} x${item.qty} = ${item.qty * item.price} ج.م${item.hasMilk ? ' +حليب' : ''}${item.note ? ' (' + escapeHtml(item.note) + ')' : ''}`; });
-      const paid = inv.paid ?? inv.total;
-      const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
-      const change = inv.change || 0;
-      alert(`رقم الفاتورة: ${inv.id}\nالعميل: ${inv.customer}\n${inv.table ? 'الطاولة: ' + inv.table + '\n' : ''}التاريخ: ${new Date(inv.date).toLocaleDateString('ar-EG')}\nطريقة الدفع: ${inv.paymentMethod || 'كاش'}${items ? '\n\nالمنتجات:' + items : ''}\n\nالإجمالي: ${Number(inv.total).toLocaleString()} ج.م\nالمدفوع: ${Number(paid).toLocaleString()} ج.م\n${change > 0 ? 'الباقي للعميل: ' + Number(change).toLocaleString() + ' ج.م\n' : ''}${remaining > 0 ? 'المتبقي: ' + Number(remaining).toLocaleString() + ' ج.م\n' : ''}الحالة: ${inv.status}`);
-    };
-  });
   document.querySelectorAll('.print-btn').forEach(btn => {
     btn.onclick = async () => {
       const inv = invoices.find(i => i.id === btn.dataset.id);
