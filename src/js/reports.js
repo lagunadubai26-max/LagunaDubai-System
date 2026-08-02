@@ -368,7 +368,15 @@ async function exportMonthlyReport(asImage) {
       const [y, m] = monthInput.value.split('-').map(Number);
       labelEl.textContent = new Date(y, m - 1, 1).toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
     }
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#f6f8fb', windowWidth: 1200 });
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#f6f8fb',
+      windowWidth: Math.min(Math.max(document.documentElement.clientWidth, 1200), 1920),
+      windowHeight: Math.max(document.documentElement.scrollHeight, el.scrollHeight) + 500,
+      scrollX: 0,
+      scrollY: 0
+    });
     const imgData = canvas.toDataURL('image/png');
     const fileName = 'تقرير-شهري-' + monthInput.value;
     if (asImage) {

@@ -111,7 +111,15 @@ async function exportDayReport(asImage) {
   const el = dayReportEl;
   if (!el || !el.innerHTML || el.innerHTML.indexOf('dr-header') === -1) return alert('اعرض اليوم أولاً قبل التحميل');
   try {
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 900 });
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      windowWidth: 900,
+      windowHeight: Math.max(document.documentElement.scrollHeight, el.scrollHeight) + 500,
+      scrollX: 0,
+      scrollY: 0
+    });
     const imgData = canvas.toDataURL('image/png');
     const fileName = 'تقرير-يومي-' + dayReportDate.value;
     if (asImage) {
