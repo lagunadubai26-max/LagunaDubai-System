@@ -170,7 +170,7 @@ function attachActions() {
               product: item.name,
               qty: item.qty,
               amount: item.qty * item.price,
-              date: new Date().toISOString(),
+              date: FB.nowISO(),
               status: 'pending'
             });
           }
@@ -267,7 +267,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
     await DB.invoices.add({
       id: newId,
       customer: toMerge[0].customer,
-      date: new Date().toISOString(),
+      date: FB.nowISO(),
       items: mergedItems,
       total: total,
       paid: paid,

@@ -5,7 +5,7 @@ const dayReportImgBtn = document.getElementById('dayReportImgBtn');
 const dayReportEl = document.getElementById('dayReport');
 
 function setDayReportDate() {
-  dayReportDate.value = localDateKey(new Date());
+  dayReportDate.value = localDateKey(FB.clockNow());
 }
 
 function fmtMoney(v) {

@@ -1,12 +1,12 @@
 const monthInput = document.getElementById('reportMonth');
 
 // Set default to current month
-const now = new Date();
+const now = FB.clockNow();
 monthInput.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
 
 function getMonthRange(value) {
   if (!value) {
-    const d = new Date();
+    const d = FB.clockNow();
     value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   }
   const [year, month] = value.split('-').map(Number);
@@ -463,7 +463,7 @@ async function showDayCloseModal() {
 
   const shift = await DB.shifts.getOpen();
   const rangeStart = shift ? new Date(shift.openDate + 'T00:00:00') : null;
-  const range = { start: rangeStart, end: new Date() };
+  const range = { start: rangeStart, end: FB.clockNow() };
   if (!rangeStart) {
     alert('❌ لا يوجد شيفت مفتوح حاليًا');
     return;
@@ -483,7 +483,7 @@ async function showDayCloseModal() {
   const netProfit = totalSales - totalReturns - totalExpenses;
   const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
-  const shiftForDate = shift ? new Date(shift.openDate + 'T12:00:00') : new Date();
+  const shiftForDate = shift ? new Date(shift.openDate + 'T12:00:00') : FB.clockNow();
   const todayStr = 'شيفت ' + shiftForDate.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + (shift && shift.openedAt ? ' (من ' + new Date(shift.openedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) + ')' : '');
   document.getElementById('dcDate').textContent = todayStr;
   document.getElementById('dcSales').textContent = fmtMoney(totalSales);
@@ -518,7 +518,7 @@ document.getElementById('dayCloseBtn').onclick = async () => {
   };
 
 function showStartDayModal() {
-  const now = new Date();
+  const now = FB.clockNow();
   document.getElementById('dcStartDate').textContent = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   document.getElementById('dcStartTime').textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('dcStartDayModal').classList.add('show');
@@ -562,11 +562,11 @@ confirmDayClose.onclick = async () => {
     totalReturns: Number(btn.dataset.totalReturns),
     netProfit: Number(btn.dataset.netProfit),
     closedBy: user.name || 'الكاشير',
-    closedAt: new Date().toISOString()
+    closedAt: FB.nowISO()
   };
   try {
     await DB.daycloses.close(data);
-    await DB.shifts.close(shift.id, { closedAt: new Date().toISOString(), closedBy: user.name || 'الكاشير' });
+    await DB.shifts.close(shift.id, { closedAt: FB.nowISO(), closedBy: user.name || 'الكاشير' });
     DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, totalExpenses: data.totalExpenses });
     dayCloseModal.classList.remove('show');
     checkDayCloseStatus();
@@ -574,7 +574,7 @@ confirmDayClose.onclick = async () => {
     // Export Excel for today's invoices
     const allInvoices = await DB.invoices.all() || [];
     const todayStart = new Date(todayISO + 'T00:00:00');
-    const todayEnd = new Date();
+    const todayEnd = FB.clockNow();
     const todayInvoices = allInvoices.filter(inv => {
       if (!inv.date) return false;
       const d = new Date(inv.date);
@@ -642,7 +642,7 @@ dcHistoryBtn.onclick = async () => {
     html += '<div class="dc-history-header"><span>التاريخ</span><span>المبيعات</span><span>الدرج</span><span>فيزا</span><span>الفواتير</span><span>صافي الربح</span><span>بواسطة</span></div>';
     all.forEach(dc => {
       const dateStr = new Date(dc.date + 'T12:00:00').toLocaleDateString('ar-EG');
-      const isToday = dc.date === localDateKey(new Date());
+      const isToday = dc.date === localDateKey(FB.clockNow());
       html += `<div class="dc-history-row${isToday ? ' today' : ''}">
         <span>${dateStr}</span>
         <span>${fmtMoney(dc.totalSales || 0)}</span>

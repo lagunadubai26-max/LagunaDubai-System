@@ -4,10 +4,12 @@ const expList = document.getElementById('expList');
 const expMonth = document.getElementById('expMonth');
 const _expUser = (() => { try { return JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return {}; } })();
 
-expMonth.value = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+const _expMonthNow = () => { const d = FB.clockNow(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+
+expMonth.value = _expMonthNow();
 
 function getMonthRange(value) {
-  if (!value) { const d = new Date(); value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+  if (!value) { value = _expMonthNow(); }
   const [year, month] = value.split('-').map(Number);
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 0, 23, 59, 59, 999);
@@ -78,7 +80,7 @@ document.getElementById('addExpBtn').onclick = async () => {
     const amount = Number(document.getElementById('expAmount').value);
     const category = document.getElementById('expCategory').value;
     if (!description || !amount) return alert('يرجى إدخال الوصف والمبلغ');
-    await DB.expenses.add({ description, amount, category, date: new Date().toISOString() });
+    await DB.expenses.add({ description, amount, category, date: FB.nowISO() });
     document.getElementById('expDesc').value = '';
     document.getElementById('expAmount').value = '';
     render();

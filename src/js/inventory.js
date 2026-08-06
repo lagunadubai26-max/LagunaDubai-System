@@ -110,7 +110,7 @@ document.getElementById('postponeInvBtn').onclick = () => {
 };
 
 async function checkDailyInventoryBanner() {
-  const today = localDateKey(new Date());
+  const today = localDateKey(FB.clockNow());
   const doneKey = 'laguna_inv_done_' + today;
   if (localStorage.getItem(doneKey)) return;
 
@@ -154,7 +154,7 @@ async function checkDailyInventoryBanner() {
 }
 
 function postponeInventory() {
-  const today = localDateKey(new Date());
+  const today = localDateKey(FB.clockNow());
   localStorage.setItem('laguna_inv_done_' + today, '1');
   localStorage.setItem('laguna_inv_remind_' + today, '1');
 
@@ -204,8 +204,8 @@ weeklyInvBtn.onclick = async () => {
 };
 
 saveWeeklyInv.onclick = async () => {
-  const dateStr = localDateKey(new Date());
-  const weekStart = new Date();
+  const dateStr = localDateKey(FB.clockNow());
+  const weekStart = FB.clockNow();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekKey = localDateKey(weekStart);
 

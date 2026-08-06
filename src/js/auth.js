@@ -87,7 +87,7 @@
         username: username,
         success: success,
         reason: reason || '',
-        timestamp: new Date().toISOString()
+        timestamp: FB.nowISO()
       });
     } catch (e) {
       console.warn('[auth] audit error:', e);
@@ -141,7 +141,7 @@
           if (!snap.exists) {
             FB.getDb().collection('user_mappings').doc(firebaseUid).set({
               userId: user.id, role: 'Employee', username: user.username, name: user.name,
-              updatedAt: new Date().toISOString()
+              updatedAt: FB.nowISO()
             }).catch(function(e) { console.warn('[auth] failed to save employee mapping:', e); });
           }
         }).catch(function() {});

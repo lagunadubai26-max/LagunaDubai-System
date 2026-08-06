@@ -556,7 +556,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
             tx.update(tableRef, { status: 'occupied' });
           }
         }
-        const invData = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
+        const invData = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);
@@ -566,11 +566,11 @@ document.getElementById('confirmCheckout').onclick = async () => {
           await DB.customers.update(matchedCust.id, {
             visits: (matchedCust.visits || 0) + 1,
             totalSpent: (matchedCust.totalSpent || 0) + totalAmount,
-            lastVisit: new Date().toISOString()
+            lastVisit: FB.nowISO()
           });
         }
       } catch(e) { console.warn('[checkout] customer stats update failed:', e); }
-      inv = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
+      inv = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
     } catch (e) {
       resetCheckout();
       console.error('[checkout] transaction error:', e);

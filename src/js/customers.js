@@ -65,7 +65,7 @@ document.getElementById('saveCust').onclick = async () => {
   if (editCustId) {
     await DB.customers.update(editCustId, { name, phone });
   } else {
-    await DB.customers.add({ name, phone, totalSpent: 0, visits: 1, lastVisit: new Date().toISOString() });
+    await DB.customers.add({ name, phone, totalSpent: 0, visits: 1, lastVisit: FB.nowISO() });
   }
   modal.classList.remove('show');
   render();

@@ -35,7 +35,7 @@ const DB = {
   attendance: {
     async all() { return await FB.getCollection('attendance'); },
     async attDayRange(now) {
-      now = now || new Date();
+      now = now || FB.clockNow();
       let shift = null;
       try { shift = await DB.shifts.getOpen(); } catch(e) {}
       if (shift && shift.openDate) {
@@ -66,7 +66,7 @@ const DB = {
     async update(id, data) { await FB.updateDoc('attendance', id, data); },
     async remove(id) { await FB.removeDoc('attendance', id); },
     async checkIn(employeeId, name, job, customTime, shiftTime) {
-      const time = customTime ? new Date(customTime) : new Date();
+      const time = customTime ? new Date(customTime) : FB.clockNow();
       const minutes = time.getHours() * 60 + time.getMinutes();
       let status = 'present';
       if (shiftTime) {
@@ -86,7 +86,7 @@ const DB = {
       });
     },
     async checkOut(id, customTime) {
-      const time = customTime ? new Date(customTime) : new Date();
+      const time = customTime ? new Date(customTime) : FB.clockNow();
       await FB.updateDoc('attendance', id, { checkOut: time.toISOString() });
     }
   },
@@ -165,7 +165,7 @@ const DB = {
     async all() { return await FB.getCollection('daycloses'); },
     async today() {
       const all = await FB.getCollection('daycloses');
-      const today = localDateKey(new Date());
+      const today = localDateKey(FB.clockNow());
       return all.find(d => d.date && d.date.slice(0, 10) === today);
     },
     async byMonth(year, month) {
@@ -186,7 +186,7 @@ const DB = {
       return all.find(s => s && !s.closedAt) || null;
     },
     async open(name) {
-      const now = new Date();
+      const now = FB.clockNow();
       const shift = {
         id: 'sh-' + crypto.randomUUID().slice(0, 8),
         openDate: localDateKey(now),
@@ -212,7 +212,7 @@ const DB = {
           detail: typeof detail === 'string' ? detail : JSON.stringify(detail),
           username: user ? user.username : 'unknown',
           role: user ? user.role : 'none',
-          timestamp: new Date().toISOString()
+          timestamp: FB.nowISO()
         });
       } catch(e) { console.warn('[audit]', e); }
     }
@@ -266,7 +266,7 @@ const DB = {
           if (!snap.exists) {
             await FB.getDb().collection('user_mappings').doc(uid).set({
               userId: 'u1', role: 'Administrator', username: 'admin', name: 'الكاشير',
-              updatedAt: new Date().toISOString()
+              updatedAt: FB.nowISO()
             });
           }
         } catch(e) { console.warn('[seed] mapping error:', e); }
@@ -319,8 +319,8 @@ const DB = {
 
     const customers = await this.customers.all();
     if (customers.length === 0) {
-      await this.customers.add({ id: 'c1', name: 'أحمد محمد', phone: '01012345678', totalSpent: 1200, visits: 15, lastVisit: new Date().toISOString() });
-      await this.customers.add({ id: 'c2', name: 'محمد علي', phone: '01198765432', totalSpent: 850, visits: 8, lastVisit: new Date().toISOString() });
+      await this.customers.add({ id: 'c1', name: 'أحمد محمد', phone: '01012345678', totalSpent: 1200, visits: 15, lastVisit: FB.nowISO() });
+      await this.customers.add({ id: 'c2', name: 'محمد علي', phone: '01198765432', totalSpent: 850, visits: 8, lastVisit: FB.nowISO() });
     }
 
     const inventory = await this.inventory.all();

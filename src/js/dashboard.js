@@ -90,7 +90,7 @@ document.getElementById('dashDayCloseBtn').onclick = async () => {
 
 // ── Start Day (Open Shift) ──
 function showDashStartDayModal() {
-  const now = new Date();
+  const now = FB.clockNow();
   document.getElementById('dashStartDate').textContent = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   document.getElementById('dashStartTime').textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('dashStartDayModal').classList.add('show');
@@ -122,7 +122,7 @@ async function showDashDayCloseModal(shift) {
   const allReturns = await DB.returns.all() || [];
 
   const start = new Date(shift.openDate + 'T00:00:00');
-  const end = new Date();
+  const end = FB.clockNow();
 
   const invoices = filterDate(allInvoices, start, end);
   const expenses = filterDate(allExpenses, start, end);
@@ -181,11 +181,11 @@ document.getElementById('dashConfirmDayClose').onclick = async () => {
     netProfit: Number(btn.dataset.netProfit),
     itemsSold: Number(btn.dataset.itemsSold),
     closedBy: user.name || 'الكاشير',
-    closedAt: new Date().toISOString()
+    closedAt: FB.nowISO()
   };
   try {
     await DB.daycloses.close(data);
-    await DB.shifts.close(shift.id, { closedAt: new Date().toISOString(), closedBy: user.name || 'الكاشير' });
+    await DB.shifts.close(shift.id, { closedAt: FB.nowISO(), closedBy: user.name || 'الكاشير' });
     DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, cashInDrawer: data.cashInDrawer });
     document.getElementById('dashDayCloseModal').classList.remove('show');
     checkDashDayClose();
