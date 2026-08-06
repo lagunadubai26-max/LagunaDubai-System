@@ -61,10 +61,8 @@ function buildInvoiceRow(inv) {
     const itemsRow = document.createElement('tr');
     itemsRow.className = 'inv-items-row';
     let itemsHtml = '';
-    inv.items.forEach((item, i) => {
-      const qty = Number(item.qty || 1);
-      const itemAmount = qty * Number(item.price || 0);
-      itemsHtml += '<span class="inv-item-chip">' + escapeHtml(item.name) + ' × ' + qty + ' = ' + Number(itemAmount).toLocaleString() + ' ج.م' + (item.hasMilk ? ' (+حليب)' : '') + (item.note ? ' <em>(' + escapeHtml(item.note) + ')</em>' : '') + ' <button class="item-remove-btn" data-id="' + safeId + '" data-index="' + i + '" title="حذف الصنف من الفاتورة"><i class="fa-solid fa-xmark"></i></button></span>';
+    inv.items.forEach(item => {
+      itemsHtml += '<span class="inv-item-chip">' + escapeHtml(item.name) + ' × ' + item.qty + ' = ' + Number(item.qty * item.price).toLocaleString() + ' ج.م' + (item.hasMilk ? ' (+حليب)' : '') + (item.note ? ' <em>(' + escapeHtml(item.note) + ')</em>' : '') + '</span>';
     });
     itemsRow.innerHTML = '<td></td><td colspan="9" class="inv-items-cell"><div class="inv-items-wrap">' + itemsHtml + '</div></td>';
     frag.appendChild(itemsRow);
@@ -190,39 +188,6 @@ function attachActions() {
     btn.onclick = async () => {
       if (!confirm('هل تريد حذف هذه الفاتورة؟')) return;
       await DB.invoices.remove(btn.dataset.id);
-      render();
-    };
-  });
-  document.querySelectorAll('.item-remove-btn').forEach(btn => {
-    btn.onclick = async () => {
-      const inv = invoices.find(i => i.id === btn.dataset.id);
-      const idx = Number(btn.dataset.index);
-      if (!inv || !Array.isArray(inv.items) || !inv.items[idx]) return;
-      const item = inv.items[idx];
-      const qty = Number(item.qty || 1);
-      const itemAmount = qty * Number(item.price || 0);
-      if (!confirm('حذف «' + item.name + ' × ' + qty + '» بقيمة ' + Number(itemAmount).toLocaleString() + ' ج.م من الفاتورة؟')) return;
-
-      const newItems = inv.items.filter((_, i) => i !== idx);
-
-      if (!newItems.length) {
-        if (!confirm('الفاتورة أصبحت فارغة.\nهل تريد حذف الفاتورة بالكامل؟')) return;
-        await DB.invoices.remove(inv.id);
-        render();
-        return;
-      }
-
-      const newTotal = Math.max(0, Number(inv.total || 0) - itemAmount);
-      const newPaid = Math.min(Number(inv.paid != null ? inv.paid : inv.total || 0), newTotal);
-      const newRemaining = Math.max(0, newTotal - newPaid);
-      const wasReturned = inv.status === 'returned' || inv.status === 'مرتجعة' || inv.status === 'cancelled' || inv.status === 'ملغية';
-      await DB.invoices.update(inv.id, {
-        items: newItems,
-        total: newTotal,
-        paid: newPaid,
-        remaining: newRemaining,
-        status: wasReturned ? inv.status : (newRemaining <= 0 ? 'paid' : 'pending')
-      });
       render();
     };
   });
