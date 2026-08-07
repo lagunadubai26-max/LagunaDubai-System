@@ -1,83 +1,13 @@
 ;(async () => {
-  let users;
   try {
-    users = await RT_DB.users.all();
+    await RT_DB.seedDefaults();
   } catch (e) {
-    console.error('[rt-auth] users error:', e);
-    users = [];
+    console.error('[rt-auth] seed error:', e);
   }
 
-  const setupPanel = document.getElementById('setupPanel');
-  const loginPanel = document.getElementById('loginPanel');
+  const stored = sessionStorage.getItem('rt_user');
+  if (stored) try { const u = JSON.parse(stored); if (u && u.id) { window.location.href = 'rt.html'; return; } } catch (e) {}
 
-  if (users.length === 0) {
-    setupPanel.style.display = 'block';
-    loginPanel.style.display = 'none';
-  } else {
-    loginPanel.style.display = 'block';
-    const stored = sessionStorage.getItem('rt_user');
-    if (stored) try { const u = JSON.parse(stored); if (u && u.id) { window.location.href = 'rt.html'; return; } } catch (e) {}
-  }
-
-  function showError(el, msg) { el.textContent = msg; el.style.display = 'block'; }
-  function hideError(el) { el.textContent = ''; el.style.display = 'none'; }
-
-  function setLoading(btn, loading) {
-    btn.disabled = loading;
-    btn.innerHTML = loading ? '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...' : (btn.dataset.original || btn.innerHTML);
-    if (!btn.dataset.original) btn.dataset.original = btn.innerHTML;
-  }
-
-  function setRtSession(u) {
-    sessionStorage.setItem('rt_token', u.id);
-    sessionStorage.setItem('rt_user', JSON.stringify({ id: u.id, username: u.username, name: u.name, role: u.role }));
-    sessionStorage.setItem('rt_session_start', String(Date.now()));
-    sessionStorage.setItem('rt_last_active', String(Date.now()));
-  }
-
-  async function auditLogin(username, success, reason) {
-    try {
-      await RT_FB.getDb().collection('rt_audit_logs').add({
-        type: 'login',
-        username: username,
-        success: success,
-        reason: reason || '',
-        timestamp: RT_FB.nowISO()
-      });
-    } catch (e) { console.warn('[rt-auth] audit error:', e); }
-  }
-
-  // ── First-run: إنشاء حساب المدير ──
-  const setupBtn = document.getElementById('setupBtn');
-  const setupError = document.getElementById('setupError');
-  if (setupBtn) {
-    setupBtn.onclick = async () => {
-      const name = document.getElementById('setupName').value.trim();
-      const username = document.getElementById('setupUsername').value.trim();
-      const p1 = document.getElementById('setupPass').value;
-      const p2 = document.getElementById('setupPass2').value;
-      hideError(setupError);
-      if (!name || !username || !p1) { showError(setupError, 'يرجى إدخال جميع الحقول'); return; }
-      if (username.length < 3) { showError(setupError, 'اسم المستخدم 3 أحرف على الأقل'); return; }
-      if (p1.length < 6) { showError(setupError, 'كلمة المرور 6 أحرف على الأقل'); return; }
-      if (p1 !== p2) { showError(setupError, 'كلمتا المرور غير متطابقتين'); return; }
-      setLoading(setupBtn, true);
-      try {
-        const hashed = await PASSWORD_UTILS.hash(p1);
-        const u = await RT_DB.users.add({ username: username, password: hashed, name: name, role: 'Manager', createdAt: RT_FB.nowISO() });
-        await RT_DB.seedDefaults();
-        await auditLogin(username, true, 'first_setup');
-        setRtSession(u);
-        window.location.href = 'rt.html';
-      } catch (e) {
-        console.error('[rt-auth] setup error:', e);
-        showError(setupError, 'فشل إنشاء الحساب: ' + (e.message || e));
-        setLoading(setupBtn, false);
-      }
-    };
-  }
-
-  // ── Login ──
   const loginBtn = document.getElementById('loginBtn');
   const username = document.getElementById('username');
   const password = document.getElementById('password');
@@ -135,58 +65,80 @@
     _memoryAttempts = s.count;
   }
 
-  if (loginBtn) {
-    loginBtn.onclick = async () => {
-      var loginState = getLoginState();
-      if (Date.now() < loginState.blockedUntil) {
-        var wait = Math.ceil((loginState.blockedUntil - Date.now()) / 1000);
-        showError(errorEl, 'حاول مرة أخرى بعد ' + wait + ' ثانية');
-        return;
-      }
-      hideError(errorEl);
-      var u = username.value.trim();
-      var p = password.value.trim();
-      if (!u || !p) { showError(errorEl, 'يرجى إدخال اسم المستخدم وكلمة المرور'); return; }
-      setLoading(loginBtn, true);
+  function showError(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+  function hideError(el) { el.textContent = ''; el.style.display = 'none'; }
 
-      var startTime = Date.now();
-      loginState.count++;
-      var level = Math.min(loginState.level || 0, BLOCK_MULTIPLIERS.length - 1);
-      if (loginState.count >= 5) {
-        var blockMs = BASE_BLOCK_MS * BLOCK_MULTIPLIERS[level];
-        loginState.blockedUntil = Date.now() + blockMs;
-        loginState.count = 0;
-        loginState.level = level + 1;
-      }
-      saveLoginState(loginState);
-
-      var all = users;
-      var user = all.find(x => x.username === u);
-      var passwordOk = false;
-      if (user) {
-        passwordOk = await PASSWORD_UTILS.verify(p, user.password);
-        if (passwordOk && !PASSWORD_UTILS.isHashed(user.password)) {
-          var hashed = await PASSWORD_UTILS.hash(p);
-          await RT_DB.users.update(user.id, { password: hashed }).catch(function() {});
-        }
-      }
-
-      var elapsed = Date.now() - startTime;
-      if (elapsed < 800) await new Promise(function(r) { setTimeout(r, 800 - elapsed); });
-
-      if (user && passwordOk) {
-        saveLoginState({ count: 0, blockedUntil: 0, level: 0 });
-        auditLogin(u, true, '');
-        setRtSession(user);
-        window.location.href = 'rt.html';
-      } else {
-        auditLogin(u, false, user ? 'كلمة مرور خاطئة' : 'مستخدم غير موجود');
-        showError(errorEl, 'اسم المستخدم أو كلمة المرور غير صحيحة');
-      }
-      setLoading(loginBtn, false);
-    };
-
-    username.addEventListener('keydown', function(e) { if (e.key === 'Enter') password.focus(); });
-    password.addEventListener('keydown', function(e) { if (e.key === 'Enter') loginBtn.click(); });
+  function setLoading(btn, loading) {
+    btn.disabled = loading;
+    btn.innerHTML = loading ? '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...' : (btn.dataset.original || btn.innerHTML);
+    if (!btn.dataset.original) btn.dataset.original = btn.innerHTML;
   }
+
+  async function auditLogin(username, success, reason) {
+    try {
+      await RT_FB.getDb().collection('rt_audit_logs').add({
+        type: 'login',
+        username: username,
+        success: success,
+        reason: reason || '',
+        timestamp: RT_FB.nowISO()
+      });
+    } catch (e) { console.warn('[rt-auth] audit error:', e); }
+  }
+
+  loginBtn.onclick = async () => {
+    var loginState = getLoginState();
+    if (Date.now() < loginState.blockedUntil) {
+      var wait = Math.ceil((loginState.blockedUntil - Date.now()) / 1000);
+      showError(errorEl, 'حاول مرة أخرى بعد ' + wait + ' ثانية');
+      return;
+    }
+    hideError(errorEl);
+    var u = username.value.trim();
+    var p = password.value.trim();
+    if (!u || !p) { showError(errorEl, 'يرجى إدخال اسم المستخدم وكلمة المرور'); return; }
+    setLoading(loginBtn, true);
+
+    var startTime = Date.now();
+    loginState.count++;
+    var level = Math.min(loginState.level || 0, BLOCK_MULTIPLIERS.length - 1);
+    if (loginState.count >= 5) {
+      var blockMs = BASE_BLOCK_MS * BLOCK_MULTIPLIERS[level];
+      loginState.blockedUntil = Date.now() + blockMs;
+      loginState.count = 0;
+      loginState.level = level + 1;
+    }
+    saveLoginState(loginState);
+
+    var users = await RT_DB.users.all() || [];
+    var user = users.find(x => x.username === u);
+    var passwordOk = false;
+    if (user) {
+      passwordOk = await PASSWORD_UTILS.verify(p, user.password);
+      if (passwordOk && !PASSWORD_UTILS.isHashed(user.password)) {
+        var hashed = await PASSWORD_UTILS.hash(p);
+        await RT_DB.users.update(user.id, { password: hashed }).catch(function() {});
+      }
+    }
+
+    var elapsed = Date.now() - startTime;
+    if (elapsed < 800) await new Promise(function(r) { setTimeout(r, 800 - elapsed); });
+
+    if (user && passwordOk) {
+      saveLoginState({ count: 0, blockedUntil: 0, level: 0 });
+      auditLogin(u, true, '');
+      sessionStorage.setItem('rt_token', user.id);
+      sessionStorage.setItem('rt_user', JSON.stringify({ id: user.id, username: user.username, name: user.name, role: user.role }));
+      sessionStorage.setItem('rt_session_start', String(Date.now()));
+      sessionStorage.setItem('rt_last_active', String(Date.now()));
+      window.location.href = 'rt.html';
+    } else {
+      auditLogin(u, false, user ? 'كلمة مرور خاطئة' : 'مستخدم غير موجود');
+      showError(errorEl, 'اسم المستخدم أو كلمة المرور غير صحيحة');
+    }
+    setLoading(loginBtn, false);
+  };
+
+  username.addEventListener('keydown', function(e) { if (e.key === 'Enter') password.focus(); });
+  password.addEventListener('keydown', function(e) { if (e.key === 'Enter') loginBtn.click(); });
 })();
