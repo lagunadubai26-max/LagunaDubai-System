@@ -42,8 +42,8 @@ async function resolveDayRange(dateVal) {
     if (i !== -1) {
       const start = new Date(sorted[i].openedAt);
       let end = null;
-      if (sorted[i].closedAt) end = new Date(sorted[i].closedAt);
-      else if (i + 1 < sorted.length) end = new Date(sorted[i + 1].openedAt);
+      if (i + 1 < sorted.length) end = new Date(sorted[i + 1].openedAt);
+      else if (sorted[i].closedAt) end = new Date(sorted[i].closedAt);
       else end = FB.clockNow();
       return { start, end };
     }
