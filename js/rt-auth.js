@@ -1,9 +1,6 @@
 ;(async () => {
-  try {
-    await RT_DB.seedDefaults();
-  } catch (e) {
-    console.error('[rt-auth] seed error:', e);
-  }
+  // زرع القائمة الافتراضية في الخلفية — لا يمنع الدخول أبدًا
+  RT_DB.seedDefaults().catch(function(e) { console.error('[rt-auth] seed error:', e); });
 
   const stored = sessionStorage.getItem('rt_user');
   if (stored) try { const u = JSON.parse(stored); if (u && u.id) { window.location.href = 'rt.html'; return; } } catch (e) {}
