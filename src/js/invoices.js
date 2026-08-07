@@ -12,8 +12,23 @@ async function render() {
   const val = searchInput ? searchInput.value.toLowerCase() : '';
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
 
+  let rangeStart = null;
+  try {
+    const openShift = await DB.shifts.getOpen();
+    if (openShift && openShift.openDate) rangeStart = new Date(openShift.openDate + 'T00:00:00');
+  } catch(e) { console.warn('[invoices] shift check failed:', e); }
+  const todayKey = localDateKey(FB.clockNow());
+  const now = FB.clockNow();
+
   const filtered = invoices.filter(inv => {
     if (!inv || !inv.id || typeof inv.id !== 'string' || !inv.customer) { console.warn('[invoices] skipped malformed:', inv); return false; }
+    if (!inv.date) return false;
+    const d = new Date(inv.date);
+    if (rangeStart) {
+      if (!(d >= rangeStart && d <= now)) return false;
+    } else if (localDateKey(inv.date) !== todayKey) {
+      return false;
+    }
     const matchSearch = inv.id.toLowerCase().includes(val) || inv.customer.toLowerCase().includes(val);
     const st = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
     const matchStatus = filterStatus === 'كل الحالات' || st === filterStatus;
@@ -26,13 +41,13 @@ async function render() {
     tableBody.appendChild(frag);
   });
 
-  const paid = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+  const paid = filtered.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
   const cards = document.querySelectorAll('.invoice-stats .stat-card h2');
   if (cards.length >= 5) {
-    cards[0].textContent = invoices.length;
+    cards[0].textContent = filtered.length;
     cards[1].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
     cards[2].textContent = paid.length;
-    cards[3].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
+    cards[3].textContent = filtered.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
     cards[4].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
   }
   attachActions();

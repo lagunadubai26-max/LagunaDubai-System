@@ -40,8 +40,8 @@ async function showDayReport() {
   dayReportEl.innerHTML = '<div class="dr-empty"><i class="fa-solid fa-spinner fa-spin"></i> جاري تحميل التقرير...</div>';
 
   try {
-    const [allInvoices, allExpenses, allReturns, menu] = await Promise.all([
-      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all()
+    const [allInvoices, allExpenses, allReturns, menu, allDaycloses] = await Promise.all([
+      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all(), DB.daycloses.all()
     ]);
 
     const start = new Date(dateVal + 'T00:00:00');
@@ -99,7 +99,31 @@ async function showDayReport() {
       buildReturnTable(dayReturns);
 
     if (!paidInvoices.length && !dayReturns.length && !dayExpenses.length) {
-      dayReportEl.innerHTML = '<div class="dr-empty">لا توجد بيانات في هذا اليوم</div>';
+      const dc = (allDaycloses || []).find(d => d.date === dateVal);
+      if (dc) {
+        const dcSales = Number(dc.totalSales || 0);
+        const dcExp = Number(dc.totalExpenses || 0);
+        const dcRet = Number(dc.totalReturns || 0);
+        dayReportEl.innerHTML =
+          '<div class="dr-header">' +
+            '<img src="images/logo.png" alt="Laguna Dubai">' +
+            '<h2>لاجونا دبي - كافيه ومطعم</h2>' +
+            '<p>التقرير اليومي - ' + dateVal + '</p>' +
+          '</div>' +
+          '<div class="dr-summary">' +
+            '<div class="card"><span>عدد الفواتير المدفوعة</span><b>' + (dc.numInvoices || 0) + '</b></div>' +
+            '<div class="card"><span>إجمالي المبيعات</span><b>' + fmtMoney(dcSales) + '</b></div>' +
+            '<div class="card"><span>كاش</span><b>' + fmtMoney(dc.cashAmount || 0) + '</b></div>' +
+            '<div class="card"><span>شبكة / فيزا</span><b>' + fmtMoney(dc.cardAmount || 0) + '</b></div>' +
+            '<div class="card"><span>عدد المشروبات</span><b>' + (dc.itemsSold || 0) + '</b></div>' +
+            '<div class="card"><span>المرتجعات</span><b style="color:#dc2626">-' + fmtMoney(dcRet) + '</b></div>' +
+            '<div class="card"><span>المصروفات</span><b style="color:#dc2626">-' + fmtMoney(dcExp) + '</b></div>' +
+            '<div class="card"><span>صافي الربح</span><b style="color:var(--success)">' + fmtMoney(dcSales - dcRet - dcExp) + '</b></div>' +
+          '</div>' +
+          '<div class="dr-empty" style="margin-top:16px">⚠️ هذا اليوم اتغلق سابقًا وتم تصدير فواتيره إلى ملف Excel — هنا الإجماليات المحفوظة عند الإغلاق</div>';
+      } else {
+        dayReportEl.innerHTML = '<div class="dr-empty">لا توجد بيانات في هذا اليوم</div>';
+      }
     }
   } catch (e) {
     console.error('[dayreport]', e);

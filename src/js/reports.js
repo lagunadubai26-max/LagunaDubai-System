@@ -606,12 +606,8 @@ confirmDayClose.onclick = async () => {
     link.download = 'laguna-close-' + todayISO + '.csv';
     link.click();
 
-    // Clear today's invoices
-    for (const inv of todayInvoices) {
-      try { await DB.invoices.remove(inv.id); } catch(e) { console.warn('[dayclose] could not delete invoice:', inv.id); }
-    }
-
-    alert('✅ تم إغلاق اليوم بنجاح\n📄 تم تحميل ملف Excel بالفواتير\n🗑️ تم مسح فواتير اليوم');
+    // Clear today's invoices — محذوف عمدًا: الفواتير تبقى محفوظة عشان التقارير اليومية والسابقة
+    alert('✅ تم إغلاق اليوم بنجاح\n📄 تم تحميل ملف Excel بالفواتير');
   } catch (e) {
     console.error('[dayclose]', e);
     alert('❌ حدث خطأ أثناء إغلاق اليوم');
