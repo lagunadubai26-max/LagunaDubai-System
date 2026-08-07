@@ -48,7 +48,7 @@ async function resolveDayRange(dateVal) {
       return { start, end };
     }
   } catch(e) { console.warn('[dayreport] range:', e); }
-  return { start: new Date(dateVal + 'T00:00:00'), end: new Date(dateVal + 'T23:59:59.999') };
+  return { start: new Date(dateVal + 'T00:00:00Z'), end: new Date(dateVal + 'T23:59:59.999Z') };
 }
 
 async function showDayReport() {

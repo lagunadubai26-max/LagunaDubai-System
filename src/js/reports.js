@@ -483,7 +483,7 @@ async function showDayCloseModal() {
   const netProfit = totalSales - totalReturns - totalExpenses;
   const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
-  const shiftForDate = shift ? new Date(shift.openDate + 'T12:00:00') : FB.clockNow();
+  const shiftForDate = shift ? new Date(shift.openDate + 'T12:00:00Z') : FB.clockNow();
   const todayStr = 'شيفت ' + shiftForDate.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + (shift && shift.openedAt ? ' (من ' + new Date(shift.openedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) + ')' : '');
   document.getElementById('dcDate').textContent = todayStr;
   document.getElementById('dcSales').textContent = fmtMoney(totalSales);
@@ -531,7 +531,7 @@ document.getElementById('dcConfirmStartDay').onclick = async () => {
     DB.audit.log('shift_open', { openDate: shift.openDate, openedBy: shift.openedBy });
     closeStartDayModal();
     checkDayCloseStatus();
-    alert('✅ تم بدء اليوم ' + new Date(shift.openDate + 'T12:00:00').toLocaleDateString('ar-EG') + '\nاليوم ثابت حتى إغلاق الشيفت يدويًا');
+    alert('✅ تم بدء اليوم ' + new Date(shift.openDate + 'T12:00:00Z').toLocaleDateString('ar-EG') + '\nاليوم ثابت حتى إغلاق الشيفت يدويًا');
   } catch (e) {
     console.error('[startday]', e);
     alert('❌ حدث خطأ أثناء بدء اليوم');

@@ -17,7 +17,7 @@ async function render() {
   try {
     const openShift = await DB.shifts.getOpen();
     if (openShift && openShift.openDate) {
-      rangeStart = new Date(openShift.openDate + 'T00:00:00');
+      rangeStart = new Date(openShift.openedAt);
       shiftDateLabel = new Date(openShift.openDate + 'T12:00:00Z').toLocaleDateString('ar-EG', { timeZone: 'Africa/Cairo' });
     }
   } catch(e) { console.warn('[invoices] shift check failed:', e); }

@@ -121,7 +121,7 @@ async function showDashDayCloseModal(shift) {
   const allExpenses = await DB.expenses.all() || [];
   const allReturns = await DB.returns.all() || [];
 
-  const start = new Date(shift.openDate + 'T00:00:00');
+  const start = new Date(shift.openedAt || (shift.openDate + 'T00:00:00Z'));
   const end = FB.clockNow();
 
   const invoices = filterDate(allInvoices, start, end);

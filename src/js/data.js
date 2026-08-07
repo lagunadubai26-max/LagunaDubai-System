@@ -6,10 +6,9 @@ function localGet(key, def) {
 function localSet(key, val) { localStorage.setItem('laguna_' + key, JSON.stringify(val)); }
 
 function localDateKey(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return y + '-' + m + '-' + day;
+  if (!d) return '';
+  if (typeof d === 'string') d = new Date(d);
+  return d.toISOString().slice(0, 10);
 }
 
 const DB = {
@@ -39,7 +38,7 @@ const DB = {
       let shift = null;
       try { shift = await DB.shifts.getOpen(); } catch(e) {}
       if (shift && shift.openDate) {
-        const start = new Date(shift.openDate + 'T00:00:00');
+        const start = new Date(shift.openDate + 'T00:00:00Z');
         return { start, end: now };
       }
       const h = now.getHours();
