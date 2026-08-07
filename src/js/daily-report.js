@@ -4,8 +4,13 @@ const dayReportPdfBtn = document.getElementById('dayReportPdfBtn');
 const dayReportImgBtn = document.getElementById('dayReportImgBtn');
 const dayReportEl = document.getElementById('dayReport');
 
-function setDayReportDate() {
-  dayReportDate.value = localDateKey(FB.clockNow());
+async function setDayReportDate() {
+  let day = localDateKey(FB.clockNow());
+  try {
+    const openShift = await DB.shifts.getOpen();
+    if (openShift && openShift.openDate) day = openShift.openDate;
+  } catch(e) { console.warn('[dayreport] shift default:', e); }
+  dayReportDate.value = day;
 }
 
 function fmtMoney(v) {
@@ -211,5 +216,4 @@ async function exportDayReport(asImage) {
 if (dayReportShowBtn) dayReportShowBtn.onclick = showDayReport;
 if (dayReportPdfBtn) dayReportPdfBtn.onclick = () => exportDayReport(false);
 if (dayReportImgBtn) dayReportImgBtn.onclick = () => exportDayReport(true);
-setDayReportDate();
-showDayReport();
+setDayReportDate().then(showDayReport);
