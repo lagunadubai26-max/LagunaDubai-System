@@ -71,6 +71,20 @@ function destroyAllCharts() {
 
 let rendering = false;
 
+function shiftSessionRange(dateVal, shifts) {
+  const sorted = shifts.filter(s => s.openDate && s.openedAt).sort((a, b) => new Date(a.openedAt) - new Date(b.openedAt));
+  const i = sorted.findIndex(s => s.openDate === dateVal);
+  if (i !== -1) {
+    const start = new Date(sorted[i].openedAt);
+    let end = null;
+    if (i + 1 < sorted.length) end = new Date(sorted[i + 1].openedAt);
+    else if (sorted[i].closedAt) end = new Date(sorted[i].closedAt);
+    else end = new Date();
+    return { start, end };
+  }
+  return { start: new Date(dateVal + 'T00:00:00Z'), end: new Date(dateVal + 'T23:59:59.999Z') };
+}
+
 async function render() {
   if (rendering) return;
   rendering = true;
@@ -82,13 +96,68 @@ async function render() {
     const allExpenses = await DB.expenses.all() || [];
     const allReturns = await DB.returns.all() || [];
     const products = await DB.products.all() || [];
+    const allDaycloses = await DB.daycloses.all() || [];
+    const allShifts = await DB.shifts.all() || [];
+    const allAudit = await DB.audit.all() || [];
 
     const invoices = filterByDate(allInvoices, range);
     const prevInvoices = filterByDate(allInvoices, prevRange);
     const expenses = filterByDate(allExpenses, range);
     const returns = filterByDate(allReturns, range);
 
-    const stats = calcStats(invoices, expenses, returns);
+    const monthKey = monthInput.value;
+    const coveredDays = {};
+    allDaycloses.forEach(d => { const k = d.date || ''; if (k.indexOf(monthKey) === 0 && Number(d.totalSales || 0) > 0) coveredDays[k] = d; });
+    const openDayInvoices = invoices.filter(i => !coveredDays[(i.date || '').slice(0, 10)]);
+
+    let closedSales = 0, closedCash = 0, closedCard = 0, closedNum = 0, closedItems = 0, closedRet = 0, closedExp = 0;
+    const chartDays = [];
+    Object.keys(coveredDays).forEach(k => {
+      const dc = coveredDays[k];
+      closedSales += Number(dc.totalSales || 0);
+      closedCash += Number(dc.cashAmount || 0);
+      closedCard += Number(dc.cardAmount || 0);
+      closedNum += Number(dc.numInvoices || 0);
+      closedItems += Number(dc.itemsSold || 0);
+      closedRet += Number(dc.totalReturns || 0);
+      closedExp += Number(dc.totalExpenses || 0);
+      chartDays.push({ date: k + 'T12:00:00Z', total: Number(dc.totalSales || 0), paymentMethod: 'Cash', items: [] });
+    });
+
+    const coveredZero = {};
+    allDaycloses.forEach(d => { const k = d.date || ''; if (k.indexOf(monthKey) === 0 && !(Number(d.totalSales || 0) > 0)) coveredZero[k] = true; });
+    const maxAuditT = new Date(FB.clockNow().getTime() + 5 * 60 * 1000);
+    Object.keys(coveredZero).forEach(k => {
+      const r = shiftSessionRange(k, allShifts);
+      let s = 0, c = 0, n = 0;
+      allAudit.forEach(a => {
+        if (a.type !== 'invoice_created' || !a.timestamp) return;
+        const t = new Date(a.timestamp);
+        if (t >= r.start && t <= r.end && t <= maxAuditT) {
+          let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
+          const v = Number(det.total || 0);
+          s += v; n++;
+          if (det.method === 'Cash' || det.method === '\u0643\u0627\u0634') c += v;
+        }
+      });
+      if (n) {
+        closedSales += s; closedCash += c; closedCard += (s - c); closedNum += n;
+        chartDays.push({ date: k + 'T12:00:00Z', total: s, paymentMethod: 'Cash', items: [] });
+      }
+    });
+
+    const stats = calcStats(openDayInvoices, expenses, returns);
+    stats.totalSales += closedSales;
+    stats.collectedCash += closedCash;
+    stats.totalReturns += closedRet;
+    stats.totalExpenses += closedExp;
+    stats.numPaid += closedNum;
+    stats.numInvoices += closedNum;
+    stats.avgInvoice = stats.numPaid > 0 ? Math.round(stats.totalSales / stats.numPaid) : 0;
+    stats.netProfit = stats.totalSales - stats.totalReturns - stats.totalExpenses;
+    stats.totalCard = closedCard;
+
+    const chartInvoices = invoices.concat(chartDays);
     const prevStats = calcStats(prevInvoices, [], []);
 
     document.getElementById('reportSales').textContent = fmtMoney(stats.totalSales);
@@ -107,11 +176,11 @@ async function render() {
     const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
 
     drawAnomalies(soldInvoices, expenses, range);
-    drawSalesChart(soldInvoices, range);
+    drawSalesChart(chartInvoices, range);
     drawPaymentChart(soldInvoices);
     drawCategoryChart(soldInvoices, products);
     drawHourlyChart(soldInvoices);
-    drawDayChart(soldInvoices);
+    drawDayChart(chartInvoices);
     drawTopProducts(soldInvoices);
   } catch (e) {
     console.error('[reports]', e);

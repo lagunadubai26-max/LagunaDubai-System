@@ -51,6 +51,19 @@ async function resolveDayRange(dateVal) {
   return { start: new Date(dateVal + 'T00:00:00Z'), end: new Date(dateVal + 'T23:59:59.999Z') };
 }
 
+function buildItemsMap(invs) {
+  const m = {};
+  (invs || []).forEach(inv => {
+    (inv.items || []).forEach(it => {
+      const key = (it.name || '') + '|' + (it.hasMilk ? '1' : '0') + '|' + (it.note || '');
+      if (!m[key]) m[key] = { name: it.name || '\u0645\u0646\u062a\u062c', qty: 0, revenue: 0, hasMilk: !!it.hasMilk, note: it.note || '' };
+      m[key].qty += Number(it.qty || 1);
+      m[key].revenue += Number(it.qty || 1) * Number(it.price || 0);
+    });
+  });
+  return m;
+}
+
 async function showDayReport() {
   const dateVal = dayReportDate.value;
   if (!dateVal) return alert('\u0627\u062e\u062a\u0631 \u0627\u0644\u062a\u0627\u0631\u064a\u062e \u0623\u0648\u0644\u0627\u064b');
@@ -73,6 +86,7 @@ async function showDayReport() {
     const totalExpenses = dayExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
     const totalReturns = dayReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
     const netProfit = totalSales - totalReturns - totalExpenses;
+    const liveSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
 
     const dc = (allDaycloses || []).find(d => d.date === dateVal);
     const auditInvoices = (allAudit || [])
@@ -110,7 +124,9 @@ async function showDayReport() {
         '<div class="card"><span>\u0627\u0644\u0645\u0631\u062a\u062c\u0639\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(dc.totalReturns || 0) + '</b></div>' +
         '<div class="card"><span>\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(dc.totalExpenses || 0) + '</b></div>' +
         '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(Number(dc.totalSales || 0) - Number(dc.totalReturns || 0) - Number(dc.totalExpenses || 0)) + '</b></div>';
-      dayReportEl.innerHTML = summaryHtml('\u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0627\u0644\u064a\u0648\u0645\u064a (\u0625\u063a\u0644\u0627\u0642 \u0633\u0627\u0628\u0642)', cards, '<div class="dr-empty" style="margin-top:16px">\u26a0\ufe0f \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 \u0627\u062a\u063a\u0644\u0642 \u0633\u0627\u0628\u0642\u064b\u0627 \u0648\u062a\u0645 \u062a\u0635\u062f\u064a\u0631 \u0641\u0648\u0627\u062a\u064a\u0631\u0647 \u0625\u0644\u0649 \u0645\u0644\u0641 Excel \u2014 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>');
+      const cards2 = cards + (soldInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</span><b>' + soldInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(liveSales) + '</b></div>' : '');
+      const liveExtra = soldInvoices.length ? '<div class="dr-title">\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0645\u0646\u062a\u062c\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0627 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>' + buildDrinkTable(buildItemsMap(soldInvoices)) : '';
+      dayReportEl.innerHTML = summaryHtml('\u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0627\u0644\u064a\u0648\u0645\u064a (\u0625\u063a\u0644\u0627\u0642 \u0633\u0627\u0628\u0642)', cards2, '<div class="dr-empty" style="margin-top:16px">\u26a0\ufe0f \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 \u0627\u062a\u063a\u0644\u0642 \u0633\u0627\u0628\u0642\u064b\u0627 \u0648\u062a\u0645 \u062a\u0635\u062f\u064a\u0631 \u0641\u0648\u0627\u062a\u064a\u0631\u0647 \u0625\u0644\u0649 \u0645\u0644\u0641 Excel \u2014 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>' + liveExtra);
     } else if (auditInvoices.length && !soldInvoices.length) {
       const audSales = auditInvoices.reduce((s, a) => { let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {} return s + Number(det.total || 0); }, 0);
       const audCash = auditInvoices.reduce((s, a) => { let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {} return s + ((det.method === 'Cash' || det.method === '\u0643\u0627\u0634') ? Number(det.total || 0) : 0); }, 0);
@@ -123,15 +139,7 @@ async function showDayReport() {
     } else if (!soldInvoices.length && !dayReturns.length && !dayExpenses.length) {
       dayReportEl.innerHTML = '<div class="dr-empty">\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645</div>';
     } else {
-      const itemsMap = {};
-      soldInvoices.forEach(inv => {
-        (inv.items || []).forEach(it => {
-          const key = (it.name || '') + '|' + (it.hasMilk ? '1' : '0') + '|' + (it.note || '');
-          if (!itemsMap[key]) itemsMap[key] = { name: it.name || '\u0645\u0646\u062a\u062c', qty: 0, revenue: 0, hasMilk: !!it.hasMilk, note: it.note || '' };
-          itemsMap[key].qty += Number(it.qty || 1);
-          itemsMap[key].revenue += Number(it.qty || 1) * Number(it.price || 0);
-        });
-      });
+      const itemsMap = buildItemsMap(soldInvoices);
 
       const totalItemsQty = Object.values(itemsMap).reduce((s, r) => s + r.qty, 0);
       const menuMap = (menu || []).reduce((m, p) => { m[p.id] = p; return m; }, {});
