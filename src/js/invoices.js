@@ -13,9 +13,13 @@ async function render() {
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
 
   let rangeStart = null;
+  let shiftDateLabel = null;
   try {
     const openShift = await DB.shifts.getOpen();
-    if (openShift && openShift.openDate) rangeStart = new Date(openShift.openDate + 'T00:00:00');
+    if (openShift && openShift.openDate) {
+      rangeStart = new Date(openShift.openDate + 'T00:00:00');
+      shiftDateLabel = new Date(openShift.openDate + 'T12:00:00Z').toLocaleDateString('ar-EG', { timeZone: 'Africa/Cairo' });
+    }
   } catch(e) { console.warn('[invoices] shift check failed:', e); }
   const todayKey = localDateKey(FB.clockNow());
   const now = FB.clockNow();
@@ -37,7 +41,7 @@ async function render() {
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
-    const frag = buildInvoiceRow(inv);
+    const frag = buildInvoiceRow(inv, shiftDateLabel);
     tableBody.appendChild(frag);
   });
 
@@ -54,12 +58,14 @@ async function render() {
   updateMergeBtn();
 }
 
-function buildInvoiceRow(inv) {
+function buildInvoiceRow(inv, shiftDateLabel) {
   const frag = document.createDocumentFragment();
   const row = document.createElement('tr');
   const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
   const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
-  const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : '—';
+  const dateStr = inv.date
+    ? (shiftDateLabel ? shiftDateLabel + ' ' + new Date(inv.date).toLocaleTimeString('ar-EG', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit' }) : new Date(inv.date).toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' }))
+    : '—';
   const paid = inv.paid ?? inv.total;
   const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
   const safeCustomer = escapeHtml(inv.customer || '');
@@ -360,7 +366,7 @@ function renderWithData() {
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
-    const frag = buildInvoiceRow(inv);
+    const frag = buildInvoiceRow(inv, shiftDateLabel);
     tableBody.appendChild(frag);
   });
 
