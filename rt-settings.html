@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
+
+    <title>الإعدادات | Laguna Food Truck</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/rt.css">
+    <script src="js/rt-head.js"></script>
+    <script>
+      if (!sessionStorage.getItem('rt_user')) window.location.href = 'rt-login.html';
+    </script>
+</head>
+
+<body>
+<button class="sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="container">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-circle">🍔</div>
+            <h2>Laguna Food Truck</h2>
+            <p>Restaurant Management</p>
+        </div>
+        <nav>
+            <a href="rt.html"><i class="fa-solid fa-utensils"></i><span>الكاشير</span></a>
+            <a href="rt-reports.html"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
+            <a href="rt-settings.html" class="active"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
+        </nav>
+        <div class="profile-section">
+            <div class="avatar" id="sidebarAvatar">م</div>
+            <div class="info">
+                <div class="name" id="sidebarName">الاسم</div>
+                <div class="role" id="sidebarRole">مدير</div>
+            </div>
+            <a href="rt-login.html" onclick="clearRtSession()" style="color:var(--muted);font-size:16px;text-decoration:none" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></a>
+        </div>
+    </aside>
+
+    <main class="main">
+
+        <div class="topbar">
+            <div>
+                <h1>الإعدادات</h1>
+                <p>إدارة الحساب والمنتجات والأصناف</p>
+            </div>
+            <div class="profile-top" style="display:flex;align-items:center;gap:12px;margin-bottom:0">
+                <div class="avatar" id="topAvatar">م</div>
+                <div class="info">
+                    <h4 id="profileName">جاري التحميل...</h4>
+                    <span id="profileRole">مدير</span>
+                </div>
+            </div>
+        </div>
+        <script>
+          (function() {
+            var u = JSON.parse(sessionStorage.getItem('rt_user'));
+            if (u) {
+              document.getElementById('profileName').textContent = u.name;
+              document.getElementById('topAvatar').textContent = u.name.charAt(0);
+              document.getElementById('sidebarAvatar').textContent = u.name.charAt(0);
+              document.getElementById('sidebarName').textContent = u.name;
+            }
+          })();
+        </script>
+
+        <!-- Account -->
+        <div class="rt-section">
+            <h3><i class="fa-solid fa-user-shield"></i> الحساب</h3>
+            <div class="rt-form-grid">
+                <div>
+                    <label>الاسم</label>
+                    <input type="text" id="accName">
+                </div>
+                <div>
+                    <label>اسم المستخدم</label>
+                    <input type="text" id="accUsername">
+                </div>
+            </div>
+            <div class="rt-form-grid">
+                <div>
+                    <label>كلمة المرور الحالية</label>
+                    <input type="password" id="accCurrentPass" placeholder="مطلوبة لحفظ التغييرات">
+                </div>
+                <div>
+                    <label>كلمة مرور جديدة (اختياري)</label>
+                    <input type="password" id="accNewPass" placeholder="اتركها فارغة للإبقاء على الحالية">
+                </div>
+            </div>
+            <div class="rt-actions">
+                <button class="rt-btn rt-btn-primary" id="saveAccount"><i class="fa-solid fa-floppy-disk"></i> حفظ الحساب</button>
+            </div>
+            <p class="auth-error" id="accError" style="margin-top:12px"></p>
+        </div>
+
+        <!-- Categories -->
+        <div class="rt-section">
+            <h3><i class="fa-solid fa-layer-group"></i> الأصناف</h3>
+            <div class="rt-form-grid" id="catForm">
+                <input type="text" id="catName" placeholder="اسم الصنف">
+                <input type="number" id="catOrder" placeholder="الترتيب" min="1">
+                <input type="hidden" id="catEditId" value="">
+                <div class="rt-actions">
+                    <button class="rt-btn rt-btn-primary" id="addCat"><i class="fa-solid fa-plus"></i> إضافة</button>
+                    <button class="rt-btn rt-btn-ghost" id="cancelCatEdit" style="display:none">إلغاء</button>
+                </div>
+            </div>
+            <div id="catList" style="margin-top:16px"></div>
+        </div>
+
+        <!-- Products -->
+        <div class="rt-section">
+            <h3><i class="fa-solid fa-pizza-slice"></i> المنتجات</h3>
+            <div class="rt-form-grid">
+                <input type="text" id="prodName" placeholder="اسم المنتج">
+                <select id="prodCat"></select>
+                <input type="number" id="prodPrice" placeholder="السعر (ج.م)" min="0" step="0.5">
+                <input type="hidden" id="prodEditId" value="">
+            </div>
+            <div class="rt-actions">
+                <button class="rt-btn rt-btn-primary" id="addProd"><i class="fa-solid fa-plus"></i> إضافة</button>
+                <button class="rt-btn rt-btn-ghost" id="cancelProdEdit" style="display:none">إلغاء</button>
+            </div>
+            <div id="prodList" style="margin-top:16px"></div>
+        </div>
+
+    </main>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="rt-firebase-config.js"></script>
+<script src="js/rt-firebase.js?v=1"></script>
+<script src="js/sanitize.js"></script>
+<script src="js/password-utils.js"></script>
+<script src="js/rt-data.js?v=1"></script>
+<script src="js/rt-settings.js?v=1"></script>
+</body>
+</html>
