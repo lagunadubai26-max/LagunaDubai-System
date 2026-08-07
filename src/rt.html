@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
+
+    <title>الكاشير | Laguna Food Truck</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/rt.css">
+    <script src="js/rt-head.js"></script>
+    <script>
+      if (!sessionStorage.getItem('rt_user')) window.location.href = 'rt-login.html';
+    </script>
+</head>
+
+<body>
+<button class="sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="container">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-circle">🍔</div>
+            <h2>Laguna Food Truck</h2>
+            <p>Restaurant Management</p>
+        </div>
+        <nav>
+            <a href="rt.html" class="active"><i class="fa-solid fa-utensils"></i><span>الكاشير</span></a>
+            <a href="rt-reports.html"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
+            <a href="rt-settings.html"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
+        </nav>
+        <div class="profile-section">
+            <div class="avatar" id="sidebarAvatar">م</div>
+            <div class="info">
+                <div class="name" id="sidebarName">الاسم</div>
+                <div class="role" id="sidebarRole">مدير</div>
+            </div>
+            <a href="rt-login.html" onclick="clearRtSession()" style="color:var(--muted);font-size:16px;text-decoration:none" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></a>
+        </div>
+    </aside>
+
+    <main class="main">
+
+        <div class="topbar">
+            <div>
+                <h1>الكاشير</h1>
+                <p id="dayLabel">جاري التحميل...</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <button id="shiftBtn" class="btn-dayclose" style="height:46px;padding:0 20px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.3s"><i class="fa-solid fa-sun"></i> فتح الشيفت</button>
+                <button id="dayCloseBtn" class="btn-dayclose" style="display:none;height:46px;padding:0 20px;border:none;border-radius:12px;background:#0c0a09;color:#fff;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:none;align-items:center;gap:8px;transition:.3s"><i class="fa-solid fa-moon"></i> إغلاق اليوم</button>
+                <div class="profile-top" style="display:flex;align-items:center;gap:12px;margin-bottom:0">
+                    <div class="avatar" id="topAvatar">م</div>
+                    <div class="info">
+                        <h4 id="profileName">جاري التحميل...</h4>
+                        <span id="profileRole">مدير</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+          (function() {
+            var u = JSON.parse(sessionStorage.getItem('rt_user'));
+            if (u) {
+              document.getElementById('profileName').textContent = u.name;
+              document.getElementById('topAvatar').textContent = u.name.charAt(0);
+              document.getElementById('sidebarAvatar').textContent = u.name.charAt(0);
+              document.getElementById('sidebarName').textContent = u.name;
+            }
+          })();
+        </script>
+
+        <!-- Summary -->
+        <section class="cards">
+            <div class="card">
+                <div class="card-icon green"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="card-info"><h3>مبيعات اليوم</h3><h2 id="sumTotal">0</h2></div>
+            </div>
+            <div class="card">
+                <div class="card-icon orange"><i class="fa-solid fa-money-bill-1"></i></div>
+                <div class="card-info"><h3>كاش</h3><h2 id="sumCash">0</h2></div>
+            </div>
+            <div class="card">
+                <div class="card-icon blue"><i class="fa-solid fa-credit-card"></i></div>
+                <div class="card-info"><h3>شبكة / فيزا</h3><h2 id="sumCard">0</h2></div>
+            </div>
+            <div class="card">
+                <div class="card-icon purple"><i class="fa-solid fa-receipt"></i></div>
+                <div class="card-info"><h3>عدد الفواتير</h3><h2 id="sumInvoices">0</h2></div>
+            </div>
+        </section>
+
+        <!-- POS -->
+        <section class="rt-pos">
+            <div class="rt-products">
+                <div class="rt-toolbar">
+                    <div class="search-box" style="width:100%;max-width:340px">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" placeholder="ابحث عن منتج...">
+                    </div>
+                </div>
+                <div class="categories" id="catTabs"></div>
+                <div class="rt-grid" id="productGrid"></div>
+            </div>
+
+            <div class="rt-cart">
+                <h3 class="rt-cart-title"><i class="fa-solid fa-cart-shopping"></i> الطلب الحالي</h3>
+                <div class="rt-cart-items" id="cartItems"></div>
+                <div class="rt-cart-footer">
+                    <div class="rt-total-row"><span>الإجمالي</span><strong id="cartTotal">0 ج.م</strong></div>
+                    <div class="rt-methods" id="methodBtns">
+                        <button data-method="كاش" class="active"><i class="fa-solid fa-money-bill-1"></i> كاش</button>
+                        <button data-method="شبكة"><i class="fa-solid fa-credit-card"></i> شبكة / فيزا</button>
+                    </div>
+                    <div class="rt-pay-row">
+                        <label>المدفوع</label>
+                        <input type="number" id="paidInput" value="0" min="0" step="0.5">
+                    </div>
+                    <div class="rt-change-row"><span>الباقي</span><strong id="changeOut">0 ج.م</strong></div>
+                    <button id="checkoutBtn"><i class="fa-solid fa-check"></i> إصدار الفاتورة</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Today invoices -->
+        <section class="chart-box" style="margin-top:28px">
+            <h3 style="font-size:18px;color:var(--primary);margin-bottom:18px"><i class="fa-solid fa-receipt"></i> فواتير اليوم</h3>
+            <div id="todayInvoices"></div>
+        </section>
+
+    </main>
+
+</div>
+
+<!-- Shift Open Modal -->
+<div class="modal" id="shiftOpenModal">
+  <div class="modal-box" style="max-width:460px;text-align:center">
+    <div class="modal-header" style="justify-content:center;position:relative">
+      <h2><i class="fa-solid fa-sun" style="color:var(--accent)"></i> فتح الشيفت</h2>
+      <button class="close-modal" id="closeShiftOpen" style="position:absolute;left:16px;top:50%;transform:translateY(-50%)">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:64px;margin-bottom:12px">🌤️</div>
+      <div class="dc-date" id="shiftOpenDate" style="font-size:20px;font-weight:800;color:var(--primary)"></div>
+      <p style="color:var(--muted);font-size:13px;margin-top:16px;line-height:1.8">بفتح الشيفت، كل الفواتير الجديدة هتتسجل على اليوم ده.<br>اليوم يظل ثابتًا حتى تغلقه يدويًا في نهاية الشيفت.</p>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px">
+      <button class="cancel-btn" id="cancelShiftOpen"><i class="fa-solid fa-xmark"></i> إلغاء</button>
+      <button class="confirm-btn" id="confirmShiftOpen" style="background:var(--accent);color:#fff"><i class="fa-solid fa-play"></i> فتح الشيفت</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shift Close Modal -->
+<div class="modal" id="shiftCloseModal">
+  <div class="modal-box" style="max-width:460px;text-align:center">
+    <div class="modal-header" style="justify-content:center;position:relative">
+      <h2><i class="fa-solid fa-moon" style="color:var(--primary)"></i> غلق الشيفت</h2>
+      <button class="close-modal" id="closeShiftClose" style="position:absolute;left:16px;top:50%;transform:translateY(-50%)">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:64px;margin-bottom:12px">🌙</div>
+      <p style="color:var(--muted);font-size:14px;margin-top:16px;line-height:1.8">تأكيد غلق الشيفت الحالي؟<br>بعد الغلق يمكنك فتح شيفت جديد أو إغلاق اليوم.</p>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px">
+      <button class="cancel-btn" id="cancelShiftClose"><i class="fa-solid fa-xmark"></i> إلغاء</button>
+      <button class="confirm-btn" id="confirmShiftClose"><i class="fa-solid fa-check"></i> غلق الشيفت</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day Close Modal -->
+<div class="modal" id="dayCloseModal">
+  <div class="modal-box" style="max-width:600px">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-moon"></i> إغلاق اليوم</h2>
+      <button class="close-modal" id="closeDayClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="dc-date" id="dcDate"></div>
+      <div class="dc-stats">
+        <div class="dc-stat"><span>إجمالي المبيعات</span><strong id="dcSales">0</strong></div>
+        <div class="dc-stat"><span>عدد الفواتير</span><strong id="dcInvoices">0</strong></div>
+        <div class="dc-stat"><span>الدرج (كاش)</span><strong id="dcCash">0</strong></div>
+        <div class="dc-stat"><span>شبكة / فيزا</span><strong id="dcCard">0</strong></div>
+        <div class="dc-stat"><span>عدد الأصناف المباعة</span><strong id="dcItemsSold">0</strong></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" id="cancelDayClose">إلغاء</button>
+      <button class="confirm-btn" id="confirmDayClose" style="background:var(--accent);color:#fff"><i class="fa-solid fa-check"></i> تأكيد إغلاق اليوم</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="rt-firebase-config.js"></script>
+<script src="js/rt-firebase.js?v=1"></script>
+<script src="js/sanitize.js"></script>
+<script src="js/password-utils.js"></script>
+<script src="js/rt-data.js?v=1"></script>
+<script src="js/rt-pos.js?v=1"></script>
+</body>
+</html>
