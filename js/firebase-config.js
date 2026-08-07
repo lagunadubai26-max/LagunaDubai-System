@@ -5,11 +5,11 @@
 // 4. Project Settings → Web app → Register → Copy config below
 
 const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyBxNNOQ-DEuZTeBTzETKQcQ-6pX3JO_iCs',
-  authDomain: 'lagunadubai-6efe3.firebaseapp.com',
-  projectId: 'lagunadubai-6efe3',
-  storageBucket: 'lagunadubai-6efe3.firebasestorage.app',
-  messagingSenderId: '841505802934',
-  appId: '1:841505802934:web:a7f349b9a089368ab3b417',
-  measurementId: 'G-DELHGM8N56'
+  apiKey: 'AIzaSyAzRAXG-aUK-RqXcan2aQu5mPlc7REkvr0',
+  authDomain: 'lagunadubaicafe.firebaseapp.com',
+  projectId: 'lagunadubaicafe',
+  storageBucket: 'lagunadubaicafe.firebasestorage.app',
+  messagingSenderId: '845101615531',
+  appId: '1:845101615531:web:4b38dc31e31401af26aaee',
+  measurementId: 'G-MRCH4QBK79'
 };
