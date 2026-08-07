@@ -39,7 +39,7 @@ function buildReturnTable(returns) {
   return html;
 }
 
-async function resolveDayRange(dateVal) {
+async function resolveDayRange(dateVal, latestInvTs) {
   try {
     const shifts = await DB.shifts.all() || [];
     const sorted = shifts.filter(s => s.openDate && s.openedAt).sort((a, b) => new Date(a.openedAt) - new Date(b.openedAt));
@@ -49,7 +49,7 @@ async function resolveDayRange(dateVal) {
       let end = null;
       if (i + 1 < sorted.length) end = new Date(sorted[i + 1].openedAt);
       else if (sorted[i].closedAt) end = new Date(sorted[i].closedAt);
-      else end = FB.clockNow();
+      else end = new Date(Math.max(FB.clockNow().getTime(), latestInvTs || 0));
       return { start, end };
     }
   } catch(e) { console.warn('[dayreport] range:', e); }
@@ -79,7 +79,8 @@ async function showDayReport() {
       DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all(), DB.daycloses.all(), DB.audit.all()
     ]);
 
-    const { start, end } = await resolveDayRange(dateVal);
+    const latestInvTs = (allInvoices || []).reduce((m, i) => i.date ? Math.max(m, new Date(i.date).getTime()) : m, 0);
+    const { start, end } = await resolveDayRange(dateVal, latestInvTs);
     const dayInvoices = (allInvoices || []).filter(i => i.date && (() => { const d = new Date(i.date); return d >= start && d <= end; })());
     const dayExpenses = (allExpenses || []).filter(e => { const d = new Date(e.date); return d >= start && d <= end; });
     const dayReturns = (allReturns || []).filter(r => { const d = new Date(r.date); return d >= start && d <= end; });

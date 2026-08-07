@@ -22,7 +22,7 @@ async function render() {
     }
   } catch(e) { console.warn('[invoices] shift check failed:', e); }
   const todayKey = localDateKey(FB.clockNow());
-  const now = FB.clockNow();
+  const now = new Date(Math.max(FB.clockNow().getTime(), (invoices || []).reduce((m, i) => i.date ? Math.max(m, new Date(i.date).getTime()) : m, 0)));
 
   const filtered = invoices.filter(inv => {
     if (!inv || !inv.id || typeof inv.id !== 'string' || !inv.customer) { console.warn('[invoices] skipped malformed:', inv); return false; }
