@@ -203,6 +203,7 @@ const DB = {
   },
 
   audit: {
+    async all() { return await FB.getCollection('audit_logs'); },
     async log(type, detail) {
       try {
         var user;

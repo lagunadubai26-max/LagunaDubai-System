@@ -462,7 +462,7 @@ async function showDayCloseModal() {
   const allReturns = await DB.returns.all() || [];
 
   const shift = await DB.shifts.getOpen();
-  const rangeStart = shift ? new Date(shift.openDate + 'T00:00:00') : null;
+  const rangeStart = shift && shift.openedAt ? new Date(shift.openedAt) : null;
   const range = { start: rangeStart, end: FB.clockNow() };
   if (!rangeStart) {
     alert('❌ لا يوجد شيفت مفتوح حاليًا');
@@ -573,7 +573,7 @@ confirmDayClose.onclick = async () => {
 
     // Export Excel for today's invoices
     const allInvoices = await DB.invoices.all() || [];
-    const todayStart = new Date(todayISO + 'T00:00:00');
+    const todayStart = new Date(shift.openedAt);
     const todayEnd = FB.clockNow();
     const todayInvoices = allInvoices.filter(inv => {
       if (!inv.date) return false;

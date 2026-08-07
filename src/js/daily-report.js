@@ -34,19 +34,35 @@ function buildReturnTable(returns) {
   return html;
 }
 
+async function resolveDayRange(dateVal) {
+  try {
+    const shifts = await DB.shifts.all() || [];
+    const sorted = shifts.filter(s => s.openDate && s.openedAt).sort((a, b) => new Date(a.openedAt) - new Date(b.openedAt));
+    const i = sorted.findIndex(s => s.openDate === dateVal);
+    if (i !== -1) {
+      const start = new Date(sorted[i].openedAt);
+      let end = null;
+      if (sorted[i].closedAt) end = new Date(sorted[i].closedAt);
+      else if (i + 1 < sorted.length) end = new Date(sorted[i + 1].openedAt);
+      else end = FB.clockNow();
+      return { start, end };
+    }
+  } catch(e) { console.warn('[dayreport] range:', e); }
+  return { start: new Date(dateVal + 'T00:00:00'), end: new Date(dateVal + 'T23:59:59.999') };
+}
+
 async function showDayReport() {
   const dateVal = dayReportDate.value;
   if (!dateVal) return alert('اختر التاريخ أولاً');
   dayReportEl.innerHTML = '<div class="dr-empty"><i class="fa-solid fa-spinner fa-spin"></i> جاري تحميل التقرير...</div>';
 
   try {
-    const [allInvoices, allExpenses, allReturns, menu, allDaycloses] = await Promise.all([
-      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all(), DB.daycloses.all()
+    const [allInvoices, allExpenses, allReturns, menu, allDaycloses, allAudit] = await Promise.all([
+      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all(), DB.daycloses.all(), DB.audit.all()
     ]);
 
-    const start = new Date(dateVal + 'T00:00:00');
-    const end = new Date(dateVal + 'T23:59:59.999');
-    const dayInvoices = (allInvoices || []).filter(i => i.date) && (allInvoices || []).filter(i => { const d = new Date(i.date); return d >= start && d <= end; });
+    const { start, end } = await resolveDayRange(dateVal);
+    const dayInvoices = (allInvoices || []).filter(i => i.date && (() => { const d = new Date(i.date); return d >= start && d <= end; })());
     const dayExpenses = (allExpenses || []).filter(e => { const d = new Date(e.date); return d >= start && d <= end; });
     const dayReturns = (allReturns || []).filter(r => { const d = new Date(r.date); return d >= start && d <= end; });
 
@@ -100,27 +116,42 @@ async function showDayReport() {
 
     if (!paidInvoices.length && !dayReturns.length && !dayExpenses.length) {
       const dc = (allDaycloses || []).find(d => d.date === dateVal);
-      if (dc) {
-        const dcSales = Number(dc.totalSales || 0);
-        const dcExp = Number(dc.totalExpenses || 0);
-        const dcRet = Number(dc.totalReturns || 0);
-        dayReportEl.innerHTML =
+      const auditInvoices = (allAudit || [])
+        .filter(a => a.type === 'invoice_created' && a.timestamp && (() => { const t = new Date(a.timestamp); return t >= start && t <= end; })())
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      let auditHtml = '<div class="dr-empty">لا توجد فواتير مسجلة في هذا اليوم</div>';
+      if (auditInvoices.length) {
+        let rows = '';
+        auditInvoices.forEach(a => {
+          let det = {};
+          try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
+          const t = new Date(a.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+          rows += '<tr><td>' + t + '</td><td>' + escapeHtml(a.detail_id || det.id || '—') + '</td><td>' + escapeHtml(det.customer || '—') + '</td><td>' + fmtMoney(det.total || 0) + '</td><td>' + escapeHtml(det.method || '—') + '</td></tr>';
+        });
+        auditHtml = '<table class="dr-table"><thead><tr><th>الوقت</th><th>رقم الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>الطريقة</th></tr></thead><tbody>' + rows + '</tbody></table>';
+      }
+      const summaryHtml =
           '<div class="dr-header">' +
             '<img src="images/logo.png" alt="Laguna Dubai">' +
             '<h2>لاجونا دبي - كافيه ومطعم</h2>' +
             '<p>التقرير اليومي - ' + dateVal + '</p>' +
           '</div>' +
           '<div class="dr-summary">' +
-            '<div class="card"><span>عدد الفواتير المدفوعة</span><b>' + (dc.numInvoices || 0) + '</b></div>' +
-            '<div class="card"><span>إجمالي المبيعات</span><b>' + fmtMoney(dcSales) + '</b></div>' +
-            '<div class="card"><span>كاش</span><b>' + fmtMoney(dc.cashAmount || 0) + '</b></div>' +
-            '<div class="card"><span>شبكة / فيزا</span><b>' + fmtMoney(dc.cardAmount || 0) + '</b></div>' +
-            '<div class="card"><span>عدد المشروبات</span><b>' + (dc.itemsSold || 0) + '</b></div>' +
-            '<div class="card"><span>المرتجعات</span><b style="color:#dc2626">-' + fmtMoney(dcRet) + '</b></div>' +
-            '<div class="card"><span>المصروفات</span><b style="color:#dc2626">-' + fmtMoney(dcExp) + '</b></div>' +
-            '<div class="card"><span>صافي الربح</span><b style="color:var(--success)">' + fmtMoney(dcSales - dcRet - dcExp) + '</b></div>' +
+            '<div class="card"><span>عدد الفواتير المدفوعة</span><b>' + (dc ? (dc.numInvoices || 0) : auditInvoices.length) + '</b></div>' +
+            '<div class="card"><span>إجمالي المبيعات</span><b>' + fmtMoney(dc ? (dc.totalSales || 0) : 0) + '</b></div>' +
+            '<div class="card"><span>كاش</span><b>' + fmtMoney(dc ? (dc.cashAmount || 0) : 0) + '</b></div>' +
+            '<div class="card"><span>شبكة / فيزا</span><b>' + fmtMoney(dc ? (dc.cardAmount || 0) : 0) + '</b></div>' +
+            '<div class="card"><span>عدد المشروبات</span><b>' + (dc ? (dc.itemsSold || 0) : 0) + '</b></div>' +
+            '<div class="card"><span>المرتجعات</span><b style="color:#dc2626">-' + fmtMoney(dc ? (dc.totalReturns || 0) : 0) + '</b></div>' +
+            '<div class="card"><span>المصروفات</span><b style="color:#dc2626">-' + fmtMoney(dc ? (dc.totalExpenses || 0) : 0) + '</b></div>' +
+            '<div class="card"><span>صافي الربح</span><b style="color:var(--success)">' + fmtMoney(dc ? (Number(dc.totalSales || 0) - Number(dc.totalReturns || 0) - Number(dc.totalExpenses || 0)) : 0) + '</b></div>' +
           '</div>' +
-          '<div class="dr-empty" style="margin-top:16px">⚠️ هذا اليوم اتغلق سابقًا وتم تصدير فواتيره إلى ملف Excel — هنا الإجماليات المحفوظة عند الإغلاق</div>';
+          '<div class="dr-title">فواتير هذا اليوم (من سجل العمليات)</div>' +
+          auditHtml;
+      if (dc) {
+        dayReportEl.innerHTML = summaryHtml + '<div class="dr-empty" style="margin-top:16px">⚠️ هذا اليوم اتغلق سابقًا وتم تصدير فواتيره إلى ملف Excel — الإجماليات من سجل الإغلاق</div>';
+      } else if (auditInvoices.length) {
+        dayReportEl.innerHTML = summaryHtml;
       } else {
         dayReportEl.innerHTML = '<div class="dr-empty">لا توجد بيانات في هذا اليوم</div>';
       }
