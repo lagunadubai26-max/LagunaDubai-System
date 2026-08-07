@@ -36,7 +36,7 @@ function calcStats(invoices, expenses, returns) {
   const totalPending = 0;
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const collectedCash = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
+  const collectedCash = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
   const netProfit = totalSales - totalReturns - totalExpenses;
   const numPaid = soldInvoices.length;
   const avgInvoice = numPaid > 0 ? Math.round(totalSales / numPaid) : 0;
@@ -197,7 +197,7 @@ function drawSalesChart(invoices, range) {
   invoices.forEach(inv => {
     if (!inv.date) return;
     const d = new Date(inv.date);
-    const label = d.getDate().toString();
+    const label = d.getUTCDate().toString();
     if (!buckets[label]) { buckets[label] = 0; order.push({ ts: d.getTime(), label }); }
     buckets[label] += Number(inv.total || 0);
   });
@@ -361,7 +361,7 @@ function drawDayChart(invoices) {
   const dayData = new Array(7).fill(0);
   invoices.forEach(inv => {
     if (!inv.date) return;
-    const day = new Date(inv.date).getDay();
+    const day = new Date(inv.date).getUTCDay();
     dayData[day] += Number(inv.total || 0);
   });
   charts.day = new Chart(canvas, {
@@ -543,8 +543,8 @@ async function showDayCloseModal() {
   const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
 
   const totalSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-  const cashAmount = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
-  const cardAmount = soldInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
+  const cashAmount = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const cardAmount = soldInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
   const otherAmount = totalSales - cashAmount - cardAmount;
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);

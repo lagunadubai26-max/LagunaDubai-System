@@ -87,8 +87,8 @@ async function showDayReport() {
 
     const soldInvoices = dayInvoices.filter(i => i.status !== 'returned' && i.status !== '\u0645\u0631\u062a\u062c\u0639\u0629');
     const totalSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-    const totalCash = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
-    const totalCard = soldInvoices.filter(i => i.paymentMethod !== 'Cash' && i.paymentMethod !== '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
+    const totalCash = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+    const totalCard = soldInvoices.filter(i => i.paymentMethod !== 'Cash' && i.paymentMethod !== '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
     const totalExpenses = dayExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
     const totalReturns = dayReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
     const netProfit = totalSales - totalReturns - totalExpenses;
