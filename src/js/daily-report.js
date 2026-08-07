@@ -76,7 +76,7 @@ async function showDayReport() {
 
     const dc = (allDaycloses || []).find(d => d.date === dateVal);
     const auditInvoices = (allAudit || [])
-      .filter(a => a.type === 'invoice_created' && a.timestamp && (() => { const t = new Date(a.timestamp); return t >= start && t <= end; })())
+      .filter(a => a.type === 'invoice_created' && a.timestamp && (() => { const t = new Date(a.timestamp); const maxT = new Date(FB.clockNow().getTime() + 5 * 60 * 1000); return t >= start && t <= end && t <= maxT; })())
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     let auditHtml = '<div class="dr-empty">\u0644\u0627 \u062a\u0648\u062c\u062f \u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0633\u062c\u0644\u0629 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645</div>';
     if (auditInvoices.length) {
