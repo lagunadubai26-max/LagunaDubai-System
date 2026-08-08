@@ -20,9 +20,9 @@ function fmtMoney(v) {
 function buildDrinkTable(itemsMap) {
   const rows = Object.values(itemsMap).sort((a, b) => b.revenue - a.revenue);
   if (!rows.length) return '<div class="dr-empty">لا توجد مبيعات في هذا اليوم</div>';
-  let html = '<table class="dr-table"><thead><tr><th>المشروب / المنتج</th><th>الكمية</th><th>الإيراد</th></tr></thead><tbody>';
+  let html = '<table class="dr-table"><thead><tr><th>المشروب / المنتج</th><th>الكمية</th></tr></thead><tbody>';
   rows.forEach(r => {
-    html += '<tr><td>' + escapeHtml(r.name) + (r.hasMilk ? ' (+لبن)' : '') + (r.note ? ' <span style="color:#888;font-size:11px">(' + escapeHtml(r.note) + ')</span>' : '') + '</td><td>' + r.qty + '</td><td>' + fmtMoney(r.revenue) + '</td></tr>';
+    html += '<tr><td>' + escapeHtml(r.name) + (r.hasMilk ? ' (+لبن)' : '') + (r.note ? ' <span style="color:#888;font-size:11px">(' + escapeHtml(r.note) + ')</span>' : '') + '</td><td>' + r.qty + '</td></tr>';
   });
   html += '</tbody></table>';
   return html;
@@ -172,7 +172,7 @@ async function showDayReport() {
           '<div class="card"><span>\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(totalExpenses) + '</b></div>' +
           '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(netProfit) + '</b></div>' +
         '</div>' +
-        '<div class="dr-title">\u0627\u0644\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0639\u0629 (\u0643\u0645\u064a\u0629 \u00d7 \u0625\u064a\u0631\u0627\u062f)</div>' +
+        '<div class="dr-title">\u0627\u0644\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0639\u0629</div>' +
         buildDrinkTable(itemsMap) +
         '<div class="dr-title">\u0645\u0631\u062a\u062c\u0639\u0627\u062a \u0627\u0644\u064a\u0648\u0645</div>' +
         buildReturnTable(dayReturns);
@@ -190,7 +190,7 @@ async function exportDayReport(asImage) {
       scale: 2,
       useCORS: true,
       backgroundColor: '#ffffff',
-      windowWidth: 900,
+      windowWidth: Math.min(Math.max(document.documentElement.clientWidth, 1200), 1920),
       windowHeight: Math.max(document.documentElement.scrollHeight, el.scrollHeight) + 500,
       scrollX: 0,
       scrollY: 0
@@ -204,8 +204,21 @@ async function exportDayReport(asImage) {
       link.click();
     } else {
       const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = canvas.height * (pageW / canvas.width);
+      let remaining = imgH;
+      let position = 0;
+      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+      remaining -= pageH;
+      while (remaining > 0) {
+        pdf.addPage();
+        position -= pageH;
+        pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+        remaining -= pageH;
+      }
       pdf.save(fileName + '.pdf');
     }
   } catch (e) {
