@@ -91,7 +91,7 @@ function buildInvoiceRow(inv, shiftDateLabel) {
     inv.items.forEach((item, i) => {
       const qty = Number(item.qty || 1);
       const itemAmount = qty * Number(item.price || 0);
-      itemsHtml += '<span class="inv-item-chip">' + escapeHtml(item.name) + ' × ' + qty + ' = ' + Number(itemAmount).toLocaleString() + ' ج.م' + (item.hasMilk ? ' (+حليب)' : '') + (item.note ? ' <em>(' + escapeHtml(item.note) + ')</em>' : '') + ' <button class="item-remove-btn" data-id="' + safeId + '" data-index="' + i + '" title="حذف الصنف من الفاتورة"><i class="fa-solid fa-xmark"></i></button></span>';
+      itemsHtml += '<span class="inv-item-chip">' + escapeHtml(item.name) + ' × ' + qty + ' = ' + Number(itemAmount).toLocaleString() + ' ج.م' + (item.hasMilk ? ' (+لبن)' : '') + (item.note ? ' <em>(' + escapeHtml(item.note) + ')</em>' : '') + ' <button class="item-remove-btn" data-id="' + safeId + '" data-index="' + i + '" title="حذف الصنف من الفاتورة"><i class="fa-solid fa-xmark"></i></button></span>';
     });
     itemsRow.innerHTML = '<td></td><td colspan="9" class="inv-items-cell"><div class="inv-items-wrap">' + itemsHtml + '</div></td>';
     frag.appendChild(itemsRow);
