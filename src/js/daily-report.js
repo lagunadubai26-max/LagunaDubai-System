@@ -86,13 +86,16 @@ async function showDayReport() {
     const dayReturns = (allReturns || []).filter(r => { const d = new Date(r.date); return d >= start && d <= end; });
 
     const soldInvoices = dayInvoices.filter(i => i.status !== 'returned' && i.status !== '\u0645\u0631\u062a\u062c\u0639\u0629');
-    const totalSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-    const totalCash = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
-    const totalCard = soldInvoices.filter(i => i.paymentMethod !== 'Cash' && i.paymentMethod !== '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+    const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === '\u0645\u062f\u0641\u0648\u0639\u0629');
+    const pendingInvoices = soldInvoices.filter(i => i.status !== 'paid' && i.status !== '\u0645\u062f\u0641\u0648\u0639\u0629');
+    const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+    const totalCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+    const totalCard = paidInvoices.filter(i => i.paymentMethod !== 'Cash' && i.paymentMethod !== '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
     const totalExpenses = dayExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
     const totalReturns = dayReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
     const netProfit = totalSales - totalReturns - totalExpenses;
-    const liveSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+    const liveSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+    const pendingAmount = pendingInvoices.reduce((s, i) => s + Math.max(0, Number(i.total || 0) - Number(i.paid || 0)), 0);
 
     const dc = (allDaycloses || []).find(d => d.date === dateVal);
     const auditInvoices = (allAudit || [])
@@ -130,8 +133,8 @@ async function showDayReport() {
         '<div class="card"><span>\u0627\u0644\u0645\u0631\u062a\u062c\u0639\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(dc.totalReturns || 0) + '</b></div>' +
         '<div class="card"><span>\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(dc.totalExpenses || 0) + '</b></div>' +
         '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(Number(dc.totalSales || 0) - Number(dc.totalReturns || 0) - Number(dc.totalExpenses || 0)) + '</b></div>';
-      const cards2 = cards + (soldInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</span><b>' + soldInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(liveSales) + '</b></div>' : '');
-      const liveExtra = soldInvoices.length ? '<div class="dr-title">\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0645\u0646\u062a\u062c\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0627 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>' + buildDrinkTable(buildItemsMap(soldInvoices)) : '';
+      const cards2 = cards + (paidInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</span><b>' + paidInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(liveSales) + '</b></div>' : '') + (pendingInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0639\u0644\u0642\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f\u0629)</span><b style="color:#d97706">' + pendingInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(pendingAmount) + '</b></div>' : '');
+      const liveExtra = paidInvoices.length ? '<div class="dr-title">\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0645\u0646\u062a\u062c\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0627 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>' + buildDrinkTable(buildItemsMap(paidInvoices)) : '';
       dayReportEl.innerHTML = summaryHtml('\u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0627\u0644\u064a\u0648\u0645\u064a (\u0625\u063a\u0644\u0627\u0642 \u0633\u0627\u0628\u0642)', cards2, '<div class="dr-empty" style="margin-top:16px">\u26a0\ufe0f \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 \u0627\u062a\u063a\u0644\u0642 \u0633\u0627\u0628\u0642\u064b\u0627 \u0648\u062a\u0645 \u062a\u0635\u062f\u064a\u0631 \u0641\u0648\u0627\u062a\u064a\u0631\u0647 \u0625\u0644\u0649 \u0645\u0644\u0641 Excel \u2014 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>' + liveExtra);
     } else if (auditInvoices.length && !soldInvoices.length) {
       const audSales = auditInvoices.reduce((s, a) => { let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {} return s + Number(det.total || 0); }, 0);
@@ -142,10 +145,10 @@ async function showDayReport() {
         '<div class="card"><span>\u0643\u0627\u0634</span><b>' + fmtMoney(audCash) + '</b></div>' +
         '<div class="card"><span>\u0634\u0628\u0643\u0629 / \u0641\u064a\u0632\u0627</span><b>' + fmtMoney(audSales - audCash) + '</b></div>';
       dayReportEl.innerHTML = summaryHtml('\u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0627\u0644\u064a\u0648\u0645\u064a (\u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a)', cards, '');
-    } else if (!soldInvoices.length && !dayReturns.length && !dayExpenses.length) {
+    } else if (!paidInvoices.length && !pendingInvoices.length && !dayReturns.length && !dayExpenses.length) {
       dayReportEl.innerHTML = '<div class="dr-empty">\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645</div>';
     } else {
-      const itemsMap = buildItemsMap(soldInvoices);
+      const itemsMap = buildItemsMap(paidInvoices);
 
       const totalItemsQty = Object.values(itemsMap).reduce((s, r) => s + r.qty, 0);
       const menuMap = (menu || []).reduce((m, p) => { m[p.id] = p; return m; }, {});
@@ -162,7 +165,7 @@ async function showDayReport() {
           '<p>\u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0627\u0644\u064a\u0648\u0645\u064a - ' + dateVal + '</p>' +
         '</div>' +
         '<div class="dr-summary">' +
-          '<div class="card"><span>\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631</span><b>' + soldInvoices.length + '</b></div>' +
+          '<div class="card"><span>\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629</span><b>' + paidInvoices.length + '</b></div>' +
           '<div class="card"><span>\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a</span><b>' + fmtMoney(totalSales) + '</b></div>' +
           '<div class="card"><span>\u0643\u0627\u0634</span><b>' + fmtMoney(totalCash) + '</b></div>' +
           '<div class="card"><span>\u0634\u0628\u0643\u0629 / \u0641\u064a\u0632\u0627</span><b>' + fmtMoney(totalCard) + '</b></div>' +
@@ -171,6 +174,7 @@ async function showDayReport() {
           '<div class="card"><span>\u0627\u0644\u0645\u0631\u062a\u062c\u0639\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(totalReturns) + '</b></div>' +
           '<div class="card"><span>\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(totalExpenses) + '</b></div>' +
           '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(netProfit) + '</b></div>' +
+          (pendingInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0639\u0644\u0642\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f\u0629)</span><b style="color:#d97706">' + pendingInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(pendingAmount) + '</b></div>' : '') +
         '</div>' +
         '<div class="dr-title">\u0627\u0644\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0639\u0629</div>' +
         buildDrinkTable(itemsMap) +
