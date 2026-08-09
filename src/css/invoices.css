@@ -571,3 +571,6 @@
     }
 
 }
+/* highlight after edit/merge */
+@keyframes flashUpdate { 0% { background:#fef3c7; } 100% { background:transparent; } }
+tr.flash-update { animation: flashUpdate 1.6s ease; }

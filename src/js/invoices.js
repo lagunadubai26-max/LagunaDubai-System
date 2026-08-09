@@ -18,15 +18,10 @@ async function resolveShiftRange() {
   } catch(e) { console.warn('[invoices] shift check failed:', e); }
 }
 
-async function render() {
-  invoices = await DB.invoices.all() || [];
-
-  tableBody.innerHTML = '';
-
+async function draw() {
   const val = searchInput ? searchInput.value.toLowerCase() : '';
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
 
-  await resolveShiftRange();
   const todayKey = localDateKey(FB.clockNow());
   const now = new Date(Math.max(FB.clockNow().getTime(), (invoices || []).reduce((m, i) => i.date ? Math.max(m, new Date(i.date).getTime()) : m, 0)));
 
@@ -46,6 +41,7 @@ async function render() {
   });
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
+  tableBody.innerHTML = '';
   filtered.forEach(inv => {
     const frag = buildInvoiceRow(inv, shiftDateLabel);
     tableBody.appendChild(frag);
@@ -64,9 +60,27 @@ async function render() {
   updateMergeBtn();
 }
 
+function focusRow(id) {
+  const row = tableBody.querySelector('tr[data-invoice-id="' + id + '"]') || tableBody.querySelector('.edit-btn[data-id="' + id + '"]');
+  if (!row) return;
+  const tr = row.closest('tr');
+  if (!tr) return;
+  tr.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  tr.classList.remove('flash-update');
+  void tr.offsetWidth;
+  tr.classList.add('flash-update');
+}
+
+async function render() {
+  invoices = await DB.invoices.all() || [];
+  await resolveShiftRange();
+  draw();
+}
+
 function buildInvoiceRow(inv, shiftDateLabel) {
   const frag = document.createDocumentFragment();
   const row = document.createElement('tr');
+  row.setAttribute('data-invoice-id', inv.id);
   const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
   const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
   const dateStr = inv.date
@@ -123,8 +137,7 @@ function attachActions() {
 
       if (printed) {
         await DB.invoices.update(inv.id, { printed: true, pendingPrint: false });
-      } else {
-        await DB.invoices.update(inv.id, { pendingPrint: true });
+      } else {        await DB.invoices.update(inv.id, { pendingPrint: true });
         TEMPLATE.getTemplate('cashier').then(cashierTpl => {
           if (!cashierTpl) cashierTpl = TEMPLATE.defaultCashierTemplate;
           const w = window.open('', '_blank', 'width=400,height=600');
@@ -136,7 +149,7 @@ function attachActions() {
           w.document.close();
         });
       }
-      render();
+      render().then(() => focusRow(inv.id));
     };
   });
   document.querySelectorAll('.kitchen-print-btn').forEach(btn => {
@@ -181,7 +194,7 @@ function attachActions() {
       const newPaid = (inv.paid ?? 0) + paidNow;
       const newRemaining = (inv.total ?? 0) - newPaid;
       await DB.invoices.update(inv.id, { paid: newPaid, remaining: newRemaining, status: newRemaining <= 0 ? 'paid' : 'pending' });
-      render();
+      render().then(() => focusRow(inv.id));
     };
   });
   document.querySelectorAll('.toggle-status-btn').forEach(btn => {
@@ -210,7 +223,7 @@ function attachActions() {
         for (const r of existing) await DB.returns.remove(r.id);
         await DB.invoices.update(inv.id, { status: 'paid' });
       }
-      render();
+      render().then(() => focusRow(inv.id));
     };
   });
   document.querySelectorAll('.item-remove-btn').forEach(btn => {
@@ -243,7 +256,7 @@ function attachActions() {
         remaining: newRemaining,
         status: wasReturned ? inv.status : (newRemaining <= 0 ? 'paid' : 'pending')
       });
-      render();
+      render().then(() => focusRow(inv.id));
     };
   });
   document.querySelectorAll('.delete-btn').forEach(btn => {
@@ -262,7 +275,7 @@ function attachActions() {
       if (newTable === null) return;
       const tableVal = newTable.trim() ? 'طاولة ' + newTable.trim() : '';
       await DB.invoices.update(inv.id, { table: tableVal });
-      render();
+      render().then(() => focusRow(inv.id));
     };
   });
 }
@@ -341,51 +354,19 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
       createdBy: _invUser?.name || ''
     });
     for (const id of ids) await DB.invoices.remove(id);
-    render();
+    render().then(() => focusRow(newId));
   } catch (e) {
     console.error('[merge] error:', e);
     alert('حدث خطأ أثناء دمج الفواتير');
   }
 };
 
-FB.onCollection('invoices', (data) => {
+FB.onCollection('invoices', async (data) => {
   invoices = data;
-  renderWithData();
+  await resolveShiftRange();
+  draw();
 }).catch(e => {
   console.warn('[invoices] onSnapshot error, using fallback:', e);
   setInterval(render, 15000);
 });
-
-function renderWithData() {
-  tableBody.innerHTML = '';
-
-  const val = searchInput ? searchInput.value.toLowerCase() : '';
-  const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
-
-  const filtered = invoices.filter(inv => {
-    if (!inv || !inv.id || typeof inv.id !== 'string' || !inv.customer) { console.warn('[invoices] skipped malformed:', inv); return false; }
-    const matchSearch = inv.id.toLowerCase().includes(val) || inv.customer.toLowerCase().includes(val);
-    const st = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
-    const matchStatus = filterStatus === 'كل الحالات' || st === filterStatus;
-    return matchSearch && matchStatus;
-  });
-  filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-
-  filtered.forEach(inv => {
-    const frag = buildInvoiceRow(inv, shiftDateLabel);
-    tableBody.appendChild(frag);
-  });
-
-  const paid = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
-  const cards = document.querySelectorAll('.invoice-stats .stat-card h2');
-  if (cards.length >= 5) {
-    cards[0].textContent = invoices.length;
-    cards[1].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
-    cards[2].textContent = paid.length;
-    cards[3].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
-    cards[4].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
-  }
-  attachActions();
-  updateMergeBtn();
-}
 
