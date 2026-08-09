@@ -32,14 +32,15 @@ function filterByDate(items, range) {
 
 function calcStats(invoices, expenses, returns) {
   const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
-  const totalSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
   const totalPending = soldInvoices.filter(i => i.status !== 'paid' && i.status !== 'مدفوعة')
     .reduce((s, i) => s + Math.max(0, Number(i.total || 0) - Number(i.paid || 0)), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const collectedCash = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const collectedCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
   const netProfit = totalSales - totalReturns - totalExpenses;
-  const numPaid = soldInvoices.length;
+  const numPaid = paidInvoices.length;
   const avgInvoice = numPaid > 0 ? Math.round(totalSales / numPaid) : 0;
   return { totalSales, totalPending, totalReturns, totalExpenses, netProfit, collectedCash, avgInvoice, numPaid, numInvoices: invoices.length };
 }
@@ -158,7 +159,7 @@ async function render() {
     stats.netProfit = stats.totalSales - stats.totalReturns - stats.totalExpenses;
     stats.totalCard = closedCard;
 
-    const chartInvoices = openDayInvoices.concat(chartDays);
+    const chartInvoices = openDayInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').concat(chartDays);
     const prevStats = calcStats(prevInvoices, [], []);
 
     document.getElementById('reportSales').textContent = fmtMoney(stats.totalSales);
@@ -174,7 +175,7 @@ async function render() {
     renderChangeBadge(document.getElementById('reportInvoicesChange'), stats.numInvoices, prevStats.numInvoices);
     renderChangeBadge(document.getElementById('reportProfitChange'), stats.netProfit, prevStats.netProfit);
 
-    const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
+    const soldInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
     drawAnomalies(soldInvoices, expenses, range);
     drawSalesChart(chartInvoices, range);
@@ -553,21 +554,22 @@ async function showDayCloseModal() {
   const expenses = filterByDate(allExpenses, range);
   const returns = filterByDate(allReturns, range);
   const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
+  const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
-  const totalSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-  const cashAmount = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
-  const cardAmount = soldInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const cashAmount = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const cardAmount = paidInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
   const otherAmount = totalSales - cashAmount - cardAmount;
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
   const netProfit = totalSales - totalReturns - totalExpenses;
-  const itemsSold = soldInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
+  const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
   const shiftForDate = shift ? new Date(shift.openDate + 'T12:00:00Z') : FB.clockNow();
   const todayStr = 'شيفت ' + shiftForDate.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + (shift && shift.openedAt ? ' (من ' + new Date(shift.openedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) + ')' : '');
   document.getElementById('dcDate').textContent = todayStr;
   document.getElementById('dcSales').textContent = fmtMoney(totalSales);
-  document.getElementById('dcInvoices').textContent = soldInvoices.length;
+  document.getElementById('dcInvoices').textContent = paidInvoices.length;
   document.getElementById('dcCash').textContent = fmtMoney(cashAmount);
   document.getElementById('dcCard').textContent = fmtMoney(cardAmount);
   document.getElementById('dcItemsSold').textContent = itemsSold;
@@ -579,7 +581,7 @@ async function showDayCloseModal() {
   confirmDayClose.dataset.cardAmount = cardAmount;
   confirmDayClose.dataset.otherAmount = otherAmount;
   confirmDayClose.dataset.totalSales = totalSales;
-  confirmDayClose.dataset.paidInvoices = soldInvoices.length;
+  confirmDayClose.dataset.paidInvoices = paidInvoices.length;
   confirmDayClose.dataset.itemsSold = itemsSold;
   confirmDayClose.dataset.totalExpenses = totalExpenses;
   confirmDayClose.dataset.totalReturns = totalReturns;
