@@ -431,7 +431,10 @@ document.getElementById('checkoutCustomerType').onchange = function() {
   const isSpecial = this.value === 'special';
   document.getElementById('checkoutSpecialFields').style.display = isSpecial ? 'block' : 'none';
   if (isSpecial) {
-    window._checkoutTotal = Math.round(window._itemsTotal * 0.75);
+    const before = window._itemsTotal;
+    window._checkoutTotal = Math.round(before * 0.75);
+    const beforeEl = document.getElementById('checkoutSpecialBefore');
+    if (beforeEl) beforeEl.textContent = before + ' جنيه';
     document.getElementById('checkoutTotal').textContent = window._checkoutTotal + ' جنيه (خصم 25%)';
   } else {
     window._checkoutTotal = window._itemsTotal;
