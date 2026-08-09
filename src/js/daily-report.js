@@ -22,7 +22,7 @@ function buildDrinkTable(itemsMap) {
   if (!rows.length) return '<div class="dr-empty">لا توجد مبيعات في هذا اليوم</div>';
   let html = '<table class="dr-table"><thead><tr><th>المشروب / المنتج</th><th>الكمية</th><th>الإيراد</th></tr></thead><tbody>';
   rows.forEach(r => {
-    html += '<tr><td>' + escapeHtml(r.name) + (r.hasMilk ? ' (+حليب)' : '') + (r.note ? ' <span style="color:#888;font-size:11px">(' + escapeHtml(r.note) + ')</span>' : '') + '</td><td>' + r.qty + '</td><td>' + fmtMoney(r.revenue) + '</td></tr>';
+    html += '<tr><td>' + escapeHtml(r.name) + (r.hasMilk ? ' (+لبن)' : '') + (r.note ? ' <span style="color:#888;font-size:11px">(' + escapeHtml(r.note) + ')</span>' : '') + '</td><td>' + r.qty + '</td><td>' + fmtMoney(r.revenue) + '</td></tr>';
   });
   html += '</tbody></table>';
   return html;
