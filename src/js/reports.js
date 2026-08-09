@@ -454,9 +454,21 @@ async function exportMonthlyReport(asImage) {
       link.download = fileName + '.png';
       link.click();
     } else {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = canvas.height * (pageW / canvas.width);
+      let remaining = imgH - pageH;
+      let position = 0;
+      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+      while (remaining > 0) {
+        pdf.addPage();
+        position -= pageH;
+        pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+        remaining -= pageH;
+      }
       pdf.save(fileName + '.pdf');
     }
   } catch (e) {
