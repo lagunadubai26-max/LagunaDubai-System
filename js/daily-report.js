@@ -221,7 +221,20 @@ async function exportDayReport(asImage) {
     canvas.width = img.width;
     canvas.height = img.height;
     canvas.getContext('2d').drawImage(img, 0, 0);
-    const imgData = canvas.toDataURL('image/png');
+
+    // compose the whole report onto a single A4 page (fit, centered)
+    const A4_W = 1487, A4_H = 2102;
+    const page = document.createElement('canvas');
+    page.width = A4_W;
+    page.height = A4_H;
+    const pctx = page.getContext('2d');
+    pctx.fillStyle = '#ffffff';
+    pctx.fillRect(0, 0, A4_W, A4_H);
+    const fit = Math.min(A4_W / canvas.width, A4_H / canvas.height);
+    const drawW = canvas.width * fit;
+    const drawH = canvas.height * fit;
+    pctx.drawImage(canvas, (A4_W - drawW) / 2, (A4_H - drawH) / 2, drawW, drawH);
+    const imgData = page.toDataURL('image/png');
 
     const fileName = 'تقرير-يومي-' + dayReportDate.value;
     if (asImage) {
@@ -231,21 +244,8 @@ async function exportDayReport(asImage) {
       link.click();
     } else {
       const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW;
-      const imgH = canvas.height * (pageW / canvas.width);
-      let remaining = imgH;
-      let position = 0;
-      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
-      remaining -= pageH;
-      while (remaining > 0) {
-        pdf.addPage();
-        position -= pageH;
-        pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
-        remaining -= pageH;
-      }
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
       pdf.save(fileName + '.pdf');
     }
   } catch (e) {
