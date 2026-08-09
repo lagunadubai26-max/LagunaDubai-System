@@ -26,7 +26,7 @@ async function updateDashboard() {
   document.getElementById('walletPercent').textContent = Math.round(methods.Wallet / total * 100) + '%';
 
   await updateChart(soldInvoices);
-  renderRecentInvoices(soldInvoices);
+  await renderRecentInvoices(soldInvoices);
   renderTopProducts(soldInvoices);
   drawPaymentDonut(invoices);
   checkDashDayClose();
@@ -49,25 +49,36 @@ function animateCount(el, target, suffix) {
 }
 
 // ── Recent invoices panel ──
-function renderRecentInvoices(invoices) {
+async function renderRecentInvoices(invoices) {
   const box = document.getElementById('recentInvoices');
   if (!box) return;
-  const list = invoices.slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 6);
+  // اليوم = شيفت اليوم الحالي (ثابت حتى إغلاق الشيفت يدويًا)
+  let cutoff = null;
+  try {
+    const shifts = await DB.shifts.all() || [];
+    const open = shifts.find(s => !s.closedAt);
+    if (open) cutoff = new Date(open.openedAt || ((open.openDate || '') + 'T00:00:00Z')).getTime();
+  } catch (e) {}
+  if (cutoff == null) {
+    const now = new Date();
+    cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  }
+  const todayInvoices = invoices.filter(inv => inv.date && new Date(inv.date).getTime() >= cutoff);
+  const list = todayInvoices.slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 6);
   if (!list.length) {
-    box.innerHTML = '<div class="empty-state" style="padding:26px 10px"><i class="fa-solid fa-receipt"></i><h3>لا توجد فواتير بعد</h3><p>ستظهر أحدث الفواتير هنا</p></div>';
+    box.innerHTML = '<div class="empty-state" style="padding:26px 10px"><i class="fa-solid fa-receipt"></i><h3>لا توجد فواتير اليوم</h3><p>ستظهر فواتير شيفت اليوم هنا</p></div>';
     return;
   }
   const methodMap = { Cash: 'كاش', Visa: 'فيزا', Wallet: 'محفظة', Card: 'شبكة' };
   box.innerHTML = list.map(inv => {
     const d = inv.date ? new Date(inv.date) : null;
-    const day = d ? d.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }) : '—';
     const time = d ? d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—';
     const method = methodMap[inv.paymentMethod] || inv.paymentMethod || '—';
     const ok = inv.status === 'paid' || inv.status === 'مدفوعة';
     return '<div class="recent-item">' +
       '<div class="recent-icon ' + (ok ? 'ok' : 'pending') + '"><i class="fa-solid fa-receipt"></i></div>' +
       '<div class="recent-info"><div class="recent-name">فاتورة #' + escapeHtml(String(inv.id || '—').slice(-6)) + '</div>' +
-      '<div class="recent-meta">' + day + ' ' + time + ' · ' + escapeHtml(method) + '</div></div>' +
+      '<div class="recent-meta">اليوم ' + time + ' · ' + escapeHtml(method) + '</div></div>' +
       '<div class="recent-total">' + Number(inv.total || 0).toLocaleString() + ' ج.م</div></div>';
   }).join('');
 }
