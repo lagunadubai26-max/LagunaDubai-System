@@ -226,7 +226,7 @@ function attachAddToCart() {
           <div class="order-top"><span class="name">${escapeHtml(name)}</span><button class="note-btn" title="أضف ملاحظة"><i class="fa-solid fa-pen"></i>ملاحظة</button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
           <div class="price">${price} جنيه</div>
           <div class="item-note" style="display:none"><input class="note-input" placeholder="إضافة (قهوة محوج، بدون سكر...)" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;background:#fafaf9;margin-bottom:8px"></div>
-          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +حليب 15 ج.م</label></div>`;
+          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +لبن 15 ج.م</label></div>`;
         document.querySelector(".order-box .order-list").appendChild(item);
         total += price;
       }
@@ -246,7 +246,7 @@ function formatItemPrice(itemEl) {
   const milk = itemEl.dataset.hasMilk === 'true';
   const qty = parseInt(itemEl.querySelector('.qty').innerText);
   const effective = milk ? base + 15 : base;
-  return (qty * effective) + ' جنيه' + (milk ? ' (مع حليب)' : '');
+  return (qty * effective) + ' جنيه' + (milk ? ' (مع لبن)' : '');
 }
 
 function handleOrderClick(e) {
@@ -592,7 +592,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
         const safeItems = inv.items && inv.items.length
           ? '<div style="margin:8px 0">' + inv.items.map(it => {
               const safeName = escapeHtml(it.name);
-              const milkTxt = it.hasMilk ? ' +حليب' : '';
+              const milkTxt = it.hasMilk ? ' +لبن' : '';
               const safeNote = escapeHtml(it.note || '');
               const noteTxt = safeNote ? ' (' + safeNote + ')' : '';
               return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dotted #eee;font-size:13px"><span>• ${safeName}${milkTxt}${noteTxt} x${it.qty}</span><span>${it.qty * it.price} ج.م</span></div>`;

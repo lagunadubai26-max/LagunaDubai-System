@@ -62,7 +62,7 @@ function buildInvoiceRow(inv) {
     itemsRow.className = 'inv-items-row';
     let itemsHtml = '';
     inv.items.forEach(item => {
-      itemsHtml += '<span class="inv-item-chip">' + escapeHtml(item.name) + ' × ' + item.qty + ' = ' + Number(item.qty * item.price).toLocaleString() + ' ج.م' + (item.hasMilk ? ' (+حليب)' : '') + (item.note ? ' <em>(' + escapeHtml(item.note) + ')</em>' : '') + '</span>';
+      itemsHtml += '<span class="inv-item-chip">' + escapeHtml(item.name) + ' × ' + item.qty + ' = ' + Number(item.qty * item.price).toLocaleString() + ' ج.م' + (item.hasMilk ? ' (+لبن)' : '') + (item.note ? ' <em>(' + escapeHtml(item.note) + ')</em>' : '') + '</span>';
     });
     itemsRow.innerHTML = '<td></td><td colspan="9" class="inv-items-cell"><div class="inv-items-wrap">' + itemsHtml + '</div></td>';
     frag.appendChild(itemsRow);

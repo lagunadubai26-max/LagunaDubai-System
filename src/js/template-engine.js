@@ -23,7 +23,7 @@ window.TEMPLATE = (() => {
     if (type === 'kitchen') {
       return inv.items.map(item => {
         const safeName = escape(item.name);
-        const milkTxt = item.hasMilk ? ' +حليب' : '';
+        const milkTxt = item.hasMilk ? ' +لبن' : '';
         const safeNote = escape(item.note || '');
         const noteTxt = safeNote ? '<br><small>' + safeNote + '</small>' : '';
         return '<div class="kitchen-item">'
@@ -34,7 +34,7 @@ window.TEMPLATE = (() => {
     }
     return inv.items.map(item => {
       const safeName = escape(item.name);
-      const milkTxt = item.hasMilk ? ' +حليب' : '';
+      const milkTxt = item.hasMilk ? ' +لبن' : '';
       const safeNote = escape(item.note || '');
       const noteTxt = safeNote ? '<br><small>' + safeNote + '</small>' : '';
       return '<tr>'
@@ -50,7 +50,7 @@ window.TEMPLATE = (() => {
     return inv.items.map(item => {
       const safeName = escapeEscPos(item.name);
       const safeNote = escapeEscPos(item.note || '');
-      const milkTxt = item.hasMilk ? ' +حليب' : '';
+      const milkTxt = item.hasMilk ? ' +لبن' : '';
       const noteTxt = safeNote ? ' (' + safeNote + ')' : '';
       return '\n\u2022 ' + safeName + milkTxt + noteTxt + ' x' + item.qty + ' = ' + (item.qty * item.price) + ' ج.م';
     }).join('');
@@ -151,8 +151,8 @@ window.TEMPLATE = (() => {
     let itemsHtml = '';
     if (inv.items) {
       inv.items.forEach(item => {
-        const milkTxt = item.hasMilk ? ' +حليب' : '';
-        const hasMilkHtml = item.hasMilk ? ' +حليب' : '';
+        const milkTxt = item.hasMilk ? ' +لبن' : '';
+        const hasMilkHtml = item.hasMilk ? ' +لبن' : '';
         const safeNote = escape(item.note || '');
         let line = itemTpl;
         const itemVars = {
@@ -322,7 +322,7 @@ window.TEMPLATE = (() => {
         inv.items.forEach(item => {
           const safeName = escapeEscPos(item.name);
           const safeNote = escapeEscPos(item.note || '');
-          const milkTxt = item.hasMilk ? ' +حليب' : '';
+          const milkTxt = item.hasMilk ? ' +لبن' : '';
           const noteTxt = safeNote ? ' (' + safeNote + ')' : '';
           let buf = '';
           if (cols.length === 3) {
