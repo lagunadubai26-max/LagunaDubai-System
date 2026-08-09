@@ -192,36 +192,37 @@ async function ensureExportFonts() {
   } catch (e) { console.warn('[dayreport] fonts:', e); }
 }
 
-function buildExportNode() {
-  const clone = dayReportEl.cloneNode(true);
-  clone.querySelectorAll('img').forEach(img => {
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><rect width="70" height="70" rx="14" fill="#d97706"/><text x="35" y="48" font-size="36" text-anchor="middle" fill="#fff" font-family="Arial">L</text></svg>';
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    img.removeAttribute('crossorigin');
-  });
-  clone.style.cssText = 'position:fixed;top:0;left:-99999px;width:940px;max-width:940px;background:#ffffff;z-index:-1;';
-  return clone;
+function buildLogoDataUri() {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><rect width="70" height="70" rx="14" fill="#d97706"/><text x="35" y="48" font-size="36" text-anchor="middle" fill="#fff" font-family="Arial">L</text></svg>';
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
 async function exportDayReport(asImage) {
   const el = dayReportEl;
   if (!el || !el.innerHTML || el.innerHTML.indexOf('dr-header') === -1) return alert('اعرض اليوم أولاً قبل التحميل');
-  if (!window.html2canvas) return alert('مكتبة التصدير لم تُحمّل — تأكد من الاتصال بالإنترنت ثم أعد المحاولة');
-  const exportNode = buildExportNode();
-  document.body.appendChild(exportNode);
+  if (!window.domtoimage) return alert('مكتبة التصدير لم تُحمّل — تأكد من الاتصال بالإنترنت ثم أعد المحاولة');
+
+  const imgs = el.querySelectorAll('img');
+  const orig = Array.from(imgs).map(i => i.src);
+  imgs.forEach(img => { img.src = buildLogoDataUri(); img.removeAttribute('crossorigin'); });
+
   try {
     await ensureExportFonts();
-    const canvas = await html2canvas(exportNode, {
+    const dataUrl = await domtoimage.toPng(el, {
+      width: el.scrollWidth,
+      height: el.scrollHeight,
       scale: 2,
-      useCORS: true,
       backgroundColor: '#ffffff',
-      foreignObjectRendering: true,
-      width: exportNode.scrollWidth,
-      height: exportNode.scrollHeight,
-      logging: false,
-      imageTimeout: 20000
+      style: { margin: '0', boxShadow: 'none' }
     });
+    const img = new Image();
+    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error('فشل تجهيز الصورة')); img.src = dataUrl; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext('2d').drawImage(img, 0, 0);
     const imgData = canvas.toDataURL('image/png');
+
     const fileName = 'تقرير-يومي-' + dayReportDate.value;
     if (asImage) {
       const link = document.createElement('a');
@@ -251,7 +252,7 @@ async function exportDayReport(asImage) {
     console.error('[dayreport-export]', e);
     alert('حدث خطأ أثناء التحميل: ' + escapeHtml(e.message || e));
   } finally {
-    if (exportNode.parentNode) exportNode.parentNode.removeChild(exportNode);
+    imgs.forEach((img, i) => { img.src = orig[i]; });
   }
 }
 
