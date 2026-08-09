@@ -1,7 +1,8 @@
 async function updateDashboard() {
   const invoices = await DB.invoices.all() || [];
   const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
-  const totalSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
   const pendingTotal = invoices.filter(i => i.status !== 'paid' && i.status !== 'مدفوعة' && i.status !== 'returned' && i.status !== 'مرتجعة').reduce((s, i) => s + Number(i.total || 0), 0);
   const customers = (await DB.customers.all() || []).length;
   const totalOrders = invoices.reduce((s, i) => s + (i.items ? i.items.reduce((a, b) => a + Number(b.qty || 0), 0) : 0), 0);
@@ -25,7 +26,7 @@ async function updateDashboard() {
   document.getElementById('visaPercent').textContent = Math.round(methods.Visa / total * 100) + '%';
   document.getElementById('walletPercent').textContent = Math.round(methods.Wallet / total * 100) + '%';
 
-  await updateChart(soldInvoices);
+  await updateChart(paidInvoices);
   await renderRecentInvoices(soldInvoices);
   renderTopProducts(soldInvoices);
   drawPaymentDonut(invoices);
@@ -261,21 +262,22 @@ async function showDashDayCloseModal(shift) {
   const expenses = filterDate(allExpenses, start, end);
   const returns = filterDate(allReturns, start, end);
   const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
+  const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
-  const totalSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-  const cashAmount = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
-  const cardAmount = soldInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const cashAmount = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const cardAmount = paidInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
   const otherAmount = totalSales - cashAmount - cardAmount;
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
   const netProfit = totalSales - totalReturns - totalExpenses;
-  const itemsSold = soldInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
+  const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
   const shiftDate = new Date(shift.openDate + 'T12:00:00');
   const todayStr = 'شيفت ' + shiftDate.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + ' (من ' + (shift.openedAt ? new Date(shift.openedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—') + ')';
   document.getElementById('dashDcDate').textContent = todayStr;
   document.getElementById('dashDcSales').textContent = fmtMoney(totalSales);
-  document.getElementById('dashDcInvoices').textContent = soldInvoices.length;
+  document.getElementById('dashDcInvoices').textContent = paidInvoices.length;
   document.getElementById('dashDcCash').textContent = fmtMoney(cashAmount);
   document.getElementById('dashDcCard').textContent = fmtMoney(cardAmount);
   document.getElementById('dashDcItemsSold').textContent = itemsSold;
@@ -287,7 +289,7 @@ async function showDashDayCloseModal(shift) {
   confBtn.dataset.cashAmount = cashAmount;
   confBtn.dataset.cardAmount = cardAmount;
   confBtn.dataset.totalSales = totalSales;
-  confBtn.dataset.paidInvoices = soldInvoices.length;
+  confBtn.dataset.paidInvoices = paidInvoices.length;
   confBtn.dataset.itemsSold = itemsSold;
   confBtn.dataset.totalExpenses = totalExpenses;
   confBtn.dataset.totalReturns = totalReturns;
