@@ -172,13 +172,12 @@
           <input type="text" id="checkoutSpecialName" placeholder="اسم العميل" class="checkout-input" list="custList">
           <datalist id="custList"></datalist>
         </div>
-        <div>
-          <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--primary-light);font-size:14px;">اسم العميل الخاص</label>
-          <input type="text" id="checkoutSpecialName" placeholder="اسم العميل" class="checkout-input" list="custList">
-          <datalist id="custList"></datalist>
-          <div style="margin-top:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;font-size:13px;color:#92400e;">
-            <i class="fa-solid fa-tags"></i> خصم <b>25%</b> تلقائي على إجمالي الفاتورة
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f5f5f4;border-radius:10px;margin-bottom:10px;font-size:14px;">
+          <span style="color:var(--muted);">الإجمالي قبل الخصم</span>
+          <span id="checkoutSpecialBefore" style="font-weight:700;color:var(--primary);text-decoration:line-through;">0 جنيه</span>
+        </div>
+        <div style="padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;font-size:13px;color:#92400e;">
+          <i class="fa-solid fa-tags"></i> خصم <b>25%</b> تلقائي على إجمالي الفاتورة
         </div>
       </div>
       <div style="margin-bottom:15px;">
@@ -271,7 +270,7 @@
         <script src="js/notifications.js?v=3"></script>
         <script src="js/printer.js?v=1"></script>
 <script src="js/template-engine.js?v=1"></script>
-<script src="js/menu.js?v=7"></script>
+<script src="js/menu.js?v=8"></script>
 <script src="js/daily-inventory-check.js?v=2"></script>
 <script src="js/role.js?v=4"></script>
 
