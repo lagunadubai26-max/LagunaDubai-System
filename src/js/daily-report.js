@@ -215,7 +215,7 @@ async function exportDayReport(asImage) {
       scale: 2,
       useCORS: true,
       backgroundColor: '#ffffff',
-      foreignObjectRendering: false,
+      foreignObjectRendering: true,
       width: exportNode.scrollWidth,
       height: exportNode.scrollHeight,
       logging: false,
