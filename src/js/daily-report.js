@@ -217,35 +217,39 @@ async function exportDayReport(asImage) {
     });
     const img = new Image();
     await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error('فشل تجهيز الصورة')); img.src = dataUrl; });
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    canvas.getContext('2d').drawImage(img, 0, 0);
 
-    // compose the whole report onto a single A4 page (fit, centered)
-    const A4_W = 1487, A4_H = 2102;
-    const page = document.createElement('canvas');
-    page.width = A4_W;
-    page.height = A4_H;
-    const pctx = page.getContext('2d');
-    pctx.fillStyle = '#ffffff';
-    pctx.fillRect(0, 0, A4_W, A4_H);
-    const fit = Math.min(A4_W / canvas.width, A4_H / canvas.height);
-    const drawW = canvas.width * fit;
-    const drawH = canvas.height * fit;
-    pctx.drawImage(canvas, (A4_W - drawW) / 2, (A4_H - drawH) / 2, drawW, drawH);
-    const imgData = page.toDataURL('image/png');
-
+    // تقسيم المحتوى على صفحات A4 متتالية بحجم طبيعي (بدل ضغط الكل في صفحة واحدة)
+    const pageW = img.width;
+    const pageH = Math.round(img.width * (297 / 210));
+    const numPages = Math.max(1, Math.ceil(img.height / pageH));
     const fileName = 'تقرير-يومي-' + dayReportDate.value;
+
+    const pages = [];
+    for (let i = 0; i < numPages; i++) {
+      const p = document.createElement('canvas');
+      p.width = pageW;
+      p.height = pageH;
+      const pctx = p.getContext('2d');
+      pctx.fillStyle = '#ffffff';
+      pctx.fillRect(0, 0, pageW, pageH);
+      pctx.drawImage(img, 0, i * pageH, pageW, pageH, 0, 0, pageW, pageH);
+      pages.push(p);
+    }
+
     if (asImage) {
-      const link = document.createElement('a');
-      link.href = imgData;
-      link.download = fileName + '.png';
-      link.click();
+      pages.forEach((p, i) => {
+        const link = document.createElement('a');
+        link.href = p.toDataURL('image/png');
+        link.download = fileName + (pages.length > 1 ? '-صفحة-' + (i + 1) : '') + '.png';
+        setTimeout(() => link.click(), i * 150);
+      });
     } else {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      pages.forEach((p, i) => {
+        if (i > 0) pdf.addPage();
+        pdf.addImage(p.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+      });
       pdf.save(fileName + '.pdf');
     }
   } catch (e) {
