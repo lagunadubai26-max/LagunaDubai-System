@@ -190,10 +190,9 @@ async function exportDayReport(asImage) {
       scale: 2,
       useCORS: true,
       backgroundColor: '#ffffff',
-      windowWidth: Math.min(Math.max(document.documentElement.clientWidth, 1200), 1920),
-      windowHeight: Math.max(document.documentElement.scrollHeight, el.scrollHeight) + 500,
-      scrollX: 0,
-      scrollY: 0
+      foreignObjectRendering: true,
+      width: el.scrollWidth,
+      height: el.scrollHeight
     });
     const imgData = canvas.toDataURL('image/png');
     const fileName = 'تقرير-يومي-' + dayReportDate.value;
