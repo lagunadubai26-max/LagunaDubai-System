@@ -182,17 +182,44 @@ async function showDayReport() {
     dayReportEl.innerHTML = '<div class="dr-empty" style="color:#dc2626">\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062a\u0642\u0631\u064a\u0631: ' + escapeHtml(e.message || e) + '</div>';
   }
 }
+async function ensureExportFonts() {
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    if (document.fonts && document.fonts.load) {
+      try { await document.fonts.load('400 16px Cairo'); } catch (e) {}
+      try { await document.fonts.load('700 16px Cairo'); } catch (e) {}
+    }
+  } catch (e) { console.warn('[dayreport] fonts:', e); }
+}
+
+function buildExportNode() {
+  const clone = dayReportEl.cloneNode(true);
+  clone.querySelectorAll('img').forEach(img => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><rect width="70" height="70" rx="14" fill="#d97706"/><text x="35" y="48" font-size="36" text-anchor="middle" fill="#fff" font-family="Arial">L</text></svg>';
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    img.removeAttribute('crossorigin');
+  });
+  clone.style.cssText = 'position:fixed;top:0;left:-99999px;width:940px;max-width:940px;background:#ffffff;z-index:-1;';
+  return clone;
+}
+
 async function exportDayReport(asImage) {
   const el = dayReportEl;
   if (!el || !el.innerHTML || el.innerHTML.indexOf('dr-header') === -1) return alert('اعرض اليوم أولاً قبل التحميل');
+  if (!window.html2canvas) return alert('مكتبة التصدير لم تُحمّل — تأكد من الاتصال بالإنترنت ثم أعد المحاولة');
+  const exportNode = buildExportNode();
+  document.body.appendChild(exportNode);
   try {
-    const canvas = await html2canvas(el, {
+    await ensureExportFonts();
+    const canvas = await html2canvas(exportNode, {
       scale: 2,
       useCORS: true,
       backgroundColor: '#ffffff',
-      foreignObjectRendering: true,
-      width: el.scrollWidth,
-      height: el.scrollHeight
+      foreignObjectRendering: false,
+      width: exportNode.scrollWidth,
+      height: exportNode.scrollHeight,
+      logging: false,
+      imageTimeout: 20000
     });
     const imgData = canvas.toDataURL('image/png');
     const fileName = 'تقرير-يومي-' + dayReportDate.value;
@@ -223,6 +250,8 @@ async function exportDayReport(asImage) {
   } catch (e) {
     console.error('[dayreport-export]', e);
     alert('حدث خطأ أثناء التحميل: ' + escapeHtml(e.message || e));
+  } finally {
+    if (exportNode.parentNode) exportNode.parentNode.removeChild(exportNode);
   }
 }
 
