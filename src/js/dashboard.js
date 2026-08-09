@@ -25,7 +25,7 @@ async function updateDashboard() {
   document.getElementById('visaPercent').textContent = Math.round(methods.Visa / total * 100) + '%';
   document.getElementById('walletPercent').textContent = Math.round(methods.Wallet / total * 100) + '%';
 
-  updateChart(soldInvoices);
+  await updateChart(soldInvoices);
   renderRecentInvoices(soldInvoices);
   renderTopProducts(soldInvoices);
   drawPaymentDonut(invoices);
@@ -113,25 +113,63 @@ function drawPaymentDonut(invoices) {
   });
 }
 
-function updateChart(invoices) {
+async function updateChart(invoices) {
   const canvas = document.getElementById('salesChart');
   if (!canvas) return;
-  const days = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
-  const weeklyData = new Array(7).fill(0);
+
+  // نفس تقسيم التقارير: اليوم = شيفت. الأيام المقفولة من سجل الإغلاق،
+  // والشيفت المفتوح بيظهر يوم واحد مهما عبر منتصف الليل.
+  let daycloses = [];
+  let shifts = [];
+  try { daycloses = await DB.daycloses.all() || []; } catch (e) {}
+  try { shifts = await DB.shifts.all() || []; } catch (e) {}
+
+  const closedByDate = {};
+  daycloses.forEach(dc => {
+    const k = (dc.date || '').slice(0, 10);
+    if (k && Number(dc.totalSales || 0) > 0) closedByDate[k] = Number(dc.totalSales || 0);
+  });
+
+  const openShift = shifts.find(s => !s.closedAt) || null;
+  let openStart = null, openKey = null;
+  if (openShift) {
+    openStart = openShift.openedAt ? new Date(openShift.openedAt) : new Date((openShift.openDate || '') + 'T00:00:00Z');
+    openKey = (openShift.openDate || '').slice(0, 10);
+  }
+
+  const buckets = {};
   invoices.forEach(inv => {
     if (!inv.date) return;
-    const d = new Date(inv.date);
-    const dayIdx = (d.getDay() + 1) % 7;
-    weeklyData[dayIdx] += Number(inv.total || 0);
+    const dayKey = String(inv.date).slice(0, 10);
+    if (closedByDate[dayKey]) return;
+    const t = new Date(inv.date).getTime();
+    let assignKey;
+    if (openShift && openStart && t >= openStart.getTime()) assignKey = openKey;
+    else assignKey = dayKey;
+    if (!assignKey) return;
+    buckets[assignKey] = (buckets[assignKey] || 0) + Number(inv.total || 0);
   });
+  Object.keys(closedByDate).forEach(k => { buckets[k] = closedByDate[k]; });
+
+  const recent = Object.keys(buckets).sort().slice(-14);
+  if (!recent.length) recent.push(new Date().toISOString().slice(0, 10));
+
+  const labels = recent.map(k => {
+    try { return new Date(k + 'T12:00:00').toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }); }
+    catch (e) { return k; }
+  });
+  const data = recent.map(k => buckets[k] || 0);
+
   if (typeof Chart !== 'undefined' && window.salesChart instanceof Chart) window.salesChart.destroy();
   window.salesChart = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: days,
-      datasets: [{ label: 'المبيعات', data: weeklyData, borderColor: '#d97706', backgroundColor: 'rgba(217,119,6,0.12)', fill: true, tension: 0.4, borderWidth: 3, pointRadius: 5, pointBackgroundColor: '#d97706' }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'المبيعات', data, backgroundColor: '#d97706', borderRadius: 6 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() + ' ج.م' } } }
+    }
   });
 }
 
