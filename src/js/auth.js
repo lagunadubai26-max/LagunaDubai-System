@@ -1,9 +1,5 @@
 ;(async () => {
-  try {
-    await DB.seed();
-  } catch (e) {
-    console.error('[auth] seed error:', e);
-  }
+  const seedPromise = DB.seed().catch(function (e) { console.error('[auth] seed error:', e); });
 
   const stored = sessionStorage.getItem('laguna_user');
   if (stored) try { const u = JSON.parse(stored); if (u && u.id) { window.location.href = 'index.html'; return; } } catch {}
@@ -87,7 +83,7 @@
         username: username,
         success: success,
         reason: reason || '',
-        timestamp: new Date().toISOString()
+        timestamp: FB.nowISO()
       });
     } catch (e) {
       console.warn('[auth] audit error:', e);
@@ -119,6 +115,10 @@
     saveLoginState(loginState);
 
     var users = await DB.users.all() || [];
+    if (!users.length) {
+      try { await seedPromise; } catch (e) {}
+      users = (await DB.users.all()) || [];
+    }
     var user = users.find(x => x.username === u);
     var passwordOk = false;
     if (user) {
@@ -136,20 +136,13 @@
       saveLoginState({ count: 0, blockedUntil: 0, level: 0 });
       auditLogin(u, true, '');
       var firebaseUid = FB.getUid();
-      if (firebaseUid && user.role === 'Employee') {
+      if (firebaseUid && user.role) {
         FB.getDb().collection('user_mappings').doc(firebaseUid).get().then(function(snap) {
+          var desired = { userId: user.id, role: user.role, username: user.username, name: user.name, updatedAt: FB.nowISO() };
           if (!snap.exists) {
-            FB.getDb().collection('user_mappings').doc(firebaseUid).set({
-              userId: user.id, role: 'Employee', username: user.username, name: user.name,
-              updatedAt: new Date().toISOString()
-            }).catch(function(e) { console.warn('[auth] failed to save employee mapping:', e); });
-          }
-        }).catch(function() {});
-      }
-      if (firebaseUid && user.role === 'Administrator') {
-        FB.getDb().collection('user_mappings').doc(firebaseUid).get().then(function(snap) {
-          if (!snap.exists) {
-            console.warn('[auth] No role mapping for ' + user.role + ' "' + user.username + '". UID: ' + firebaseUid + '. Ask an Admin to add it from Settings > Role Mappings.');
+            FB.getDb().collection('user_mappings').doc(firebaseUid).set(desired).catch(function(e) { console.warn('[auth] failed to save role mapping:', e); });
+          } else if (snap.data().role !== user.role || snap.data().userId !== user.id) {
+            FB.getDb().collection('user_mappings').doc(firebaseUid).update(desired).catch(function(e) { console.warn('[auth] failed to update role mapping:', e); });
           }
         }).catch(function() {});
       }

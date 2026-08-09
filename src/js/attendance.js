@@ -20,7 +20,7 @@ function formatTime(iso) {
 }
 
 function nowTime12h() {
-  const now = new Date();
+  const now = FB.clockNow();
   let h = now.getHours();
   const ampm = h >= 12 ? 'م' : 'ص';
   h = h % 12 || 12;
@@ -107,7 +107,7 @@ function openTimeModal(mode, emp, recordId) {
 
   let hm = attTime12hToHm(emp && emp.shiftTime);
   if (!hm) {
-    const now = new Date();
+    const now = FB.clockNow();
     const h24 = now.getHours();
     hm = { h: h24 % 12 || 12, m: now.getMinutes(), ampm: h24 >= 12 ? 'م' : 'ص' };
   }
@@ -127,7 +127,7 @@ document.getElementById('attTimeAm').onclick = () => attSetAmpm('ص');
 document.getElementById('attTimePm').onclick = () => attSetAmpm('م');
 
 document.getElementById('attTimeNow').onclick = () => {
-  const now = new Date();
+  const now = FB.clockNow();
   const h24 = now.getHours();
   attTimeHour.value = String(h24 % 12 || 12);
   attTimeMinute.value = String(now.getMinutes());
@@ -141,7 +141,7 @@ document.getElementById('attTimeConfirm').onclick = async () => {
   const isAm = amBtn.style.background === 'var(--accent)';
   let h24 = h12 % 12;
   if (!isAm) h24 += 12;
-  const d = new Date();
+  const d = FB.clockNow();
   d.setHours(h24, m, 0, 0);
   const btn = document.getElementById('attTimeConfirm');
   btn.disabled = true;

@@ -1,17 +1,17 @@
 async function updateDashboard() {
   const invoices = await DB.invoices.all() || [];
-  const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
-  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
+  const totalSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
   const pendingTotal = invoices.filter(i => i.status !== 'paid' && i.status !== 'مدفوعة' && i.status !== 'returned' && i.status !== 'مرتجعة').reduce((s, i) => s + Number(i.total || 0), 0);
   const customers = (await DB.customers.all() || []).length;
   const totalOrders = invoices.reduce((s, i) => s + (i.items ? i.items.reduce((a, b) => a + Number(b.qty || 0), 0) : 0), 0);
 
-  document.getElementById('totalSales').textContent = totalSales.toLocaleString() + ' جنيه';
+  animateCount(document.getElementById('totalSales'), totalSales, ' جنيه');
   const salesStatus = document.getElementById('salesStatus');
   if (salesStatus) salesStatus.textContent = (pendingTotal > 0 ? pendingTotal.toLocaleString() + ' ج.م معلقة | ' : '') + 'مدفوعة';
-  document.getElementById('totalInvoices').textContent = invoices.length;
-  document.getElementById('totalCustomers').textContent = customers || '0';
-  document.getElementById('totalOrders').textContent = totalOrders || '0';
+  animateCount(document.getElementById('totalInvoices'), invoices.length, '');
+  animateCount(document.getElementById('totalCustomers'), customers || 0, '');
+  animateCount(document.getElementById('totalOrders'), totalOrders || 0, '');
 
   // Day close button (Owner role removed — always visible)
   const dayCloseBtn = document.getElementById('dashDayCloseBtn');
@@ -25,8 +25,92 @@ async function updateDashboard() {
   document.getElementById('visaPercent').textContent = Math.round(methods.Visa / total * 100) + '%';
   document.getElementById('walletPercent').textContent = Math.round(methods.Wallet / total * 100) + '%';
 
-  updateChart(paidInvoices);
+  updateChart(soldInvoices);
+  renderRecentInvoices(soldInvoices);
+  renderTopProducts(soldInvoices);
+  drawPaymentDonut(invoices);
   checkDashDayClose();
+}
+
+// ── Animated counters ──
+function animateCount(el, target, suffix) {
+  if (!el) return;
+  suffix = suffix || '';
+  var from = el._counted || 0;
+  var start = performance.now();
+  var dur = 800;
+  function tick(now) {
+    var p = Math.min((now - start) / dur, 1);
+    var eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + (target - from) * eased).toLocaleString() + suffix;
+    if (p < 1) requestAnimationFrame(tick); else el._counted = target;
+  }
+  requestAnimationFrame(tick);
+}
+
+// ── Recent invoices panel ──
+function renderRecentInvoices(invoices) {
+  const box = document.getElementById('recentInvoices');
+  if (!box) return;
+  const list = invoices.slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 6);
+  if (!list.length) {
+    box.innerHTML = '<div class="empty-state" style="padding:26px 10px"><i class="fa-solid fa-receipt"></i><h3>لا توجد فواتير بعد</h3><p>ستظهر أحدث الفواتير هنا</p></div>';
+    return;
+  }
+  const methodMap = { Cash: 'كاش', Visa: 'فيزا', Wallet: 'محفظة', Card: 'شبكة' };
+  box.innerHTML = list.map(inv => {
+    const d = inv.date ? new Date(inv.date) : null;
+    const day = d ? d.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }) : '—';
+    const time = d ? d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const method = methodMap[inv.paymentMethod] || inv.paymentMethod || '—';
+    const ok = inv.status === 'paid' || inv.status === 'مدفوعة';
+    return '<div class="recent-item">' +
+      '<div class="recent-icon ' + (ok ? 'ok' : 'pending') + '"><i class="fa-solid fa-receipt"></i></div>' +
+      '<div class="recent-info"><div class="recent-name">فاتورة #' + escapeHtml(String(inv.id || '—').slice(-6)) + '</div>' +
+      '<div class="recent-meta">' + day + ' ' + time + ' · ' + escapeHtml(method) + '</div></div>' +
+      '<div class="recent-total">' + Number(inv.total || 0).toLocaleString() + ' ج.م</div></div>';
+  }).join('');
+}
+
+// ── Top products panel ──
+function renderTopProducts(invoices) {
+  const box = document.getElementById('topProducts');
+  if (!box) return;
+  const agg = {};
+  invoices.forEach(inv => (inv.items || []).forEach(it => {
+    const key = it.name || it.productName || 'منتج';
+    agg[key] = (agg[key] || 0) + Number(it.qty || 0);
+  }));
+  const top = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (!top.length) {
+    box.innerHTML = '<div class="empty-state" style="padding:26px 10px"><i class="fa-solid fa-utensils"></i><h3>لا توجد مبيعات بعد</h3><p>ستظهر الأصناف الأكثر مبيعاً هنا</p></div>';
+    return;
+  }
+  const max = top[0][1] || 1;
+  const medals = ['#f59e0b', '#94a3b8', '#d97706'];
+  box.innerHTML = top.map(([name, qty], idx) =>
+    '<div class="top-item"><div class="top-row">' +
+    '<span class="top-name"><i class="fa-solid fa-medal" style="color:' + (medals[idx] || '#d6d3d1') + '"></i> ' + escapeHtml(name) + '</span>' +
+    '<span class="top-qty">' + qty + '</span></div>' +
+    '<div class="top-bar"><div class="top-fill" style="width:' + Math.round(qty / max * 100) + '%"></div></div></div>'
+  ).join('');
+}
+
+// ── Payment methods donut ──
+function drawPaymentDonut(invoices) {
+  const canvas = document.getElementById('paymentDonut');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const methods = { Cash: 0, Visa: 0, Wallet: 0 };
+  invoices.forEach(i => { const m = i.paymentMethod || 'Cash'; if (methods[m] !== undefined) methods[m]++; });
+  if (window.paymentDonut instanceof Chart) window.paymentDonut.destroy();
+  window.paymentDonut = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['كاش', 'فيزا', 'محفظة'],
+      datasets: [{ data: [methods.Cash, methods.Visa, methods.Wallet], backgroundColor: ['#059669', '#2563eb', '#7c3aed'], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Cairo', size: 12 } } } } }
+  });
 }
 
 function updateChart(invoices) {
@@ -90,7 +174,7 @@ document.getElementById('dashDayCloseBtn').onclick = async () => {
 
 // ── Start Day (Open Shift) ──
 function showDashStartDayModal() {
-  const now = new Date();
+  const now = FB.clockNow();
   document.getElementById('dashStartDate').textContent = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   document.getElementById('dashStartTime').textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('dashStartDayModal').classList.add('show');
@@ -121,28 +205,28 @@ async function showDashDayCloseModal(shift) {
   const allExpenses = await DB.expenses.all() || [];
   const allReturns = await DB.returns.all() || [];
 
-  const start = new Date(shift.openDate + 'T00:00:00');
-  const end = new Date();
+  const start = new Date(shift.openedAt || (shift.openDate + 'T00:00:00Z'));
+  const end = FB.clockNow();
 
   const invoices = filterDate(allInvoices, start, end);
   const expenses = filterDate(allExpenses, start, end);
   const returns = filterDate(allReturns, start, end);
-  const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+  const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
 
-  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-  const cashAmount = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
-  const cardAmount = paidInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null ? i.paid : (i.total || 0)), 0);
+  const totalSales = soldInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const cashAmount = soldInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const cardAmount = soldInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
   const otherAmount = totalSales - cashAmount - cardAmount;
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
   const netProfit = totalSales - totalReturns - totalExpenses;
-  const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
+  const itemsSold = soldInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
   const shiftDate = new Date(shift.openDate + 'T12:00:00');
   const todayStr = 'شيفت ' + shiftDate.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + ' (من ' + (shift.openedAt ? new Date(shift.openedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—') + ')';
   document.getElementById('dashDcDate').textContent = todayStr;
   document.getElementById('dashDcSales').textContent = fmtMoney(totalSales);
-  document.getElementById('dashDcInvoices').textContent = paidInvoices.length;
+  document.getElementById('dashDcInvoices').textContent = soldInvoices.length;
   document.getElementById('dashDcCash').textContent = fmtMoney(cashAmount);
   document.getElementById('dashDcCard').textContent = fmtMoney(cardAmount);
   document.getElementById('dashDcItemsSold').textContent = itemsSold;
@@ -154,7 +238,7 @@ async function showDashDayCloseModal(shift) {
   confBtn.dataset.cashAmount = cashAmount;
   confBtn.dataset.cardAmount = cardAmount;
   confBtn.dataset.totalSales = totalSales;
-  confBtn.dataset.paidInvoices = paidInvoices.length;
+  confBtn.dataset.paidInvoices = soldInvoices.length;
   confBtn.dataset.itemsSold = itemsSold;
   confBtn.dataset.totalExpenses = totalExpenses;
   confBtn.dataset.totalReturns = totalReturns;
@@ -181,11 +265,11 @@ document.getElementById('dashConfirmDayClose').onclick = async () => {
     netProfit: Number(btn.dataset.netProfit),
     itemsSold: Number(btn.dataset.itemsSold),
     closedBy: user.name || 'الكاشير',
-    closedAt: new Date().toISOString()
+    closedAt: FB.nowISO()
   };
   try {
     await DB.daycloses.close(data);
-    await DB.shifts.close(shift.id, { closedAt: new Date().toISOString(), closedBy: user.name || 'الكاشير' });
+    await DB.shifts.close(shift.id, { closedAt: FB.nowISO(), closedBy: user.name || 'الكاشير' });
     DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, cashInDrawer: data.cashInDrawer });
     document.getElementById('dashDayCloseModal').classList.remove('show');
     checkDashDayClose();
@@ -202,6 +286,7 @@ document.getElementById('dashCancelDayClose').onclick = closeDashDayClose;
 window.addEventListener('click', e => { if (e.target === document.getElementById('dashDayCloseModal')) closeDashDayClose(); });
 
 updateDashboard();
+setInterval(updateDashboard, 60000);
 
 (async function autoStartDay() {
   try {

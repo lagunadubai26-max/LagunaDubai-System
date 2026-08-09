@@ -25,7 +25,7 @@ function createWindow() {
     }
   });
 
-  const url = 'https://adhamkhaled1510.github.io/LagunaDubai-System/';
+  const url = 'https://lagunadubai26-max.github.io/LagunaDubai-System/';
 
   win.loadURL(url).then(() => {
     win.show();

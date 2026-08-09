@@ -177,7 +177,7 @@ window.TEMPLATE = (() => {
     const remaining = inv.remaining != null ? Number(inv.remaining) : Math.max(0, total - paid);
     const change = inv.change || 0;
     const subtotal = total - (inv.serviceAmount || 0) - (inv.taxAmount || 0);
-    const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG');
+    const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : FB.clockNow().toLocaleString('ar-EG');
     const status = remaining > 0 ? 'معلق' : 'مدفوع';
     const baseUrl = window.location.origin + '/LagunaDubai-System/';
     const logoHtml = '<img src="' + baseUrl + 'images/logo.png" id="logoImg" style="height:65px;margin-bottom:4px;background:#222;padding:6px;border-radius:8px" alt="LagunaDubai">';
@@ -279,7 +279,7 @@ window.TEMPLATE = (() => {
     const total = Number(inv.total || 0);
     const remaining = inv.remaining != null ? Number(inv.remaining) : Math.max(0, total - paid);
     const change = inv.change || 0;
-    const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-SA') : new Date().toLocaleString('ar-SA');
+    const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-SA') : FB.clockNow().toLocaleString('ar-SA');
     const status = remaining > 0 ? 'معلق' : 'مدفوع';
     const maxLen = 32;
 

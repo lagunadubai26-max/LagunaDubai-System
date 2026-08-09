@@ -481,6 +481,15 @@ document.getElementById('checkoutPaid').addEventListener('input', window.calcRem
 
 document.getElementById('confirmCheckout').onclick = async () => {
   if (checkoutProcessing) return;
+  try {
+    const openShift = await DB.shifts.getOpen();
+    if (!openShift) {
+      return alert('⚠️ لا يمكن إرسال الطلب قبل فتح الشيفت.\nمن فضلك افتح الشيفت أولًا من لوحة التحكم.');
+    }
+  } catch(e) {
+    console.warn('[checkout] shift check failed:', e);
+    return alert('⚠️ تعذر التحقق من الشيفت. تأكد من الاتصال وحاول مرة أخرى.');
+  }
   if (isCustomer && tableNum) {
     const lastKey = 'laguna_last_order_t' + tableNum;
     const lastTime = Number(localStorage.getItem(lastKey)) || 0;
@@ -508,7 +517,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
       customer = document.getElementById('checkoutSpecialName').value.trim();
       if (!customer) { resetCheckout(); return alert('يرجى إدخال اسم العميل الخاص'); }
       totalAmount = Number(document.getElementById('checkoutSpecialPrice').value);
-      if (!totalAmount || totalAmount <= 0) { resetCheckout(); return alert('يرجى إدخال السعر المخصص للعميل الخاص'); }
+      if (isNaN(totalAmount) || totalAmount < 0) { resetCheckout(); return alert('يرجى إدخال السعر المخصص للعميل الخاص'); }
     } else {
       customer = 'نقدي';
       totalAmount = window._checkoutTotal;
@@ -556,7 +565,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
             tx.update(tableRef, { status: 'occupied' });
           }
         }
-        const invData = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
+        const invData = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);
@@ -566,11 +575,11 @@ document.getElementById('confirmCheckout').onclick = async () => {
           await DB.customers.update(matchedCust.id, {
             visits: (matchedCust.visits || 0) + 1,
             totalSpent: (matchedCust.totalSpent || 0) + totalAmount,
-            lastVisit: new Date().toISOString()
+            lastVisit: FB.nowISO()
           });
         }
       } catch(e) { console.warn('[checkout] customer stats update failed:', e); }
-      inv = { id: invId, customer, table, date: new Date().toISOString(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
+      inv = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
     } catch (e) {
       resetCheckout();
       console.error('[checkout] transaction error:', e);

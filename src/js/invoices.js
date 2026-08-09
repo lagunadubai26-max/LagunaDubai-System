@@ -1,8 +1,22 @@
 let invoices = [];
+let rangeStart = null;
+let shiftDateLabel = null;
 const searchInput = document.querySelector('.filter-box input');
 const statusSelect = document.querySelector('.filter-box select');
 const tableBody = document.querySelector('#invTableBody');
 const _invUser = (() => { try { return JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return {}; } })();
+
+async function resolveShiftRange() {
+  rangeStart = null;
+  shiftDateLabel = null;
+  try {
+    const openShift = await DB.shifts.getOpen();
+    if (openShift && openShift.openDate) {
+      rangeStart = new Date(openShift.openedAt);
+      shiftDateLabel = new Date(openShift.openDate + 'T12:00:00Z').toLocaleDateString('ar-EG', { timeZone: 'Africa/Cairo' });
+    }
+  } catch(e) { console.warn('[invoices] shift check failed:', e); }
+}
 
 async function render() {
   invoices = await DB.invoices.all() || [];
@@ -12,8 +26,19 @@ async function render() {
   const val = searchInput ? searchInput.value.toLowerCase() : '';
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
 
+  await resolveShiftRange();
+  const todayKey = localDateKey(FB.clockNow());
+  const now = new Date(Math.max(FB.clockNow().getTime(), (invoices || []).reduce((m, i) => i.date ? Math.max(m, new Date(i.date).getTime()) : m, 0)));
+
   const filtered = invoices.filter(inv => {
     if (!inv || !inv.id || typeof inv.id !== 'string' || !inv.customer) { console.warn('[invoices] skipped malformed:', inv); return false; }
+    if (!inv.date) return false;
+    const d = new Date(inv.date);
+    if (rangeStart) {
+      if (!(d >= rangeStart && d <= now)) return false;
+    } else if (localDateKey(inv.date) !== todayKey) {
+      return false;
+    }
     const matchSearch = inv.id.toLowerCase().includes(val) || inv.customer.toLowerCase().includes(val);
     const st = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
     const matchStatus = filterStatus === 'كل الحالات' || st === filterStatus;
@@ -22,29 +47,31 @@ async function render() {
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
-    const frag = buildInvoiceRow(inv);
+    const frag = buildInvoiceRow(inv, shiftDateLabel);
     tableBody.appendChild(frag);
   });
 
-  const paid = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+  const paid = filtered.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
   const cards = document.querySelectorAll('.invoice-stats .stat-card h2');
   if (cards.length >= 5) {
-    cards[0].textContent = invoices.length;
+    cards[0].textContent = filtered.length;
     cards[1].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
     cards[2].textContent = paid.length;
-    cards[3].textContent = invoices.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
+    cards[3].textContent = filtered.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
     cards[4].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
   }
   attachActions();
   updateMergeBtn();
 }
 
-function buildInvoiceRow(inv) {
+function buildInvoiceRow(inv, shiftDateLabel) {
   const frag = document.createDocumentFragment();
   const row = document.createElement('tr');
   const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
   const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
-  const dateStr = inv.date ? new Date(inv.date).toLocaleString('ar-EG') : '—';
+  const dateStr = inv.date
+    ? (shiftDateLabel ? shiftDateLabel + ' ' + new Date(inv.date).toLocaleTimeString('ar-EG', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit' }) : new Date(inv.date).toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' }))
+    : '—';
   const paid = inv.paid ?? inv.total;
   const remaining = inv.remaining ?? Math.max(0, (inv.total ?? 0) - paid);
   const safeCustomer = escapeHtml(inv.customer || '');
@@ -61,8 +88,10 @@ function buildInvoiceRow(inv) {
     const itemsRow = document.createElement('tr');
     itemsRow.className = 'inv-items-row';
     let itemsHtml = '';
-    inv.items.forEach(item => {
-      itemsHtml += '<span class="inv-item-chip">' + escapeHtml(item.name) + ' × ' + item.qty + ' = ' + Number(item.qty * item.price).toLocaleString() + ' ج.م' + (item.hasMilk ? ' (+لبن)' : '') + (item.note ? ' <em>(' + escapeHtml(item.note) + ')</em>' : '') + '</span>';
+    inv.items.forEach((item, i) => {
+      const qty = Number(item.qty || 1);
+      const itemAmount = qty * Number(item.price || 0);
+      itemsHtml += '<span class="inv-item-chip">' + escapeHtml(item.name) + ' × ' + qty + ' = ' + Number(itemAmount).toLocaleString() + ' ج.م' + (item.hasMilk ? ' (+حليب)' : '') + (item.note ? ' <em>(' + escapeHtml(item.note) + ')</em>' : '') + ' <button class="item-remove-btn" data-id="' + safeId + '" data-index="' + i + '" title="حذف الصنف من الفاتورة"><i class="fa-solid fa-xmark"></i></button></span>';
     });
     itemsRow.innerHTML = '<td></td><td colspan="9" class="inv-items-cell"><div class="inv-items-wrap">' + itemsHtml + '</div></td>';
     frag.appendChild(itemsRow);
@@ -170,7 +199,7 @@ function attachActions() {
               product: item.name,
               qty: item.qty,
               amount: item.qty * item.price,
-              date: new Date().toISOString(),
+              date: FB.nowISO(),
               status: 'pending'
             });
           }
@@ -181,6 +210,39 @@ function attachActions() {
         for (const r of existing) await DB.returns.remove(r.id);
         await DB.invoices.update(inv.id, { status: 'paid' });
       }
+      render();
+    };
+  });
+  document.querySelectorAll('.item-remove-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const inv = invoices.find(i => i.id === btn.dataset.id);
+      const idx = Number(btn.dataset.index);
+      if (!inv || !Array.isArray(inv.items) || !inv.items[idx]) return;
+      const item = inv.items[idx];
+      const qty = Number(item.qty || 1);
+      const itemAmount = qty * Number(item.price || 0);
+      if (!confirm('حذف «' + item.name + ' × ' + qty + '» بقيمة ' + Number(itemAmount).toLocaleString() + ' ج.م من الفاتورة؟')) return;
+
+      const newItems = inv.items.filter((_, i) => i !== idx);
+
+      if (!newItems.length) {
+        if (!confirm('الفاتورة أصبحت فارغة.\nهل تريد حذف الفاتورة بالكامل؟')) return;
+        await DB.invoices.remove(inv.id);
+        render();
+        return;
+      }
+
+      const newTotal = Math.max(0, Number(inv.total || 0) - itemAmount);
+      const newPaid = Math.min(Number(inv.paid != null ? inv.paid : inv.total || 0), newTotal);
+      const newRemaining = Math.max(0, newTotal - newPaid);
+      const wasReturned = inv.status === 'returned' || inv.status === 'مرتجعة' || inv.status === 'cancelled' || inv.status === 'ملغية';
+      await DB.invoices.update(inv.id, {
+        items: newItems,
+        total: newTotal,
+        paid: newPaid,
+        remaining: newRemaining,
+        status: wasReturned ? inv.status : (newRemaining <= 0 ? 'paid' : 'pending')
+      });
       render();
     };
   });
@@ -267,7 +329,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
     await DB.invoices.add({
       id: newId,
       customer: toMerge[0].customer,
-      date: new Date().toISOString(),
+      date: FB.nowISO(),
       items: mergedItems,
       total: total,
       paid: paid,
@@ -310,7 +372,7 @@ function renderWithData() {
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   filtered.forEach(inv => {
-    const frag = buildInvoiceRow(inv);
+    const frag = buildInvoiceRow(inv, shiftDateLabel);
     tableBody.appendChild(frag);
   });
 

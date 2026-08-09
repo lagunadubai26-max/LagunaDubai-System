@@ -15,7 +15,7 @@ const FB = (() => {
     }
   }
 
-  async function ensure() { if (!db) await init(); }
+  async function ensure() { if (!db) await init(); startClockSync(); }
 
   function docId() { 
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -23,6 +23,33 @@ const FB = (() => {
   }
   return Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2);
 }
+
+  // ── Server clock sync: لا نعتمد على ساعة الجهاز ──
+  let _clockOffset = null;
+  let _clockStarted = false;
+
+  async function syncClock() {
+    try {
+      await ensure();
+      const probeRef = db.collection('audit_logs').doc('clock_probe_' + (uid || 'anon'));
+      await probeRef.set({ t: firebase.firestore.FieldValue.serverTimestamp() });
+      const snap = await probeRef.get();
+      try { await probeRef.delete(); } catch(e) { /* البقايا تتستبدل في المزامنة التالية */ }
+      const t = snap.get('t');
+      if (t && t.toDate) _clockOffset = t.toDate().getTime() - Date.now();
+    } catch(e) { console.warn('[clock] sync failed:', e); _clockOffset = 0; }
+    return _clockOffset;
+  }
+
+  function startClockSync() {
+    if (_clockStarted) return;
+    _clockStarted = true;
+    syncClock();
+    setInterval(syncClock, 5 * 60 * 1000);
+  }
+
+  function clockNow() { return new Date(Date.now() + (_clockOffset || 0)); }
+  function nowISO() { return clockNow().toISOString(); }
 
   async function getCollection(name) {
     await ensure();
@@ -68,5 +95,5 @@ const FB = (() => {
   function getUid() { return uid; }
   function getDb() { return db; }
 
-  return { getCollection, addDoc, updateDoc, removeDoc, onCollection, runTransaction, getUid, getDb };
+  return { getCollection, addDoc, updateDoc, removeDoc, onCollection, runTransaction, getUid, getDb, syncClock, clockNow, nowISO };
 })();
