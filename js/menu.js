@@ -407,7 +407,6 @@ checkoutBtn.addEventListener("click", () => {
   document.getElementById('checkoutCustomerType').value = 'regular';
   document.getElementById('checkoutSpecialFields').style.display = 'none';
   document.getElementById('checkoutSpecialName').value = '';
-  document.getElementById('checkoutSpecialPrice').value = '';
   (async () => {
     const allCusts = await DB.customers.all();
     const dl = document.getElementById('custList');
@@ -432,27 +431,14 @@ document.getElementById('checkoutCustomerType').onchange = function() {
   const isSpecial = this.value === 'special';
   document.getElementById('checkoutSpecialFields').style.display = isSpecial ? 'block' : 'none';
   if (isSpecial) {
-    const val = Number(document.getElementById('checkoutSpecialPrice').value);
-    if (val > 0) {
-      window._checkoutTotal = val;
-      document.getElementById('checkoutTotal').textContent = val + ' جنيه';
-    }
+    window._checkoutTotal = Math.round(window._itemsTotal * 0.75);
+    document.getElementById('checkoutTotal').textContent = window._checkoutTotal + ' جنيه (خصم 25%)';
   } else {
     window._checkoutTotal = window._itemsTotal;
     document.getElementById('checkoutTotal').textContent = window._itemsTotal + ' جنيه';
   }
   window.calcRemaining();
 };
-
-// Special price input — update total dynamically
-document.getElementById('checkoutSpecialPrice').addEventListener('input', function() {
-  if (document.getElementById('checkoutCustomerType').value !== 'special') return;
-  const val = Number(this.value) || 0;
-  window._checkoutTotal = val;
-  document.getElementById('checkoutTotal').textContent = val + ' جنيه';
-  document.getElementById('checkoutPaid').value = val;
-  window.calcRemaining();
-});
 
 // Calculate remaining/change in checkout modal
 window.calcRemaining = function() {
@@ -516,8 +502,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     if (custType === 'special') {
       customer = document.getElementById('checkoutSpecialName').value.trim();
       if (!customer) { resetCheckout(); return alert('يرجى إدخال اسم العميل الخاص'); }
-      totalAmount = Number(document.getElementById('checkoutSpecialPrice').value);
-      if (isNaN(totalAmount) || totalAmount < 0) { resetCheckout(); return alert('يرجى إدخال السعر المخصص للعميل الخاص'); }
+      totalAmount = Math.round(window._itemsTotal * 0.75);
     } else {
       customer = 'نقدي';
       totalAmount = window._checkoutTotal;
