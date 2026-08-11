@@ -75,8 +75,8 @@ async function showDayReport() {
   dayReportEl.innerHTML = '<div class="dr-empty"><i class="fa-solid fa-spinner fa-spin"></i> \u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062a\u0642\u0631\u064a\u0631...</div>';
 
   try {
-    const [allInvoices, allExpenses, allReturns, menu, allDaycloses, allAudit] = await Promise.all([
-      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all(), DB.daycloses.all(), DB.audit.all()
+    const [allInvoices, allExpenses, allReturns, menu, allDaycloses, allAudit, allIncomes] = await Promise.all([
+      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all(), DB.daycloses.all(), DB.audit.all(), DB.incomes.all()
     ]);
 
     const latestInvTs = (allInvoices || []).reduce((m, i) => i.date ? Math.max(m, new Date(i.date).getTime()) : m, 0);
@@ -84,6 +84,7 @@ async function showDayReport() {
     const dayInvoices = (allInvoices || []).filter(i => i.date && (() => { const d = new Date(i.date); return d >= start && d <= end; })());
     const dayExpenses = (allExpenses || []).filter(e => { const d = new Date(e.date); return d >= start && d <= end; });
     const dayReturns = (allReturns || []).filter(r => { const d = new Date(r.date); return d >= start && d <= end; });
+    const dayIncomes = (allIncomes || []).filter(e => { const d = new Date(e.date); return d >= start && d <= end; });
 
     const soldInvoices = dayInvoices.filter(i => i.status !== 'returned' && i.status !== '\u0645\u0631\u062a\u062c\u0639\u0629');
     const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === '\u0645\u062f\u0641\u0648\u0639\u0629');
@@ -93,7 +94,8 @@ async function showDayReport() {
     const totalCard = paidInvoices.filter(i => i.paymentMethod !== 'Cash' && i.paymentMethod !== '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
     const totalExpenses = dayExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
     const totalReturns = dayReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
-    const netProfit = totalSales - totalReturns - totalExpenses;
+    const totalIncome = dayIncomes.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const netProfit = totalSales + totalIncome - totalReturns - totalExpenses;
     const liveSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
     const pendingAmount = pendingInvoices.reduce((s, i) => s + Math.max(0, Number(i.total || 0) - Number(i.paid || 0)), 0);
 
@@ -132,7 +134,8 @@ async function showDayReport() {
         '<div class="card"><span>\u0639\u062f\u062f \u0627\u0644\u0645\u0634\u0631\u0648\u0628\u0627\u062a</span><b>' + (dc.itemsSold || 0) + '</b></div>' +
         '<div class="card"><span>\u0627\u0644\u0645\u0631\u062a\u062c\u0639\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(dc.totalReturns || 0) + '</b></div>' +
         '<div class="card"><span>\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(dc.totalExpenses || 0) + '</b></div>' +
-        '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(Number(dc.totalSales || 0) - Number(dc.totalReturns || 0) - Number(dc.totalExpenses || 0)) + '</b></div>';
+        '<div class="card"><span>\u0625\u064a\u0631\u0627\u062f\u0627\u062a \u0623\u062e\u0631\u0649</span><b style="color:var(--success)">' + fmtMoney(dc.totalIncome || 0) + '</b></div>' +
+        '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(Number(dc.totalSales || 0) + Number(dc.totalIncome || 0) - Number(dc.totalReturns || 0) - Number(dc.totalExpenses || 0)) + '</b></div>';
       const cards2 = cards + (paidInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</span><b>' + paidInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(liveSales) + '</b></div>' : '') + (pendingInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0639\u0644\u0642\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f\u0629)</span><b style="color:#d97706">' + pendingInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(pendingAmount) + '</b></div>' : '');
       const liveExtra = paidInvoices.length ? '<div class="dr-title">\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0645\u0646\u062a\u062c\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0627 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>' + buildDrinkTable(buildItemsMap(paidInvoices)) : '';
       dayReportEl.innerHTML = summaryHtml('\u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0627\u0644\u064a\u0648\u0645\u064a (\u0625\u063a\u0644\u0627\u0642 \u0633\u0627\u0628\u0642)', cards2, '<div class="dr-empty" style="margin-top:16px">\u26a0\ufe0f \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 \u0627\u062a\u063a\u0644\u0642 \u0633\u0627\u0628\u0642\u064b\u0627 \u0648\u062a\u0645 \u062a\u0635\u062f\u064a\u0631 \u0641\u0648\u0627\u062a\u064a\u0631\u0647 \u0625\u0644\u0649 \u0645\u0644\u0641 Excel \u2014 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>' + liveExtra);
@@ -173,6 +176,7 @@ async function showDayReport() {
           '<div class="card"><span>\u062a\u0643\u0644\u0641\u0629 \u0627\u0644\u062e\u0627\u0645\u0627\u062a (\u062a\u0642\u0631\u064a\u0628\u064a)</span><b>' + fmtMoney(recipesCost) + '</b></div>' +
           '<div class="card"><span>\u0627\u0644\u0645\u0631\u062a\u062c\u0639\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(totalReturns) + '</b></div>' +
           '<div class="card"><span>\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(totalExpenses) + '</b></div>' +
+          '<div class="card"><span>\u0625\u064a\u0631\u0627\u062f\u0627\u062a \u0623\u062e\u0631\u0649</span><b style="color:var(--success)">' + fmtMoney(totalIncome) + '</b></div>' +
           '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(netProfit) + '</b></div>' +
           (pendingInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0639\u0644\u0642\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f\u0629)</span><b style="color:#d97706">' + pendingInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(pendingAmount) + '</b></div>' : '') +
         '</div>' +
@@ -212,10 +216,11 @@ async function exportDayReport(asImage) {
 
   try {
     await ensureExportFonts();
-    const dataUrl = await domtoimage.toPng(el, {
+    const dataUrl = await domtoimage.toJpeg(el, {
       width: el.scrollWidth,
       height: el.scrollHeight,
-      scale: 2,
+      scale: 1.5,
+      quality: 0.92,
       backgroundColor: '#ffffff',
       style: { margin: '0', boxShadow: 'none' }
     });
@@ -243,8 +248,8 @@ async function exportDayReport(asImage) {
     if (asImage) {
       pages.forEach((p, i) => {
         const link = document.createElement('a');
-        link.href = p.toDataURL('image/png');
-        link.download = fileName + (pages.length > 1 ? '-صفحة-' + (i + 1) : '') + '.png';
+        link.href = p.toDataURL('image/jpeg', 0.9);
+        link.download = fileName + (pages.length > 1 ? '-صفحة-' + (i + 1) : '') + '.jpg';
         setTimeout(() => link.click(), i * 150);
       });
     } else {
@@ -252,7 +257,7 @@ async function exportDayReport(asImage) {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       pages.forEach((p, i) => {
         if (i > 0) pdf.addPage();
-        pdf.addImage(p.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+        pdf.addImage(p.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
       });
       pdf.save(fileName + '.pdf');
     }
