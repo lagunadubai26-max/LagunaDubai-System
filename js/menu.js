@@ -428,14 +428,26 @@ checkoutBtn.addEventListener("click", () => {
 
 // Customer type toggle — show/hide special fields and update total
 document.getElementById('checkoutCustomerType').onchange = function() {
-  const isSpecial = this.value === 'special';
-  document.getElementById('checkoutSpecialFields').style.display = isSpecial ? 'block' : 'none';
-  if (isSpecial) {
-    const before = window._itemsTotal;
+  const type = this.value;
+  const isSpecial = type === 'special';
+  const isFree = type === 'free';
+  document.getElementById('checkoutSpecialFields').style.display = (isSpecial || isFree) ? 'block' : 'none';
+  const before = window._itemsTotal;
+  const beforeEl = document.getElementById('checkoutSpecialBefore');
+  const noteEl = document.getElementById('checkoutSpecialNote');
+  if (isFree) {
+    const nameEl = document.getElementById('checkoutSpecialName');
+    if (!nameEl.value) nameEl.value = 'ضيافة أستاذ محمد الجوهري';
+    window._checkoutTotal = 0;
+    if (beforeEl) beforeEl.textContent = before + ' جنيه';
+    document.getElementById('checkoutTotal').textContent = '0 جنيه (ضيافة مجانية)';
+    if (noteEl) noteEl.innerHTML = '<i class="fa-solid fa-gift"></i> ضيافة مجانية — الحساب <b>0 جنيه</b> بالكامل';
+    document.getElementById('checkoutPaid').value = '';
+  } else if (isSpecial) {
     window._checkoutTotal = Math.round(before * 0.75);
-    const beforeEl = document.getElementById('checkoutSpecialBefore');
     if (beforeEl) beforeEl.textContent = before + ' جنيه';
     document.getElementById('checkoutTotal').textContent = window._checkoutTotal + ' جنيه (خصم 25%)';
+    if (noteEl) noteEl.innerHTML = '<i class="fa-solid fa-tags"></i> خصم <b>25%</b> تلقائي على إجمالي الفاتورة';
   } else {
     window._checkoutTotal = window._itemsTotal;
     document.getElementById('checkoutTotal').textContent = window._itemsTotal + ' جنيه';
@@ -506,6 +518,10 @@ document.getElementById('confirmCheckout').onclick = async () => {
       customer = document.getElementById('checkoutSpecialName').value.trim();
       if (!customer) { resetCheckout(); return alert('يرجى إدخال اسم العميل الخاص'); }
       totalAmount = Math.round(window._itemsTotal * 0.75);
+    } else if (custType === 'free') {
+      customer = document.getElementById('checkoutSpecialName').value.trim();
+      if (!customer) { resetCheckout(); return alert('يرجى إدخال اسم الضيافة'); }
+      totalAmount = 0;
     } else {
       customer = 'نقدي';
       totalAmount = window._checkoutTotal;
@@ -517,7 +533,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     const table = (tableNum || getTableInput()) ? 'طاولة ' + (tableNum || getTableInput()) : null;
     const paid = Math.max(0, Number(document.getElementById('checkoutPaid').value) || 0);
     const change = Math.max(0, paid - totalAmount);
-    if (custType !== 'special') {
+    if (custType === 'regular') {
       const allProds = await DB.products.all() || [];
       const priceMap = {};
       allProds.forEach(p => { priceMap[p.name] = Number(p.price); });
@@ -534,7 +550,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     }
     const invId = 'INV-' + crypto.randomUUID().slice(0, 8).toUpperCase();
     let inv, matchedCust, custReadFailed = false;
-    if (custType === 'special') {
+    if (custType !== 'regular') {
       try {
         const allCusts = await DB.customers.all() || [];
         matchedCust = allCusts.find(c => c.name === customer);
@@ -553,7 +569,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
             tx.update(tableRef, { status: 'occupied' });
           }
         }
-        const invData = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
+        const invData = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: custType === 'free' ? 'paid' : 'pending' };
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);
