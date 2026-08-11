@@ -187,8 +187,8 @@ const DB = {
   shifts: {
     async all() { return await FB.getCollection('shifts'); },
     async getOpen() {
-      const all = await FB.getCollection('shifts');
-      return all.find(s => s && !s.closedAt) || null;
+      const open = await FB.queryCollection('shifts', 'closedAt', '==', null, 1);
+      return open[0] || null;
     },
     async open(name) {
       const now = FB.clockNow();
