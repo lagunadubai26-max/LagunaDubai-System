@@ -54,7 +54,7 @@ const FB = (() => {
   // ── Read reduction: memo (per page) + static cache (localStorage + versions doc) ──
   const _memo = new Map();
   const MEMO_TTL = 5000;
-  const META_TTL = 60000;
+  const META_TTL = 10000;
   const STATIC_COLLECTIONS = { products: 1, customers: 1, categories: 1, employees: 1, users: 1, settings: 1 };
   const VERSIONS_DOC = 'versions';
   function _cLocalGet(key, def) {
@@ -74,14 +74,20 @@ const FB = (() => {
     return v;
   }
 
-  function bumpVersion(name) {
-    const ref = db.collection('meta').doc(VERSIONS_DOC);
-    ref.set({ versions: { [name]: firebase.firestore.FieldValue.increment(1) } }, { merge: true }).catch(e => console.warn('[fb] version bump failed:', e));
+  async function bumpVersion(name) {
+    try {
+      const ref = db.collection('meta').doc(VERSIONS_DOC);
+      await ref.set({ versions: { [name]: firebase.firestore.FieldValue.increment(1) } }, { merge: true });
+    } catch(e) {
+      console.warn('[fb] version bump failed:', e);
+      try { _cLocalSet('cache_' + name, null); } catch(e2) {}
+    }
   }
 
-  function invalidate(name) {
+  async function invalidate(name) {
     _memo.delete(name);
-    if (STATIC_COLLECTIONS[name]) bumpVersion(name);
+    _memo.delete('__meta');
+    if (STATIC_COLLECTIONS[name]) await bumpVersion(name);
   }
 
   async function getCollection(name) {
@@ -129,20 +135,20 @@ const FB = (() => {
     const obj = { ...data, id };
     if (uid) obj._uid = uid;
     await db.collection(name).doc(id).set(obj);
-    invalidate(name);
+    await invalidate(name);
     return obj;
   }
 
   async function updateDoc(name, id, data) {
     await ensure();
     await db.collection(name).doc(id).update(data);
-    invalidate(name);
+    await invalidate(name);
   }
 
   async function removeDoc(name, id) {
     await ensure();
     await db.collection(name).doc(id).delete();
-    invalidate(name);
+    await invalidate(name);
   }
 
   async function onCollection(name, callback) {
