@@ -437,7 +437,7 @@ document.getElementById('checkoutCustomerType').onchange = function() {
   const noteEl = document.getElementById('checkoutSpecialNote');
   if (isFree) {
     const nameEl = document.getElementById('checkoutSpecialName');
-    if (!nameEl.value) nameEl.value = 'ضيافة أستاذ محمد الجوهري';
+    if (!nameEl.value) nameEl.value = 'ضيافه استاذ محمد الجوهري';
     window._checkoutTotal = 0;
     if (beforeEl) beforeEl.textContent = before + ' جنيه';
     document.getElementById('checkoutTotal').textContent = '0 جنيه (ضيافة مجانية)';
