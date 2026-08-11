@@ -110,6 +110,12 @@ const DB = {
     async remove(id) { await FB.removeDoc('expenses', id); }
   },
 
+  incomes: {
+    async all() { return await FB.getCollection('incomes'); },
+    async add(e) { if (!e.id) e.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('incomes', e); },
+    async remove(id) { await FB.removeDoc('incomes', id); }
+  },
+
   customers: {
     async all() { return await FB.getCollection('customers'); },
     async add(c) { if (!c.id) c.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('customers', c); },

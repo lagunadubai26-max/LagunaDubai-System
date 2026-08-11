@@ -30,7 +30,7 @@ function filterByDate(items, range) {
   });
 }
 
-function calcStats(invoices, expenses, returns) {
+function calcStats(invoices, expenses, returns, incomes) {
   const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
   const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
   const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
@@ -38,11 +38,12 @@ function calcStats(invoices, expenses, returns) {
     .reduce((s, i) => s + Math.max(0, Number(i.total || 0) - Number(i.paid || 0)), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalIncome = (incomes || []).reduce((s, i) => s + Number(i.amount || 0), 0);
   const collectedCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
-  const netProfit = totalSales - totalReturns - totalExpenses;
+  const netProfit = totalSales + totalIncome - totalReturns - totalExpenses;
   const numPaid = paidInvoices.length;
   const avgInvoice = numPaid > 0 ? Math.round(totalSales / numPaid) : 0;
-  return { totalSales, totalPending, totalReturns, totalExpenses, netProfit, collectedCash, avgInvoice, numPaid, numInvoices: invoices.length };
+  return { totalSales, totalIncome, totalPending, totalReturns, totalExpenses, netProfit, collectedCash, avgInvoice, numPaid, numInvoices: invoices.length };
 }
 
 function fmtMoney(v) { return v.toLocaleString() + ' ج.م'; }
@@ -97,6 +98,7 @@ async function render() {
     const allInvoices = await DB.invoices.all() || [];
     const allExpenses = await DB.expenses.all() || [];
     const allReturns = await DB.returns.all() || [];
+    const allIncomes = await DB.incomes.all() || [];
     const products = await DB.products.all() || [];
     const allDaycloses = await DB.daycloses.all() || [];
     const allShifts = await DB.shifts.all() || [];
@@ -106,13 +108,15 @@ async function render() {
     const prevInvoices = filterByDate(allInvoices, prevRange);
     const expenses = filterByDate(allExpenses, range);
     const returns = filterByDate(allReturns, range);
+    const incomes = filterByDate(allIncomes, range);
+    const prevIncomes = filterByDate(allIncomes, prevRange);
 
     const monthKey = monthInput.value;
     const coveredDays = {};
     allDaycloses.forEach(d => { const k = d.date || ''; if (k.indexOf(monthKey) === 0 && Number(d.totalSales || 0) > 0) coveredDays[k] = d; });
     const openDayInvoices = invoices.filter(i => !coveredDays[(i.date || '').slice(0, 10)]);
 
-    let closedSales = 0, closedCash = 0, closedCard = 0, closedNum = 0, closedItems = 0, closedRet = 0, closedExp = 0;
+    let closedSales = 0, closedCash = 0, closedCard = 0, closedNum = 0, closedItems = 0, closedRet = 0, closedExp = 0, closedIncome = 0;
     const chartDays = [];
     Object.keys(coveredDays).forEach(k => {
       const dc = coveredDays[k];
@@ -123,6 +127,7 @@ async function render() {
       closedItems += Number(dc.itemsSold || 0);
       closedRet += Number(dc.totalReturns || 0);
       closedExp += Number(dc.totalExpenses || 0);
+      closedIncome += Number(dc.totalIncome || 0);
       chartDays.push({ date: k + 'T12:00:00Z', total: Number(dc.totalSales || 0), paymentMethod: 'Cash', items: [] });
     });
 
@@ -148,25 +153,27 @@ async function render() {
       }
     });
 
-    const stats = calcStats(openDayInvoices, expenses, returns);
+    const stats = calcStats(openDayInvoices, expenses, returns, incomes);
     stats.totalSales += closedSales;
+    stats.totalIncome += closedIncome;
     stats.collectedCash += closedCash;
     stats.totalReturns += closedRet;
     stats.totalExpenses += closedExp;
     stats.numPaid += closedNum;
     stats.numInvoices += closedNum;
     stats.avgInvoice = stats.numPaid > 0 ? Math.round(stats.totalSales / stats.numPaid) : 0;
-    stats.netProfit = stats.totalSales - stats.totalReturns - stats.totalExpenses;
+    stats.netProfit = stats.totalSales + stats.totalIncome - stats.totalReturns - stats.totalExpenses;
     stats.totalCard = closedCard;
 
     const chartInvoices = openDayInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').concat(chartDays);
-    const prevStats = calcStats(prevInvoices, [], []);
+    const prevStats = calcStats(prevInvoices, [], [], prevIncomes);
 
     document.getElementById('reportSales').textContent = fmtMoney(stats.totalSales);
     document.getElementById('reportInvoices').textContent = stats.numInvoices;
     document.getElementById('reportAvgInvoice').textContent = fmtMoney(stats.avgInvoice);
     document.getElementById('reportReturns').textContent = fmtMoney(stats.totalReturns);
     document.getElementById('reportExpenses').textContent = fmtMoney(stats.totalExpenses);
+    document.getElementById('reportIncome').textContent = fmtMoney(stats.totalIncome);
     document.getElementById('reportNetProfit').textContent = fmtMoney(stats.netProfit);
     document.getElementById('reportPending').textContent = fmtMoney(stats.totalPending);
     document.getElementById('reportCashDrawer').textContent = fmtMoney(stats.collectedCash);
@@ -541,6 +548,7 @@ async function showDayCloseModal() {
   const allInvoices = await DB.invoices.all() || [];
   const allExpenses = await DB.expenses.all() || [];
   const allReturns = await DB.returns.all() || [];
+  const allIncomes = await DB.incomes.all() || [];
 
   const shift = await DB.shifts.getOpen();
   const rangeStart = shift && shift.openedAt ? new Date(shift.openedAt) : null;
@@ -553,6 +561,7 @@ async function showDayCloseModal() {
   const invoices = filterByDate(allInvoices, range);
   const expenses = filterByDate(allExpenses, range);
   const returns = filterByDate(allReturns, range);
+  const incomes = filterByDate(allIncomes, range);
   const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
   const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
@@ -562,7 +571,8 @@ async function showDayCloseModal() {
   const otherAmount = totalSales - cashAmount - cardAmount;
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
-  const netProfit = totalSales - totalReturns - totalExpenses;
+  const totalIncome = incomes.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const netProfit = totalSales + totalIncome - totalReturns - totalExpenses;
   const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
   const shiftForDate = shift ? new Date(shift.openDate + 'T12:00:00Z') : FB.clockNow();
@@ -574,6 +584,7 @@ async function showDayCloseModal() {
   document.getElementById('dcCard').textContent = fmtMoney(cardAmount);
   document.getElementById('dcItemsSold').textContent = itemsSold;
   document.getElementById('dcExpenses').textContent = fmtMoney(totalExpenses);
+  document.getElementById('dcIncome').textContent = fmtMoney(totalIncome);
   document.getElementById('dcReturns').textContent = fmtMoney(totalReturns);
   document.getElementById('dcNet').textContent = fmtMoney(netProfit);
 
@@ -584,6 +595,7 @@ async function showDayCloseModal() {
   confirmDayClose.dataset.paidInvoices = paidInvoices.length;
   confirmDayClose.dataset.itemsSold = itemsSold;
   confirmDayClose.dataset.totalExpenses = totalExpenses;
+  confirmDayClose.dataset.totalIncome = totalIncome;
   confirmDayClose.dataset.totalReturns = totalReturns;
   confirmDayClose.dataset.netProfit = netProfit;
 
@@ -641,6 +653,7 @@ confirmDayClose.onclick = async () => {
     otherAmount: Number(btn.dataset.otherAmount),
     itemsSold: Number(btn.dataset.itemsSold),
     totalExpenses: Number(btn.dataset.totalExpenses),
+    totalIncome: Number(btn.dataset.totalIncome),
     totalReturns: Number(btn.dataset.totalReturns),
     netProfit: Number(btn.dataset.netProfit),
     closedBy: user.name || 'الكاشير',

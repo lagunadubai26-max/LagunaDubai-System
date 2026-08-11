@@ -254,6 +254,7 @@ async function showDashDayCloseModal(shift) {
   const allInvoices = await DB.invoices.all() || [];
   const allExpenses = await DB.expenses.all() || [];
   const allReturns = await DB.returns.all() || [];
+  const allIncomes = await DB.incomes.all() || [];
 
   const start = new Date(shift.openedAt || (shift.openDate + 'T00:00:00Z'));
   const end = FB.clockNow();
@@ -261,6 +262,7 @@ async function showDashDayCloseModal(shift) {
   const invoices = filterDate(allInvoices, start, end);
   const expenses = filterDate(allExpenses, start, end);
   const returns = filterDate(allReturns, start, end);
+  const incomes = filterDate(allIncomes, start, end);
   const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
   const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
@@ -270,7 +272,8 @@ async function showDashDayCloseModal(shift) {
   const otherAmount = totalSales - cashAmount - cardAmount;
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
-  const netProfit = totalSales - totalReturns - totalExpenses;
+  const totalIncome = incomes.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const netProfit = totalSales + totalIncome - totalReturns - totalExpenses;
   const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
   const shiftDate = new Date(shift.openDate + 'T12:00:00');
@@ -282,6 +285,7 @@ async function showDashDayCloseModal(shift) {
   document.getElementById('dashDcCard').textContent = fmtMoney(cardAmount);
   document.getElementById('dashDcItemsSold').textContent = itemsSold;
   document.getElementById('dashDcExpenses').textContent = fmtMoney(totalExpenses);
+  document.getElementById('dashDcIncome').textContent = fmtMoney(totalIncome);
   document.getElementById('dashDcReturns').textContent = fmtMoney(totalReturns);
   document.getElementById('dashDcNet').textContent = fmtMoney(netProfit);
 
@@ -292,6 +296,7 @@ async function showDashDayCloseModal(shift) {
   confBtn.dataset.paidInvoices = paidInvoices.length;
   confBtn.dataset.itemsSold = itemsSold;
   confBtn.dataset.totalExpenses = totalExpenses;
+  confBtn.dataset.totalIncome = totalIncome;
   confBtn.dataset.totalReturns = totalReturns;
   confBtn.dataset.netProfit = netProfit;
   confBtn.dataset.openDate = shift.openDate;
@@ -312,6 +317,7 @@ document.getElementById('dashConfirmDayClose').onclick = async () => {
     cashAmount: Number(btn.dataset.cashAmount),
     cardAmount: Number(btn.dataset.cardAmount),
     totalExpenses: Number(btn.dataset.totalExpenses),
+    totalIncome: Number(btn.dataset.totalIncome),
     totalReturns: Number(btn.dataset.totalReturns),
     netProfit: Number(btn.dataset.netProfit),
     itemsSold: Number(btn.dataset.itemsSold),
