@@ -215,7 +215,9 @@ async function exportDayReport(asImage) {
   imgs.forEach(img => { img.src = buildLogoDataUri(); img.removeAttribute('crossorigin'); });
 
   try {
+    console.log('EX1 fonts');
     await ensureExportFonts();
+    console.log('EX2 toPng');
     const dataUrl = await domtoimage.toPng(el, {
       width: el.scrollWidth,
       height: el.scrollHeight,
@@ -223,8 +225,10 @@ async function exportDayReport(asImage) {
       backgroundColor: '#ffffff',
       style: { margin: '0', boxShadow: 'none' }
     });
+    console.log('EX3 img');
     const img = new Image();
     await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error('فشل تجهيز الصورة')); img.src = dataUrl; });
+    console.log('EX4 pages');
 
     // تقسيم المحتوى على صفحات A4 متتالية بحجم طبيعي (بدل ضغط الكل في صفحة واحدة)
     const pageW = img.width;
@@ -243,6 +247,7 @@ async function exportDayReport(asImage) {
       pctx.drawImage(img, 0, i * pageH, pageW, pageH, 0, 0, pageW, pageH);
       pages.push(p);
     }
+    console.log('EX5 jspdf ' + pages.length + ' pages');
 
     if (asImage) {
       pages.forEach((p, i) => {
@@ -253,12 +258,15 @@ async function exportDayReport(asImage) {
       });
     } else {
       const { jsPDF } = window.jspdf;
+      console.log('EX6 jsPDF ctor');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       pages.forEach((p, i) => {
         if (i > 0) pdf.addPage();
         pdf.addImage(p.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
       });
+      console.log('EX7 save');
       pdf.save(fileName + '.pdf');
+      console.log('EX8 done');
     }
   } catch (e) {
     console.error('[dayreport-export]', e);
