@@ -216,11 +216,10 @@ async function exportDayReport(asImage) {
 
   try {
     await ensureExportFonts();
-    const dataUrl = await domtoimage.toJpeg(el, {
+    const dataUrl = await domtoimage.toPng(el, {
       width: el.scrollWidth,
       height: el.scrollHeight,
       scale: 1.5,
-      quality: 0.92,
       backgroundColor: '#ffffff',
       style: { margin: '0', boxShadow: 'none' }
     });
