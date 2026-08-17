@@ -70,9 +70,11 @@ let attTimeRecordId = null;
   }
 })();
 
-function attSetAmpm(ampm) {
-  const am = document.getElementById('attTimeAm');
-  const pm = document.getElementById('attTimePm');
+function attSetAmpm(ampm, am, pm) {
+  am = am || document.getElementById('attTimeAm');
+  pm = pm || document.getElementById('attTimePm');
+  am.dataset.act = ampm === 'ص' ? '1' : '0';
+  pm.dataset.act = ampm === 'م' ? '1' : '0';
   if (ampm === 'ص') {
     am.style.background = 'var(--accent)'; am.style.color = '#fff'; am.style.borderColor = 'var(--accent)';
     pm.style.background = '#fff'; pm.style.color = 'var(--muted)'; pm.style.borderColor = '#e7e5e4';
@@ -105,12 +107,8 @@ function openTimeModal(mode, emp, recordId) {
   document.getElementById('attTimeEmpName').textContent = emp ? emp.name : '';
   document.getElementById('attTimeEmpJob').textContent = emp ? (emp.job || '') : '';
 
-  let hm = attTime12hToHm(emp && emp.shiftTime);
-  if (!hm) {
-    const now = FB.clockNow();
-    const h24 = now.getHours();
-    hm = { h: h24 % 12 || 12, m: now.getMinutes(), ampm: h24 >= 12 ? 'م' : 'ص' };
-  }
+  const nowT = FB.clockNow();
+  const hm = { h: nowT.getHours() % 12 || 12, m: nowT.getMinutes(), ampm: nowT.getHours() >= 12 ? 'م' : 'ص' };
   attTimeHour.value = String(hm.h);
   attTimeMinute.value = String(hm.m);
   attSetAmpm(hm.ampm);
@@ -138,7 +136,7 @@ document.getElementById('attTimeConfirm').onclick = async () => {
   const h12 = parseInt(attTimeHour.value, 10) || 12;
   const m = parseInt(attTimeMinute.value, 10) || 0;
   const amBtn = document.getElementById('attTimeAm');
-  const isAm = amBtn.style.background === 'var(--accent)';
+  const isAm = amBtn.dataset.act === '1' || amBtn.style.background === 'var(--accent)';
   let h24 = h12 % 12;
   if (!isAm) h24 += 12;
   const d = FB.clockNow();
@@ -150,6 +148,15 @@ document.getElementById('attTimeConfirm').onclick = async () => {
     if (attTimeMode === 'in') {
       await DB.attendance.checkIn(attTimeEmp.id, attTimeEmp.name, attTimeEmp.job || '', d.toISOString(), attTimeEmp.shiftTime);
     } else {
+      // انصراف بعد منتصف الليل: يثبت الانصراف في نفس يوم الوردية الذي بدأ فيه الحضور
+      const rec = (cachedRecords || []).find(r => r.id === attTimeRecordId);
+      if (rec && rec.checkIn) {
+        const cin = new Date(rec.checkIn);
+        const cinDay = new Date(cin.getFullYear(), cin.getMonth(), cin.getDate());
+        const selDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        if (selDay.getTime() > cinDay.getTime()) d.setDate(d.getDate() - 1);
+        else if (selDay.getTime() < cinDay.getTime()) d.setDate(d.getDate() + 1);
+      }
       await DB.attendance.checkOut(attTimeRecordId, d.toISOString());
     }
     closeTimeModal();
@@ -170,7 +177,13 @@ async function render() {
   existing.forEach(r => r.remove());
 
   cachedEmployees = await DB.employees.all() || [];
-  cachedRecords = await DB.attendance.today() || [];
+  const sel = dateFilter && dateFilter.value ? dateFilter.value : null;
+  if (!sel) {
+    cachedRecords = await DB.attendance.today() || [];
+  } else {
+    const allRecs = await DB.attendance.all() || [];
+    cachedRecords = allRecs.filter(r => r.date && localDateKey(r.date) === sel);
+  }
 
   const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
 
@@ -178,6 +191,14 @@ async function render() {
   if (searchVal) {
     filtered = filtered.filter(e => (e.name && e.name.toLowerCase().includes(searchVal)) || (e.job && e.job.toLowerCase().includes(searchVal)));
   }
+  filtered.sort((a, b) => {
+    const an = a.status === 'active' ? 0 : 1;
+    const bn = b.status === 'active' ? 0 : 1;
+    if (an !== bn) return an - bn;
+    return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+  });
+
+  const viewingToday = !sel || sel === localDateKey(FB.clockNow());
 
   filtered.forEach(emp => {
     const record = cachedRecords.find(r => r.employeeId === emp.id);
@@ -186,8 +207,8 @@ async function render() {
     row.dataset.id = emp.id;
     row.dataset.recordId = record ? record.id : '';
 
-    const stCls = record ? (record.status === 'present' ? 'present' : record.status === 'late' ? 'late' : 'absent') : 'absent';
-    const stTxt = record ? (record.status === 'present' ? 'حاضر' : record.status === 'late' ? 'متأخر' : 'غائب') : 'غائب';
+    const stCls = record ? (record.status === 'present' ? 'present' : record.status === 'late' ? 'late' : 'absent') : (viewingToday ? 'pending' : 'absent');
+    const stTxt = record ? (record.status === 'present' ? 'حاضر' : record.status === 'late' ? 'متأخر' : 'غائب') : (viewingToday ? 'لم يسجل بعد' : 'غائب');
     const checkInTime = record && record.checkIn ? formatTime(record.checkIn) : '—';
     const checkOutTime = record && record.checkOut ? formatTime(record.checkOut) : '—';
     const expectedTime = shiftTime12h(emp.shiftTime);
@@ -303,5 +324,6 @@ window.addEventListener("click", function (e) {
 });
 
 if (searchInput) searchInput.addEventListener('keyup', render);
+if (dateFilter) dateFilter.addEventListener('change', render);
 
 render();

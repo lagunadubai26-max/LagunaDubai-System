@@ -66,19 +66,18 @@ const DB = {
     async remove(id) { await FB.removeDoc('attendance', id); },
     async checkIn(employeeId, name, job, customTime, shiftTime) {
       const time = customTime ? new Date(customTime) : FB.clockNow();
-      const minutes = time.getHours() * 60 + time.getMinutes();
       let status = 'present';
-      if (shiftTime) {
-        const parts = String(shiftTime).split(':');
-        if (parts.length >= 2) {
-          const shiftMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-          status = minutes > shiftMin + 30 ? 'late' : 'present';
-        } else {
-          status = minutes > 17 * 60 + 30 ? 'late' : 'present';
-        }
-      } else {
-        status = minutes > 17 * 60 + 30 ? 'late' : 'present';
-      }
+      const parts = shiftTime ? String(shiftTime).split(':') : [];
+      const sh = parts.length >= 2 && !isNaN(parseInt(parts[0], 10)) ? parseInt(parts[0], 10) : 17;
+      const sm = parts.length >= 2 && !isNaN(parseInt(parts[1], 10)) ? parseInt(parts[1], 10) : 0;
+      const tMs = time.getTime();
+      const todayStart = new Date(time); todayStart.setHours(sh, sm, 0, 0);
+      const prevStart = new Date(todayStart); prevStart.setDate(prevStart.getDate() - 1);
+      const diff = Math.min(
+        tMs >= todayStart.getTime() ? tMs - todayStart.getTime() : Infinity,
+        tMs >= prevStart.getTime() ? tMs - prevStart.getTime() : Infinity
+      );
+      status = diff > 30 * 60 * 1000 ? 'late' : 'present';
       return await FB.addDoc('attendance', {
         id: 'att-' + crypto.randomUUID().slice(0, 8), employeeId, name, job,
         date: time.toISOString(), checkIn: time.toISOString(), status
