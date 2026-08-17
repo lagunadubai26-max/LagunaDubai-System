@@ -18,7 +18,7 @@ async function resolveShiftRange() {
   } catch(e) { console.warn('[invoices] shift check failed:', e); }
 }
 
-async function draw() {
+function getFiltered() {
   const val = searchInput ? searchInput.value.toLowerCase() : '';
   const filterStatus = statusSelect ? statusSelect.value : 'كل الحالات';
 
@@ -40,13 +40,10 @@ async function draw() {
     return matchSearch && matchStatus;
   });
   filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  return filtered;
+}
 
-  tableBody.innerHTML = '';
-  filtered.forEach(inv => {
-    const frag = buildInvoiceRow(inv, shiftDateLabel);
-    tableBody.appendChild(frag);
-  });
-
+function updateStats(filtered) {
   const paid = filtered.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
   const cards = document.querySelectorAll('.invoice-stats .stat-card h2');
   if (cards.length >= 5) {
@@ -56,6 +53,18 @@ async function draw() {
     cards[3].textContent = filtered.filter(i => i.status === 'pending' || i.status === 'معلقة').length;
     cards[4].textContent = paid.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString() + ' ج.م';
   }
+}
+
+async function draw() {
+  const filtered = getFiltered();
+
+  tableBody.innerHTML = '';
+  filtered.forEach(inv => {
+    const frag = buildInvoiceRow(inv, shiftDateLabel);
+    tableBody.appendChild(frag);
+  });
+
+  updateStats(filtered);
   attachActions();
   updateMergeBtn();
 }
@@ -75,6 +84,39 @@ async function render() {
   invoices = await DB.invoices.all() || [];
   await resolveShiftRange();
   draw();
+}
+
+function flashRow(id) {
+  const row = tableBody.querySelector('tr[data-invoice-id="' + id + '"]');
+  if (!row) return;
+  row.classList.remove('flash-update');
+  void row.offsetWidth;
+  row.classList.add('flash-update');
+}
+
+// تحديث صف الفاتورة في مكانه دون إعادة رسم الجدول كله (لا يقفز مكانه)
+async function refreshSingle(id) {
+  invoices = await DB.invoices.all() || [];
+  await resolveShiftRange();
+
+  const tr = tableBody.querySelector('tr[data-invoice-id="' + id + '"]');
+  if (!tr) { draw(); return; }
+  const oldItems = tr.nextElementSibling && tr.nextElementSibling.classList.contains('inv-items-row') ? tr.nextElementSibling : null;
+
+  const inv = invoices.find(i => i.id === id);
+  if (!inv) {
+    tr.remove();
+    if (oldItems) oldItems.remove();
+  } else {
+    const frag = buildInvoiceRow(inv, shiftDateLabel);
+    tr.replaceWith(frag);
+    if (oldItems) oldItems.remove();
+  }
+
+  updateStats(getFiltered());
+  attachActions();
+  updateMergeBtn();
+  flashRow(id);
 }
 
 function buildInvoiceRow(inv, shiftDateLabel) {
@@ -149,7 +191,7 @@ function attachActions() {
           w.document.close();
         });
       }
-      render().then(() => focusRow(inv.id));
+      refreshSingle(inv.id);
     };
   });
   document.querySelectorAll('.kitchen-print-btn').forEach(btn => {
@@ -194,7 +236,7 @@ function attachActions() {
       const newPaid = (inv.paid ?? 0) + paidNow;
       const newRemaining = (inv.total ?? 0) - newPaid;
       await DB.invoices.update(inv.id, { paid: newPaid, remaining: newRemaining, status: newRemaining <= 0 ? 'paid' : 'pending' });
-      render().then(() => focusRow(inv.id));
+      refreshSingle(inv.id);
     };
   });
   document.querySelectorAll('.toggle-status-btn').forEach(btn => {
@@ -223,7 +265,7 @@ function attachActions() {
         for (const r of existing) await DB.returns.remove(r.id);
         await DB.invoices.update(inv.id, { status: 'paid' });
       }
-      render().then(() => focusRow(inv.id));
+      refreshSingle(inv.id);
     };
   });
   document.querySelectorAll('.item-remove-btn').forEach(btn => {
@@ -256,7 +298,7 @@ function attachActions() {
         remaining: newRemaining,
         status: wasReturned ? inv.status : (newRemaining <= 0 ? 'paid' : 'pending')
       });
-      render().then(() => focusRow(inv.id));
+      refreshSingle(inv.id);
     };
   });
   document.querySelectorAll('.delete-btn').forEach(btn => {
@@ -275,7 +317,7 @@ function attachActions() {
       if (newTable === null) return;
       const tableVal = newTable.trim() ? 'طاولة ' + newTable.trim() : '';
       await DB.invoices.update(inv.id, { table: tableVal });
-      render().then(() => focusRow(inv.id));
+      refreshSingle(inv.id);
     };
   });
 }
