@@ -146,7 +146,10 @@ document.getElementById('attTimeConfirm').onclick = async () => {
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري...';
   try {
     if (attTimeMode === 'in') {
-      await DB.attendance.checkIn(attTimeEmp.id, attTimeEmp.name, attTimeEmp.job || '', d.toISOString(), attTimeEmp.shiftTime);
+      const rec = await DB.attendance.checkIn(attTimeEmp.id, attTimeEmp.name, attTimeEmp.job || '', d.toISOString(), attTimeEmp.shiftTime);
+      cachedRecords = cachedRecords || [];
+      cachedRecords = cachedRecords.filter(r => r.employeeId !== attTimeEmp.id);
+      cachedRecords.push(rec);
     } else {
       // انصراف بعد منتصف الليل: يثبت الانصراف في نفس يوم الوردية الذي بدأ فيه الحضور
       const rec = (cachedRecords || []).find(r => r.id === attTimeRecordId);
@@ -158,9 +161,10 @@ document.getElementById('attTimeConfirm').onclick = async () => {
         else if (selDay.getTime() < cinDay.getTime()) d.setDate(d.getDate() + 1);
       }
       await DB.attendance.checkOut(attTimeRecordId, d.toISOString());
+      if (rec) rec.checkOut = d.toISOString();
     }
     closeTimeModal();
-    render();
+    drawTable();
   } catch (e) {
     console.error('[att-time]', e);
     alert('❌ حدث خطأ أثناء التسجيل');
@@ -172,18 +176,30 @@ document.getElementById('attTimeConfirm').onclick = async () => {
 let cachedEmployees = [];
 let cachedRecords = [];
 
-async function render() {
-  const existing = table.querySelectorAll(".table-row:not(.table-header)");
-  existing.forEach(r => r.remove());
+function attDayKey(d) {
+  if (!d) return '';
+  if (typeof d === 'string') d = new Date(d);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
 
+async function render() {
   cachedEmployees = await DB.employees.all() || [];
   const sel = dateFilter && dateFilter.value ? dateFilter.value : null;
   if (!sel) {
     cachedRecords = await DB.attendance.today() || [];
   } else {
     const allRecs = await DB.attendance.all() || [];
-    cachedRecords = allRecs.filter(r => r.date && localDateKey(r.date) === sel);
+    cachedRecords = allRecs.filter(r => r.date && attDayKey(r.date) === sel);
   }
+  drawTable();
+}
+
+function drawTable() {
+  const existing = table.querySelectorAll(".table-row:not(.table-header)");
+  existing.forEach(r => r.remove());
 
   const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
 
@@ -198,7 +214,8 @@ async function render() {
     return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
   });
 
-  const viewingToday = !sel || sel === localDateKey(FB.clockNow());
+  const sel = dateFilter && dateFilter.value ? dateFilter.value : null;
+  const viewingToday = !sel || sel === attDayKey(FB.clockNow());
 
   filtered.forEach(emp => {
     const record = cachedRecords.find(r => r.employeeId === emp.id);
@@ -266,7 +283,8 @@ function attachEvents(employees, records) {
       delBtn.onclick = async () => {
         if (!confirm("هل تريد حذف تسجيل حضور الموظف لهذا اليوم؟")) return;
         await DB.attendance.remove(recordId);
-        render();
+        cachedRecords = (cachedRecords || []).filter(r => r.id !== recordId);
+        drawTable();
       };
     }
   });
