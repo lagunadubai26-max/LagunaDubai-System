@@ -22,6 +22,7 @@
 .attendance-table .status.present{background:#15B66D}
 .attendance-table .status.late{background:#F4A825}
 .attendance-table .status.absent{background:#E74C3C}
+.attendance-table .status.pending{background:#9CA3AF}
 .attendance-table .actions{display:flex;justify-content:center;gap:10px}
 .attendance-table .actions button{
     width:42px;height:42px;border:none;border-radius:12px;color:#fff;cursor:pointer;transition:var(--transition);
