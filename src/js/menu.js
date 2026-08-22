@@ -454,6 +454,8 @@ document.getElementById('checkoutCustomerType').onchange = function() {
     if (remSec) remSec.style.display = 'none';
   } else if (isFree) {
     window._checkoutTotal = 0;
+    const nameEl = document.getElementById('checkoutSpecialName');
+    if (nameEl) nameEl.value = 'الاستاذ محمد الجوهري';
     if (beforeEl) beforeEl.textContent = before + ' جنيه';
     document.getElementById('checkoutTotal').textContent = '0 جنيه (ضيافة مجانية)';
     if (noteEl) noteEl.innerHTML = '<i class="fa-solid fa-gift"></i> ضيافة مجانية — الحساب <b>0 جنيه</b> بالكامل';
@@ -543,8 +545,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
       customer = document.getElementById('checkoutSpecialName').value.trim() || 'عمالة';
       totalAmount = 0;
     } else if (custType === 'free') {
-      customer = document.getElementById('checkoutSpecialName').value.trim();
-      if (!customer) { resetCheckout(); return alert('يرجى إدخال اسم الضيافة'); }
+      customer = 'الاستاذ محمد الجوهري';
       totalAmount = 0;
     } else {
       customer = 'نقدي';
