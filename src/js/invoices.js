@@ -807,6 +807,7 @@ if (addItemsModal) {
       // تسعير حسب نوع العميل
       const isFreeOrWorkers = inv.customerType === 'free' || inv.customerType === 'workers';
       const oldTotal = Number(inv.total || 0);
+      const addedBase = items.reduce((s, it) => s + it.qty * it.price, 0);
       const newItemsValue = merged.reduce((s, it) => s + Number(it.qty || 1) * Number(it.price || 0), 0);
       // احسب existingBase من الأصناف الفعلية (مش من itemsValue المدورة)
       const existingBase = (inv.items || []).reduce((s, x) => s + Number(x.qty || 1) * Number(x.price || 0), 0);
