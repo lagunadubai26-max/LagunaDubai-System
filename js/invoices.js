@@ -149,7 +149,11 @@ function buildInvoiceRow(inv, shiftDateLabel) {
   const stCls = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'paid' : inv.status === 'pending' || inv.status === 'معلقة' ? 'pending' : 'cancelled';
   const stTxt = inv.status === 'paid' || inv.status === 'مدفوعة' ? 'مدفوعة' : inv.status === 'pending' || inv.status === 'معلقة' ? 'معلقة' : 'ملغية';
   const isOld = localDateKey(inv.date) !== localDateKey(FB.clockNow());
-  if (invIsPending(inv) && isOld) row.classList.add('old-pending');
+  if (invIsPending(inv) && isOld) {
+    // كل يوم تأخير يزود غمقان اللون (حتى 4 أيام فأكثر)
+    const ageDays = Math.round((new Date(localDateKey(FB.clockNow())) - new Date(localDateKey(inv.date))) / 86400000);
+    row.classList.add('old-pending-' + Math.min(Math.max(ageDays, 1), 4));
+  }
   if (viewMode === 'pending') row.classList.add('in-pending-view');
   let dateStr;
   if (inv.date) {
