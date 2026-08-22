@@ -166,9 +166,12 @@ async function showDayReport() {
         const t = new Date(a.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
         const invRef = existingInvMap[a.detail_id || det.id];
         const isWorkerRow = (invRef ? invRef.customerType === 'workers' : det.customerType === 'workers');
-        const custHtml = escapeHtml(det.customer || '\u2014') + (isWorkerRow ? ' <span style="color:#dc2626;font-weight:700">(عمالة)</span>' : '');
-        const rowStyle = isWorkerRow ? ' style="color:#dc2626"' : '';
-        rows += '<tr' + rowStyle + '><td>' + t + '</td><td>' + escapeHtml(a.detail_id || det.id || '\u2014') + '</td><td>' + custHtml + '</td><td>' + fmtMoney(det.total || 0) + '</td><td>' + escapeHtml(det.method || '\u2014') + '</td></tr>';
+        const isFreeRow = (invRef ? invRef.customerType === 'free' : det.customerType === 'free');
+        const custHtml = escapeHtml(det.customer || '—') +
+          (isWorkerRow ? ' <span class="dr-badge dr-badge-workers">(عمالة)</span>' :
+           isFreeRow ? ' <span class="dr-badge dr-badge-free">(ضيافة)</span>' : '');
+        const rowStyle = isWorkerRow ? ' class="dr-row-workers"' : isFreeRow ? ' class="dr-row-free"' : '';
+        rows += '<tr' + rowStyle + '><td>' + t + '</td><td>' + escapeHtml(a.detail_id || det.id || '—') + '</td><td>' + custHtml + '</td><td>' + fmtMoney(det.total || 0) + '</td><td>' + escapeHtml(det.method || '—') + '</td></tr>';
       });
       auditHtml = '<table class="dr-table"><thead><tr><th>\u0627\u0644\u0648\u0642\u062a</th><th>\u0631\u0642\u0645 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629</th><th>\u0627\u0644\u0639\u0645\u064a\u0644</th><th>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th><th>\u0627\u0644\u0637\u0631\u064a\u0642\u0629</th></tr></thead><tbody>' + rows + '</tbody></table>';
     }

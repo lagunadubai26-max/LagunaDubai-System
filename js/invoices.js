@@ -596,6 +596,8 @@ function openAddItemsModal(inv) {
   _addPopularity = buildProductPopularity();
   document.getElementById('addItemsInfo').innerHTML = '<b>' + escapeHtml(inv.id) + '</b> — ' + escapeHtml(inv.customer || '') +
     ' <span style="color:#888">| الحالي: <b id="addCurTotal">' + Number(inv.total || 0).toLocaleString() + '</b> ج.م ← بعد الإضافة: <b id="addNewTotal" style="color:#d97706">' + Number(inv.total || 0).toLocaleString() + '</b> ج.م</span>';
+  document.getElementById('addInfoTxt').innerHTML = '';
+  document.getElementById('addInfoTxt').style.display = 'none';
   document.getElementById('addSearch').value = '';
   _addCat = 'all';
   _addProducts = null;
@@ -629,6 +631,17 @@ function calcAddTotals() {
   if (!inv) return;
   const cnt = document.getElementById('addSelCount');
   if (cnt) cnt.textContent = _addSelected.reduce((s, it) => s + it.qty, 0);
+  const isFreeOrWorkers = inv.customerType === 'free' || inv.customerType === 'workers';
+  if (isFreeOrWorkers) {
+    // فواتير الضيافة والعمالة: المنتجات مجانية، لا يوجد حساب مدفوع
+    document.getElementById('addInfoTxt').innerHTML = 'هذا النوع من الفواتير <b>مجاني</b> — المنتجات المُضافة لا تتطلب دفعًا';
+    document.getElementById('addInfoTxt').style.display = 'block';
+    document.getElementById('addCurTotal').textContent = 'مجاني';
+    document.getElementById('addNewTotal').textContent = 'مجاني';
+    return;
+  }
+  document.getElementById('addInfoTxt').innerHTML = '';
+  document.getElementById('addInfoTxt').style.display = 'none';
   const base = Number(_addSelected.reduce((s, it) => s + it.qty * it.price, 0));
   const existingBase = Number(inv.itemsValue != null ? inv.itemsValue : ((inv.items || []).reduce((s, it) => s + Number(it.qty || 1) * Number(it.price || 0), 0)));
   const ratio = existingBase > 0 && Number(inv.total || 0) > 0 ? (Number(inv.total) / existingBase) : 1;
@@ -785,16 +798,16 @@ if (addItemsModal) {
         else { map[k] = Object.assign({}, it); merged.push(map[k]); }
       });
 
-      // تسعير حسب نوع العميل عبر نسبة الفاتورة الحالية
+      // تسعير حسب نوع العميل
+      const isFreeOrWorkers = inv.customerType === 'free' || inv.customerType === 'workers';
       const oldTotal = Number(inv.total || 0);
       const addedBase = items.reduce((s, it) => s + it.qty * it.price, 0);
       const existingBase = Number(inv.itemsValue != null ? inv.itemsValue : (inv.items || []).reduce((s, x) => s + Number(x.qty || 1) * Number(x.price || 0), 0));
       const newBase = existingBase + addedBase;
-      const ratio = existingBase > 0 && oldTotal > 0 ? (oldTotal / existingBase) : 1;
-      const newTotal = Math.round(newBase * ratio);
+      const newTotal = isFreeOrWorkers ? 0 : Math.round(newBase * (oldTotal > 0 && existingBase > 0 ? (oldTotal / existingBase) : 1));
 
       const paid = Number(inv.paid != null ? inv.paid : 0);
-      const newPaid = Math.min(paid, newTotal);
+      const newPaid = isFreeOrWorkers ? 0 : Math.min(paid, newTotal);
       const newRemaining = Math.max(0, newTotal - newPaid);
       const scale = oldTotal > 0 ? (newTotal / oldTotal) : 1;
       const upd = {
@@ -804,8 +817,8 @@ if (addItemsModal) {
         remaining: newRemaining,
         status: newRemaining <= 0 ? 'paid' : (invIsPending(inv) ? 'pending' : inv.status),
         itemsValue: Math.round(newBase),
-        serviceAmount: Math.round(Number(inv.serviceAmount || 0) * scale),
-        taxAmount: Math.round(Number(inv.taxAmount || 0) * scale)
+        serviceAmount: isFreeOrWorkers ? 0 : Math.round(Number(inv.serviceAmount || 0) * scale),
+        taxAmount: isFreeOrWorkers ? 0 : Math.round(Number(inv.taxAmount || 0) * scale)
       };
       await DB.invoices.update(inv.id, upd);
       await DB.audit.log('invoice_items_added', { id: inv.id, customer: inv.customer, added: items.map(it => it.name + ' ×' + it.qty), addedValue: addedBase, oldTotal, newTotal });
