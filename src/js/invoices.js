@@ -827,6 +827,15 @@ if (addItemsModal) {
         serviceAmount: isFreeOrWorkers ? 0 : Math.round(Number(inv.serviceAmount || 0) * scale),
         taxAmount: isFreeOrWorkers ? 0 : Math.round(Number(inv.taxAmount || 0) * scale)
       };
+      // حماية: تأكد أن الحساب صحيح قبل الحفظ
+      const verifyItems = merged.reduce((s, it) => s + Number(it.qty || 1) * Number(it.price || 0), 0);
+      const verifyTotal = isFreeOrWorkers ? 0 : Math.round(verifyItems * ratio);
+      if (!isFreeOrWorkers && Math.abs(verifyTotal - newTotal) > 1) {
+        console.warn('[additems] calculation mismatch, correcting:', newTotal, '→', verifyTotal);
+        upd.total = verifyTotal;
+        upd.remaining = Math.max(0, verifyTotal - newPaid);
+        upd.itemsValue = Math.round(verifyItems);
+      }
       await DB.invoices.update(inv.id, upd);
       await DB.audit.log('invoice_items_added', { id: inv.id, customer: inv.customer, added: items.map(it => it.name + ' ×' + it.qty), addedValue: addedBase, oldTotal, newTotal });
       closeAddItemsModal();
