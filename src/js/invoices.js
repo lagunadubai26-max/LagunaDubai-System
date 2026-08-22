@@ -849,10 +849,47 @@ if (addItemsModal) {
   };
 }
 
+// ── إصلاح تلقائي للفواتير ذوات الحساب الخاطئ ──
+let _autoFixDone = false;
+function autoFixInvoices() {
+  if (_autoFixDone || !invoices || !invoices.length) return;
+  _autoFixDone = true;
+  let fixed = 0;
+  const batch = FB.getDb().batch();
+  for (const inv of invoices) {
+    if (!inv || !inv.id || !inv.items || !Array.isArray(inv.items) || inv.items.length === 0) continue;
+    const actualItemsValue = inv.items.reduce((s, it) => s + Number(it.qty || 1) * Number(it.price || 0), 0);
+    const currentTotal = Number(inv.total || 0);
+    const currentItemsValue = Number(inv.itemsValue || 0);
+    const isFreeOrWorkers = inv.customerType === 'free' || inv.customerType === 'workers';
+    if (isFreeOrWorkers) {
+      if (currentTotal !== 0 || Math.abs(currentItemsValue - actualItemsValue) > 1) {
+        const ref = FB.getDb().collection('invoices').doc(inv.id);
+        batch.update(ref, { total: 0, paid: 0, remaining: 0, itemsValue: Math.round(actualItemsValue) });
+        fixed++;
+      }
+      continue;
+    }
+    const ratio = currentTotal > 0 && actualItemsValue > 0 ? (currentTotal / actualItemsValue) : 1;
+    const correctTotal = Math.round(actualItemsValue * ratio);
+    const paid = Number(inv.paid || 0);
+    const correctRemaining = Math.max(0, correctTotal - paid);
+    if (Math.abs(currentItemsValue - actualItemsValue) > 1 || correctTotal !== currentTotal) {
+      const ref = FB.getDb().collection('invoices').doc(inv.id);
+      batch.update(ref, { total: correctTotal, itemsValue: Math.round(actualItemsValue), remaining: correctRemaining, status: correctRemaining <= 0 ? 'paid' : inv.status });
+      fixed++;
+    }
+  }
+  if (fixed > 0) {
+    batch.commit().then(() => console.log('[invoices] auto-fix: corrected ' + fixed + ' invoices'));
+  }
+}
+
 FB.onCollection('invoices', async (data) => {
   invoices = data;
   await resolveShiftRange();
   draw();
+  autoFixInvoices();
 }).catch(e => {
   console.warn('[invoices] onSnapshot error, using fallback:', e);
   setInterval(render, 15000);
