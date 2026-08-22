@@ -52,7 +52,12 @@ function getFiltered() {
     const matchSearch = inv.id.toLowerCase().includes(val) || inv.customer.toLowerCase().includes(val);
     return matchSearch;
   });
-  filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  filtered.sort((a, b) => {
+    const da = new Date(a.date || 0).getTime();
+    const db = new Date(b.date || 0).getTime();
+    if (db !== da) return db - da; // الأحدث أولاً
+    return (b.id || '').localeCompare(a.id || ''); // ترتيب ثانوي بالرقم
+  });
   return filtered;
 }
 
