@@ -133,6 +133,9 @@ async function render() {
 
     const coveredZero = {};
     allDaycloses.forEach(d => { const k = d.date || ''; if (k.indexOf(monthKey) === 0 && !(Number(d.totalSales || 0) > 0)) coveredZero[k] = true; });
+    // الفواتير الموجودة فعليًا (لاستبعاد المحذوف من سجل العمليات)
+    const existingInvIds = {};
+    (allInvoices || []).forEach(i => { if (i && i.id) existingInvIds[i.id] = true; });
     const maxAuditT = new Date(FB.clockNow().getTime() + 5 * 60 * 1000);
     Object.keys(coveredZero).forEach(k => {
       const r = shiftSessionRange(k, allShifts);
@@ -142,6 +145,8 @@ async function render() {
         const t = new Date(a.timestamp);
         if (t >= r.start && t <= r.end && t <= maxAuditT) {
           let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
+          const id = a.detail_id || det.id;
+          if (!id || !existingInvIds[id]) return; // فاتورة محذوفة — تتجاهل
           const v = Number(det.total || 0);
           s += v; n++;
           if (det.method === 'Cash' || det.method === '\u0643\u0627\u0634') c += v;
@@ -153,6 +158,25 @@ async function render() {
       }
     });
 
+    // مصاريف العمالة للشهر: من الأيام المفتوحة + المسجلة في الإغلاقات
+    const monthWorkersCost =
+      openDayInvoices.filter(i => i.customerType === 'workers')
+        .reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : ((i.items || []).reduce((ss, it) => ss + Number(it.qty || 1) * Number(it.price || 0), 0))), 0) +
+      Object.keys(coveredDays).reduce((s, k) => s + Number(coveredDays[k].workersCost || 0), 0);
+
+    // تحصيلات متأخرة خلال الشهر (مدفوعات لفواتير أُنشئت في يوم مختلف)
+    let monthLateTotal = 0;
+    allAudit.forEach(a => {
+      if (a.type !== 'invoice_payment' || !a.timestamp) return;
+      const t = new Date(a.timestamp);
+      if (!(t >= range.start && t <= range.end)) return;
+      let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
+      const amt = Number(det.amount || 0);
+      if (!(amt > 0)) return;
+      if (det.invDate && localDateKey(det.invDate) === localDateKey(a.timestamp)) return; // تسديد بنفس يوم الإنشاء محسوب في المبيعات
+      monthLateTotal += amt;
+    });
+
     const stats = calcStats(openDayInvoices, expenses, returns, incomes);
     stats.totalSales += closedSales;
     stats.totalIncome += closedIncome;
@@ -162,7 +186,9 @@ async function render() {
     stats.numPaid += closedNum;
     stats.numInvoices += closedNum;
     stats.avgInvoice = stats.numPaid > 0 ? Math.round(stats.totalSales / stats.numPaid) : 0;
-    stats.netProfit = stats.totalSales + stats.totalIncome - stats.totalReturns - stats.totalExpenses;
+    stats.workersCost = monthWorkersCost;
+    stats.lateTotal = monthLateTotal;
+    stats.netProfit = stats.totalSales + stats.totalIncome + monthLateTotal - stats.totalReturns - stats.totalExpenses - monthWorkersCost;
     stats.totalCard = closedCard;
 
     const chartInvoices = openDayInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').concat(chartDays);
@@ -176,7 +202,10 @@ async function render() {
     document.getElementById('reportIncome').textContent = fmtMoney(stats.totalIncome);
     document.getElementById('reportNetProfit').textContent = fmtMoney(stats.netProfit);
     document.getElementById('reportPending').textContent = fmtMoney(stats.totalPending);
-    document.getElementById('reportCashDrawer').textContent = fmtMoney(stats.collectedCash);
+    const wcEl = document.getElementById('reportWorkersCost');
+    if (wcEl) wcEl.textContent = fmtMoney(stats.workersCost);
+    const ltEl = document.getElementById('reportLateCollections');
+    if (ltEl) ltEl.textContent = fmtMoney(stats.lateTotal);
 
     renderChangeBadge(document.getElementById('reportSalesChange'), stats.totalSales, prevStats.totalSales);
     renderChangeBadge(document.getElementById('reportInvoicesChange'), stats.numInvoices, prevStats.numInvoices);
@@ -572,7 +601,8 @@ async function showDayCloseModal() {
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalIncome = incomes.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const netProfit = totalSales + totalIncome - totalReturns - totalExpenses;
+  const workersCost = paidInvoices.filter(i => i.customerType === 'workers').reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : ((i.items || []).reduce((ss, it) => ss + Number(it.qty || 1) * Number(it.price || 0), 0))), 0);
+  const netProfit = totalSales + totalIncome - totalReturns - totalExpenses - workersCost;
   const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
   const shiftForDate = shift ? new Date(shift.openDate + 'T12:00:00Z') : FB.clockNow();
@@ -580,7 +610,6 @@ async function showDayCloseModal() {
   document.getElementById('dcDate').textContent = todayStr;
   document.getElementById('dcSales').textContent = fmtMoney(totalSales);
   document.getElementById('dcInvoices').textContent = paidInvoices.length;
-  document.getElementById('dcCash').textContent = fmtMoney(cashAmount);
   document.getElementById('dcCard').textContent = fmtMoney(cardAmount);
   document.getElementById('dcItemsSold').textContent = itemsSold;
   document.getElementById('dcExpenses').textContent = fmtMoney(totalExpenses);
@@ -597,6 +626,7 @@ async function showDayCloseModal() {
   confirmDayClose.dataset.totalExpenses = totalExpenses;
   confirmDayClose.dataset.totalIncome = totalIncome;
   confirmDayClose.dataset.totalReturns = totalReturns;
+  confirmDayClose.dataset.workersCost = workersCost;
   confirmDayClose.dataset.netProfit = netProfit;
 
   dayCloseModal.classList.add('show');
@@ -655,6 +685,7 @@ confirmDayClose.onclick = async () => {
     totalExpenses: Number(btn.dataset.totalExpenses),
     totalIncome: Number(btn.dataset.totalIncome),
     totalReturns: Number(btn.dataset.totalReturns),
+    workersCost: Number(btn.dataset.workersCost || 0),
     netProfit: Number(btn.dataset.netProfit),
     closedBy: user.name || 'الكاشير',
     closedAt: FB.nowISO()
@@ -730,15 +761,15 @@ dcHistoryBtn.onclick = async () => {
     }
 
     let html = '<div class="dc-history-table">';
-    html += '<div class="dc-history-header"><span>التاريخ</span><span>المبيعات</span><span>الدرج</span><span>فيزا</span><span>الفواتير</span><span>صافي الربح</span><span>بواسطة</span></div>';
+    html += '<div class="dc-history-header"><span>التاريخ</span><span>المبيعات</span><span>فيزا</span><span>الفواتير</span><span>صافي الربح</span><span>بواسطة</span></div>';
     all.forEach(dc => {
       const dateStr = new Date(dc.date + 'T12:00:00').toLocaleDateString('ar-EG');
       const isToday = dc.date === localDateKey(FB.clockNow());
+      const cardAmt = Number(dc.cardAmount || 0) + (Number(dc.otherAmount || 0));
       html += `<div class="dc-history-row${isToday ? ' today' : ''}">
         <span>${dateStr}</span>
         <span>${fmtMoney(dc.totalSales || 0)}</span>
-        <span>${fmtMoney(dc.cashAmount || 0)}</span>
-        <span>${fmtMoney(dc.cardAmount || 0)}</span>
+        <span>${fmtMoney(cardAmt)}</span>
         <span>${dc.numInvoices || 0}</span>
         <span style="color:var(--success);font-weight:700">${fmtMoney(dc.netProfit || 0)}</span>
         <span>${dc.closedBy || '—'}</span>
