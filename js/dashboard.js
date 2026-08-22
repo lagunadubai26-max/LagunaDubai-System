@@ -273,7 +273,8 @@ async function showDashDayCloseModal(shift) {
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalIncome = incomes.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const netProfit = totalSales + totalIncome - totalReturns - totalExpenses;
+  const workersCost = paidInvoices.filter(i => i.customerType === 'workers').reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : ((i.items || []).reduce((ss, it) => ss + Number(it.qty || 1) * Number(it.price || 0), 0))), 0);
+  const netProfit = totalSales + totalIncome - totalReturns - totalExpenses - workersCost;
   const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
 
   const shiftDate = new Date(shift.openDate + 'T12:00:00');
@@ -281,7 +282,6 @@ async function showDashDayCloseModal(shift) {
   document.getElementById('dashDcDate').textContent = todayStr;
   document.getElementById('dashDcSales').textContent = fmtMoney(totalSales);
   document.getElementById('dashDcInvoices').textContent = paidInvoices.length;
-  document.getElementById('dashDcCash').textContent = fmtMoney(cashAmount);
   document.getElementById('dashDcCard').textContent = fmtMoney(cardAmount);
   document.getElementById('dashDcItemsSold').textContent = itemsSold;
   document.getElementById('dashDcExpenses').textContent = fmtMoney(totalExpenses);
@@ -298,6 +298,7 @@ async function showDashDayCloseModal(shift) {
   confBtn.dataset.totalExpenses = totalExpenses;
   confBtn.dataset.totalIncome = totalIncome;
   confBtn.dataset.totalReturns = totalReturns;
+  confBtn.dataset.workersCost = workersCost;
   confBtn.dataset.netProfit = netProfit;
   confBtn.dataset.openDate = shift.openDate;
 
@@ -319,6 +320,7 @@ document.getElementById('dashConfirmDayClose').onclick = async () => {
     totalExpenses: Number(btn.dataset.totalExpenses),
     totalIncome: Number(btn.dataset.totalIncome),
     totalReturns: Number(btn.dataset.totalReturns),
+    workersCost: Number(btn.dataset.workersCost || 0),
     netProfit: Number(btn.dataset.netProfit),
     itemsSold: Number(btn.dataset.itemsSold),
     closedBy: user.name || 'الكاشير',
@@ -327,7 +329,7 @@ document.getElementById('dashConfirmDayClose').onclick = async () => {
   try {
     await DB.daycloses.close(data);
     await DB.shifts.close(shift.id, { closedAt: FB.nowISO(), closedBy: user.name || 'الكاشير' });
-    DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, cashInDrawer: data.cashInDrawer });
+    DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales });
     document.getElementById('dashDayCloseModal').classList.remove('show');
     checkDashDayClose();
     alert('✅ تم إغلاق اليوم بنجاح');

@@ -431,11 +431,20 @@ document.getElementById('checkoutCustomerType').onchange = function() {
   const type = this.value;
   const isSpecial = type === 'special';
   const isFree = type === 'free';
-  document.getElementById('checkoutSpecialFields').style.display = (isSpecial || isFree) ? 'block' : 'none';
+  const isWorkers = type === 'workers';
+  document.getElementById('checkoutSpecialFields').style.display = (isSpecial || isFree || isWorkers) ? 'block' : 'none';
   const before = window._itemsTotal;
   const beforeEl = document.getElementById('checkoutSpecialBefore');
   const noteEl = document.getElementById('checkoutSpecialNote');
-  if (isFree) {
+  if (isWorkers) {
+    const nameEl = document.getElementById('checkoutSpecialName');
+    if (!nameEl.value) nameEl.value = 'عمالة';
+    window._checkoutTotal = 0;
+    if (beforeEl) beforeEl.textContent = before + ' جنيه';
+    document.getElementById('checkoutTotal').textContent = '0 جنيه (وجبة عمالة مجانية)';
+    if (noteEl) noteEl.innerHTML = '<i class="fa-solid fa-helmet-safety"></i> وجبة عمالة — الحساب <b>0 جنيه</b> ويتحسب كمصروف في التقارير';
+    document.getElementById('checkoutPaid').value = '';
+  } else if (isFree) {
     const nameEl = document.getElementById('checkoutSpecialName');
     if (!nameEl.value) nameEl.value = 'ضيافه استاذ محمد الجوهري';
     window._checkoutTotal = 0;
@@ -518,6 +527,9 @@ document.getElementById('confirmCheckout').onclick = async () => {
       customer = document.getElementById('checkoutSpecialName').value.trim();
       if (!customer) { resetCheckout(); return alert('يرجى إدخال اسم العميل الخاص'); }
       totalAmount = Math.round(window._itemsTotal * 0.75);
+    } else if (custType === 'workers') {
+      customer = document.getElementById('checkoutSpecialName').value.trim() || 'عمالة';
+      totalAmount = 0;
     } else if (custType === 'free') {
       customer = document.getElementById('checkoutSpecialName').value.trim();
       if (!customer) { resetCheckout(); return alert('يرجى إدخال اسم الضيافة'); }
@@ -550,7 +562,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     }
     const invId = 'INV-' + crypto.randomUUID().slice(0, 8).toUpperCase();
     let inv, matchedCust, custReadFailed = false;
-    if (custType !== 'regular') {
+    if (custType !== 'regular' && custType !== 'workers') {
       try {
         const allCusts = await DB.customers.all() || [];
         matchedCust = allCusts.find(c => c.name === customer);
@@ -569,7 +581,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
             tx.update(tableRef, { status: 'occupied' });
           }
         }
-        const invData = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: custType === 'free' ? 'paid' : 'pending' };
+        const invData = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: (custType === 'free' || custType === 'workers') ? 'paid' : 'pending', customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);
@@ -583,13 +595,13 @@ document.getElementById('confirmCheckout').onclick = async () => {
           });
         }
       } catch(e) { console.warn('[checkout] customer stats update failed:', e); }
-      inv = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: 'pending' };
+      inv = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: (custType === 'free' || custType === 'workers') ? 'paid' : 'pending', customerType: custType };
     } catch (e) {
       resetCheckout();
       console.error('[checkout] transaction error:', e);
       return alert('فشل إنشاء الفاتورة: ' + e.message);
     }
-    DB.audit.log('invoice_created', { id: invId, total: totalAmount, method: method, customer: customer, table: table });
+    DB.audit.log('invoice_created', { id: invId, total: totalAmount, method: method, customer: customer, table: table, customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) });
     document.getElementById('checkoutModal').classList.remove('show');
     if (inv && inv.id) {
       const isAdmin = !!sessionStorage.getItem('laguna_user');

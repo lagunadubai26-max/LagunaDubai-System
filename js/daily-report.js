@@ -39,6 +39,24 @@ function buildReturnTable(returns) {
   return html;
 }
 
+function buildLatePaymentsTable(latePayments) {
+  if (!latePayments.length) return '';
+  let html = '<table class="dr-table"><thead><tr><th>الوقت</th><th>رقم الفاتورة</th><th>العميل</th><th>المبلغ المحصل</th><th>الطريقة</th></tr></thead><tbody>';
+  latePayments.forEach(p => {
+    const t = new Date(p.time).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    html += '<tr style="color:#b45309"><td>' + t + '</td><td>' + escapeHtml(p.id) + '</td><td>' + escapeHtml(p.customer) + '</td><td style="font-weight:700">+' + fmtMoney(p.amount) + '</td><td>' + escapeHtml(methodLabel(p.method)) + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function methodLabel(m) {
+  if (m === 'Cash') return 'كاش';
+  if (m === 'Card' || m === 'Visa') return 'شبكة/فيزا';
+  if (m === 'Wallet') return 'محفظة';
+  return m || '—';
+}
+
 async function resolveDayRange(dateVal, latestInvTs) {
   try {
     const shifts = await DB.shifts.all() || [];
@@ -95,13 +113,49 @@ async function showDayReport() {
     const totalExpenses = dayExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
     const totalReturns = dayReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
     const totalIncome = dayIncomes.reduce((s, e) => s + Number(e.amount || 0), 0);
-    const netProfit = totalSales + totalIncome - totalReturns - totalExpenses;
+
+    // خريطة الفواتير الموجودة فعليًا (لاستبعاد المحذوف من سجل العمليات)
+    const existingInvMap = {};
+    (allInvoices || []).forEach(i => { if (i && i.id) existingInvMap[i.id] = i; });
+
+    // فواتير العمالة (مجانية تتحسب كمصروف)
+    const workerInvoices = soldInvoices.filter(i => i.customerType === 'workers');
+    const workersCost = workerInvoices.reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : ((i.items || []).reduce((ss, it) => ss + Number(it.qty || 1) * Number(it.price || 0), 0))), 0);
+
+    // تحصيلات متأخرة: مدفوعات سُجلت في هذا اليوم لفواتير أُنشئت في أيام أخرى
+    const latePayments = [];
+    (allAudit || []).forEach(a => {
+      if (a.type !== 'invoice_payment' || !a.timestamp) return;
+      const t = new Date(a.timestamp);
+      if (!(t >= start && t <= end)) return;
+      let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
+      const amount = Number(det.amount || 0);
+      if (!(amount > 0)) return;
+      const created = det.invDate ? new Date(det.invDate) : null;
+      const isSameDayCreation = created && created >= start && created <= end;
+      if (isSameDayCreation) return; // تسديد في نفس يوم الإنشاء محسوب أصلًا من بيانات الفواتير
+      latePayments.push({ time: t, id: det.id || '\u2014', customer: det.customer || '\u2014', amount, method: det.method || '' });
+    });
+    latePayments.sort((a, b) => a.time - b.time);
+    const lateTotal = latePayments.reduce((s, p) => s + p.amount, 0);
+    const lateCash = latePayments.filter(p => p.method === 'Cash' || p.method === '\u0643\u0627\u0634').reduce((s, p) => s + p.amount, 0);
+    const lateCard = lateTotal - lateCash;
+
+    const netProfit = totalSales + totalIncome + lateTotal - totalReturns - totalExpenses - workersCost;
     const liveSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
     const pendingAmount = pendingInvoices.reduce((s, i) => s + Math.max(0, Number(i.total || 0) - Number(i.paid || 0)), 0);
 
     const dc = (allDaycloses || []).find(d => d.date === dateVal);
+
     const auditInvoices = (allAudit || [])
-      .filter(a => a.type === 'invoice_created' && a.timestamp && (() => { const t = new Date(a.timestamp); const maxT = new Date(FB.clockNow().getTime() + 5 * 60 * 1000); return t >= start && t <= end && t <= maxT; })())
+      .filter(a => {
+        if (a.type !== 'invoice_created' || !a.timestamp) return false;
+        const t = new Date(a.timestamp); const maxT = new Date(FB.clockNow().getTime() + 5 * 60 * 1000);
+        if (!(t >= start && t <= end && t <= maxT)) return false;
+        let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
+        const id = a.detail_id || det.id;
+        return !!id && !!existingInvMap[id]; // تجاهل الفواتير المحذوفة
+      })
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     let auditHtml = '<div class="dr-empty">\u0644\u0627 \u062a\u0648\u062c\u062f \u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0633\u062c\u0644\u0629 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645</div>';
     if (auditInvoices.length) {
@@ -110,7 +164,11 @@ async function showDayReport() {
         let det = {};
         try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
         const t = new Date(a.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        rows += '<tr><td>' + t + '</td><td>' + escapeHtml(a.detail_id || det.id || '\u2014') + '</td><td>' + escapeHtml(det.customer || '\u2014') + '</td><td>' + fmtMoney(det.total || 0) + '</td><td>' + escapeHtml(det.method || '\u2014') + '</td></tr>';
+        const invRef = existingInvMap[a.detail_id || det.id];
+        const isWorkerRow = (invRef ? invRef.customerType === 'workers' : det.customerType === 'workers');
+        const custHtml = escapeHtml(det.customer || '\u2014') + (isWorkerRow ? ' <span style="color:#dc2626;font-weight:700">(عمالة)</span>' : '');
+        const rowStyle = isWorkerRow ? ' style="color:#dc2626"' : '';
+        rows += '<tr' + rowStyle + '><td>' + t + '</td><td>' + escapeHtml(a.detail_id || det.id || '\u2014') + '</td><td>' + custHtml + '</td><td>' + fmtMoney(det.total || 0) + '</td><td>' + escapeHtml(det.method || '\u2014') + '</td></tr>';
       });
       auditHtml = '<table class="dr-table"><thead><tr><th>\u0627\u0644\u0648\u0642\u062a</th><th>\u0631\u0642\u0645 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629</th><th>\u0627\u0644\u0639\u0645\u064a\u0644</th><th>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th><th>\u0627\u0644\u0637\u0631\u064a\u0642\u0629</th></tr></thead><tbody>' + rows + '</tbody></table>';
     }
@@ -123,9 +181,13 @@ async function showDayReport() {
       '</div>' +
       '<div class="dr-summary">' + cards + '</div>' +
       '<div class="dr-title">\u0641\u0648\u0627\u062a\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 (\u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a)</div>' +
-      auditHtml + (extra || '');
+      auditHtml +
+      (latePayments.length ? '<div class="dr-title" style="color:#b45309">\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0633\u0627\u0628\u0642\u0629 (\u0645\u062a\u0623\u062e\u0631\u0627\u062a \u0627\u062a\u0633\u062f\u062f\u062a \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645)</div>' + buildLatePaymentsTable(latePayments) : '') +
+      (extra || '');
 
     if (dc && (Number(dc.totalSales || 0) > 0 || !auditInvoices.length)) {
+      const dcWorkersCost = Number(dc.workersCost || 0);
+      const dcLateTotal = Number(dc.lateTotal || 0);
       const cards =
         '<div class="card"><span>\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629</span><b>' + (dc.numInvoices || 0) + '</b></div>' +
         '<div class="card"><span>\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a</span><b>' + fmtMoney(dc.totalSales || 0) + '</b></div>' +
@@ -134,8 +196,10 @@ async function showDayReport() {
         '<div class="card"><span>\u0639\u062f\u062f \u0627\u0644\u0645\u0634\u0631\u0648\u0628\u0627\u062a</span><b>' + (dc.itemsSold || 0) + '</b></div>' +
         '<div class="card"><span>\u0627\u0644\u0645\u0631\u062a\u062c\u0639\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(dc.totalReturns || 0) + '</b></div>' +
         '<div class="card"><span>\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(dc.totalExpenses || 0) + '</b></div>' +
+        (dcWorkersCost > 0 ? '<div class="card"><span>\u0645\u0635\u0627\u0631\u064a\u0641 \u0627\u0644\u0639\u0645\u0627\u0644\u0629</span><b style="color:#dc2626">-' + fmtMoney(dcWorkersCost) + '</b></div>' : '') +
+        (dcLateTotal > 0 ? '<div class="card"><span>\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0645\u062a\u0623\u062e\u0631\u0629</span><b style="color:#d97706">+' + fmtMoney(dcLateTotal) + '</b></div>' : '') +
         '<div class="card"><span>\u0625\u064a\u0631\u0627\u062f\u0627\u062a \u0623\u062e\u0631\u0649</span><b style="color:var(--success)">' + fmtMoney(dc.totalIncome || 0) + '</b></div>' +
-        '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(Number(dc.totalSales || 0) + Number(dc.totalIncome || 0) - Number(dc.totalReturns || 0) - Number(dc.totalExpenses || 0)) + '</b></div>';
+        '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(Number(dc.totalSales || 0) + Number(dc.totalIncome || 0) + dcLateTotal - Number(dc.totalReturns || 0) - Number(dc.totalExpenses || 0) - dcWorkersCost) + '</b></div>';
       const cards2 = cards + (paidInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</span><b>' + paidInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(liveSales) + '</b></div>' : '') + (pendingInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0639\u0644\u0642\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f\u0629)</span><b style="color:#d97706">' + pendingInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(pendingAmount) + '</b></div>' : '');
       const liveExtra = paidInvoices.length ? '<div class="dr-title">\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0645\u0646\u062a\u062c\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0627 \u0628\u0639\u062f \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>' + buildDrinkTable(buildItemsMap(paidInvoices)) : '';
       dayReportEl.innerHTML = summaryHtml('\u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0627\u0644\u064a\u0648\u0645\u064a (\u0625\u063a\u0644\u0627\u0642 \u0633\u0627\u0628\u0642)', cards2, '<div class="dr-empty" style="margin-top:16px">\u26a0\ufe0f \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 \u0627\u062a\u063a\u0644\u0642 \u0633\u0627\u0628\u0642\u064b\u0627 \u0648\u062a\u0645 \u062a\u0635\u062f\u064a\u0631 \u0641\u0648\u0627\u062a\u064a\u0631\u0647 \u0625\u0644\u0649 \u0645\u0644\u0641 Excel \u2014 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0625\u063a\u0644\u0627\u0642</div>' + liveExtra);
@@ -170,12 +234,14 @@ async function showDayReport() {
         '<div class="dr-summary">' +
           '<div class="card"><span>\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629</span><b>' + paidInvoices.length + '</b></div>' +
           '<div class="card"><span>\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a</span><b>' + fmtMoney(totalSales) + '</b></div>' +
-          '<div class="card"><span>\u0643\u0627\u0634</span><b>' + fmtMoney(totalCash) + '</b></div>' +
-          '<div class="card"><span>\u0634\u0628\u0643\u0629 / \u0641\u064a\u0632\u0627</span><b>' + fmtMoney(totalCard) + '</b></div>' +
+          '<div class="card"><span>\u0643\u0627\u0634</span><b>' + fmtMoney(totalCash + lateCash) + '</b></div>' +
+          '<div class="card"><span>\u0634\u0628\u0643\u0629 / \u0641\u064a\u0632\u0627</span><b>' + fmtMoney(totalCard + lateCard) + '</b></div>' +
           '<div class="card"><span>\u0639\u062f\u062f \u0627\u0644\u0645\u0634\u0631\u0648\u0628\u0627\u062a</span><b>' + totalItemsQty + '</b></div>' +
           '<div class="card"><span>\u062a\u0643\u0644\u0641\u0629 \u0627\u0644\u062e\u0627\u0645\u0627\u062a (\u062a\u0642\u0631\u064a\u0628\u064a)</span><b>' + fmtMoney(recipesCost) + '</b></div>' +
           '<div class="card"><span>\u0627\u0644\u0645\u0631\u062a\u062c\u0639\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(totalReturns) + '</b></div>' +
           '<div class="card"><span>\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a</span><b style="color:#dc2626">-' + fmtMoney(totalExpenses) + '</b></div>' +
+          (workersCost > 0 ? '<div class="card"><span>\u0645\u0635\u0627\u0631\u064a\u0641 \u0627\u0644\u0639\u0645\u0627\u0644\u0629 (\u0645\u062c\u0627\u0646\u064a\u0629)</span><b style="color:#dc2626">-' + fmtMoney(workersCost) + '</b></div>' : '') +
+          (lateTotal > 0 ? '<div class="card"><span>\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0645\u062a\u0623\u062e\u0631\u0629</span><b style="color:#d97706">+' + fmtMoney(lateTotal) + '</b></div>' : '') +
           '<div class="card"><span>\u0625\u064a\u0631\u0627\u062f\u0627\u062a \u0623\u062e\u0631\u0649</span><b style="color:var(--success)">' + fmtMoney(totalIncome) + '</b></div>' +
           '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(netProfit) + '</b></div>' +
           (pendingInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0639\u0644\u0642\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f\u0629)</span><b style="color:#d97706">' + pendingInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(pendingAmount) + '</b></div>' : '') +
@@ -183,7 +249,8 @@ async function showDayReport() {
         '<div class="dr-title">\u0627\u0644\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0639\u0629</div>' +
         buildDrinkTable(itemsMap) +
         '<div class="dr-title">\u0645\u0631\u062a\u062c\u0639\u0627\u062a \u0627\u0644\u064a\u0648\u0645</div>' +
-        buildReturnTable(dayReturns);
+        buildReturnTable(dayReturns) +
+        (latePayments.length ? '<div class="dr-title" style="color:#b45309">\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0633\u0627\u0628\u0642\u0629</div>' + buildLatePaymentsTable(latePayments) : '');
     }
   } catch (e) {
     console.error('[dayreport]', e);
