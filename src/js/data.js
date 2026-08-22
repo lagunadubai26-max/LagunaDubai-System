@@ -115,6 +115,18 @@ const DB = {
     async remove(id) { await FB.removeDoc('incomes', id); }
   },
 
+  advances: {
+    async all() { return await FB.getCollection('advances'); },
+    async add(a) { if (!a.id) a.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('advances', a); },
+    async update(id, data) { await FB.updateDoc('advances', id, data); },
+    async remove(id) { await FB.removeDoc('advances', id); }
+  },
+
+  salaryPayments: {
+    async all() { return await FB.getCollection('salary_payments'); },
+    async add(p) { if (!p.id) p.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('salary_payments', p); }
+  },
+
   customers: {
     async all() { return await FB.getCollection('customers'); },
     async add(c) { if (!c.id) c.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('customers', c); },

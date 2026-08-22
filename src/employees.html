@@ -19,7 +19,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css?v=3">
-    <link rel="stylesheet" href="css/employees.css">
+    <link rel="stylesheet" href="css/employees.css?v=2">
     
 
 <link rel="stylesheet" href="css/responsive.css"><script src="js/role-head.js?v=2"></script></head>
@@ -115,6 +115,12 @@
             document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? 'م/ محمد الجوهري' : 'موظف';
           }
         </script>
+
+        <!-- Salary reminder banner -->
+        <div id="salaryReminder" style="display:none;align-items:center;justify-content:space-between;gap:12px;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:14px;padding:14px 20px;margin-bottom:20px;box-shadow:var(--shadow);">
+            <div id="reminderTxt" style="font-size:14px;color:#92400e;font-weight:700"></div>
+            <button id="reminderPayBtn" style="border:none;background:#f59e0b;color:#fff;border-radius:10px;padding:8px 16px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap"><i class="fa-solid fa-money-check-dollar"></i> صرف الآن</button>
+        </div>
 
         <!-- Statistics -->
 
@@ -214,6 +220,14 @@
 
             </button>
 
+            <button class="payroll-btn" id="payrollBtn" style="border:none;background:var(--primary);color:#fff;border-radius:12px;padding:10px 18px;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px">
+
+                <i class="fa-solid fa-money-check-dollar"></i>
+
+                صرف المرتبات
+
+            </button>
+
         </section>
         <!-- Employees Table -->
 
@@ -279,6 +293,43 @@
     </div>
   </div>
 </div>
+<div class="modal" id="advanceModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-hand-holding-dollar"></i> سلفة جديدة — <span id="advEmpName"></span></h2>
+      <button class="close-modal" id="closeAdvModal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <label>المبلغ (ج.م)</label>
+      <input type="number" id="advAmount" min="1" placeholder="مثال: 500">
+      <label>التاريخ</label>
+      <input type="date" id="advDate">
+      <label>ملاحظة (اختياري)</label>
+      <input type="text" id="advNote" placeholder="سبب السلفة...">
+      <p style="font-size:12px;color:#a8a29e;margin:10px 0 0">💡 السلفة بتتخصم تلقائيًا من المرتب عند صرفه</p>
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" id="cancelAdv">إلغاء</button>
+      <button class="confirm-btn" id="saveAdv"><i class="fa-solid fa-check"></i> حفظ السلفة</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="payrollModal">
+  <div class="modal-box" style="max-width:680px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-money-check-dollar"></i> مرتبات شهر <span id="payrollMonth"></span></h2>
+      <button class="close-modal" id="closePayrollModal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto">
+      <div id="payrollList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" id="cancelPayroll">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -286,9 +337,9 @@
 <script src="js/firebase-client.js?v=3"></script>
 <script src="js/sanitize.js"></script>
 <script src="js/password-utils.js"></script>
-<script src="js/data.js?v=11"></script>
+<script src="js/data.js?v=12"></script>
         <script src="js/notifications.js?v=3"></script>
-        <script src="js/employees.js?v=6"></script>
+        <script src="js/employees.js?v=7"></script>
 <script src="js/daily-inventory-check.js?v=2"></script>
 <script src="js/role.js?v=5"></script>
 

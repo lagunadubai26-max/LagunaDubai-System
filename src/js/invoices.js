@@ -567,6 +567,13 @@ let addInvId = null;
 let _addProducts = null;
 let _addSelected = [];
 let _addPopularity = {};
+let _addUnsub = null;
+let _addCat = 'all';
+const _addCatNames = {};
+
+function unsubscribeAddProducts() {
+  if (_addUnsub) { try { _addUnsub(); } catch (e) {} _addUnsub = null; }
+}
 
 function buildProductPopularity() {
   const pop = {};
@@ -590,12 +597,32 @@ function openAddItemsModal(inv) {
   document.getElementById('addItemsInfo').innerHTML = '<b>' + escapeHtml(inv.id) + '</b> — ' + escapeHtml(inv.customer || '') +
     ' <span style="color:#888">| الحالي: <b id="addCurTotal">' + Number(inv.total || 0).toLocaleString() + '</b> ج.م ← بعد الإضافة: <b id="addNewTotal" style="color:#d97706">' + Number(inv.total || 0).toLocaleString() + '</b> ج.م</span>';
   document.getElementById('addSearch').value = '';
+  _addCat = 'all';
+  _addProducts = null;
+  unsubscribeAddProducts();
+  renderAddCats([]);
   renderAddGrid('');
   renderAddSelected();
+  // بث مباشر: أي تغيير في المنتجات يظهر فورًا في المودال
+  try {
+    _addUnsub = FB.onCollection('products', list => {
+      _addProducts = list || [];
+      renderAddCats(_addProducts);
+      renderAddGrid(document.getElementById('addSearch').value);
+    });
+  } catch (e) {
+    console.warn('[additems] live products:', e);
+    DB.products.all().then(l => { _addProducts = l || []; renderAddCats(_addProducts); renderAddGrid(''); });
+  }
+  // أسماء الأقسام بالعربي
+  DB.categories.all().then(cs => { (cs || []).forEach(c => { _addCatNames[c.slug || c.id] = c.name || c.slug; }); if (_addProducts) renderAddCats(_addProducts); }).catch(() => {});
   addItemsModal.classList.add('show');
 }
 
-function closeAddItemsModal() { addItemsModal.classList.remove('show'); }
+function closeAddItemsModal() {
+  unsubscribeAddProducts();
+  addItemsModal.classList.remove('show');
+}
 
 function calcAddTotals() {
   const inv = invoices.find(i => i.id === addInvId);
@@ -612,18 +639,38 @@ function calcAddTotals() {
   if (newEl) newEl.textContent = newTotal.toLocaleString();
 }
 
-async function ensureProducts() {
-  if (_addProducts) return _addProducts;
-  try { _addProducts = await DB.products.all() || []; } catch (e) { console.warn('[additems] products:', e); _addProducts = []; }
-  return _addProducts;
+function ensureProducts() { return _addProducts || []; }
+
+function renderAddCats(prods) {
+  const box = document.getElementById('addCatChips');
+  if (!box) return;
+  const cats = [];
+  const seen = {};
+  (prods || []).forEach(p => { const c = p.category || ''; if (c && !seen[c]) { seen[c] = 1; cats.push(c); } });
+  let html = '<button type="button" class="acc-chip' + (_addCat === 'all' ? ' active' : '') + '" data-cat="all">الكل</button>';
+  cats.forEach(c => {
+    html += '<button type="button" class="acc-chip' + (_addCat === c ? ' active' : '') + '" data-cat="' + escapeHtml(c) + '">' + escapeHtml(_addCatNames[c] || c) + '</button>';
+  });
+  box.innerHTML = html;
+  box.querySelectorAll('.acc-chip').forEach(b => {
+    b.onclick = () => {
+      _addCat = b.dataset.cat;
+      renderAddCats(_addProducts || []);
+      renderAddGrid(document.getElementById('addSearch').value);
+    };
+  });
 }
 
-async function renderAddGrid(q) {
+function renderAddGrid(q) {
   const grid = document.getElementById('addProductsGrid');
   if (!grid) return;
-  const prods = await ensureProducts();
+  const prods = ensureProducts();
+  if (!prods.length && !_addProducts) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#888;padding:14px">⏳ جاري تحميل المنتجات...</div>';
+    return;
+  }
   const val = (q || '').trim().toLowerCase();
-  const list = prods.filter(p => !val || (p.name || '').toLowerCase().includes(val));
+  const list = prods.filter(p => (!val || (p.name || '').toLowerCase().includes(val)) && (_addCat === 'all' || p.category === _addCat));
   // الأكثر طلبًا في النظام أولًا، ثم أبجديًا
   list.sort((a, b) => {
     const pa = _addPopularity[a.name] || 0;
@@ -664,9 +711,11 @@ function renderAddSelected() {
     html += '<div class="add-sel-item">' +
       '<span class="as-name">' + escapeHtml(it.name) + '</span>' +
       '<span class="as-qty"><button type="button" data-act="minus" data-i="' + idx + '">−</button><b>' + it.qty + '</b><button type="button" data-act="plus" data-i="' + idx + '">+</button></span>' +
-      '<label class="as-milk"><input type="checkbox" data-act="milk" data-i="' + idx + '"' + (it.hasMilk ? ' checked' : '') + '> لبن +15ج</label>' +
-      '<input type="text" class="as-note" placeholder="ملاحظة" data-act="note" data-i="' + idx + '" value="' + escapeHtml(it.note || '') + '">' +
       '<button type="button" class="as-del" data-act="del" data-i="' + idx + '" title="إزالة"><i class="fa-solid fa-xmark"></i></button>' +
+      '<div class="as-opts">' +
+      '<label class="as-milk"><input type="checkbox" data-act="milk" data-i="' + idx + '"' + (it.hasMilk ? ' checked' : '') + '> <span>زيادة لبن +15ج</span></label>' +
+      '<input type="text" class="as-note" placeholder="ملاحظة على الطلب (بدون سكر، محوج...)" data-act="note" data-i="' + idx + '" value="' + escapeHtml(it.note || '') + '">' +
+      '</div>' +
       '</div>';
   });
   box.innerHTML = html;
