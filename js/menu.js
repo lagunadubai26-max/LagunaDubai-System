@@ -407,6 +407,10 @@ checkoutBtn.addEventListener("click", () => {
   document.getElementById('checkoutCustomerType').value = 'regular';
   document.getElementById('checkoutSpecialFields').style.display = 'none';
   document.getElementById('checkoutSpecialName').value = '';
+  const _paidSecReset = document.getElementById('checkoutPaidSection');
+  const _remSecReset = document.getElementById('checkoutRemainingSection');
+  if (_paidSecReset) _paidSecReset.style.display = 'block';
+  if (_remSecReset) _remSecReset.style.display = 'flex';
   (async () => {
     const allCusts = await DB.customers.all();
     const dl = document.getElementById('custList');
@@ -441,12 +445,14 @@ document.getElementById('checkoutCustomerType').onchange = function() {
     if (!nameEl.value) nameEl.value = 'عمالة';
     window._checkoutTotal = 0;
     if (beforeEl) beforeEl.textContent = before + ' جنيه';
-    document.getElementById('checkoutTotal').textContent = '0 جنيه (وجبة عمالة مجانية)';
-    if (noteEl) noteEl.innerHTML = '<i class="fa-solid fa-helmet-safety"></i> وجبة عمالة — الحساب <b>0 جنيه</b> ويتحسب كمصروف في التقارير';
+    document.getElementById('checkoutTotal').textContent = '0 جنيه (طلبات عمالة مجانية)';
+    if (noteEl) noteEl.innerHTML = '<i class="fa-solid fa-helmet-safety"></i> طلبات عمالة — الحساب <b>0 جنيه</b> ويتحسب كمصروف في التقارير';
     document.getElementById('checkoutPaid').value = '';
+    const paidSec = document.getElementById('checkoutPaidSection');
+    const remSec = document.getElementById('checkoutRemainingSection');
+    if (paidSec) paidSec.style.display = 'none';
+    if (remSec) remSec.style.display = 'none';
   } else if (isFree) {
-    const nameEl = document.getElementById('checkoutSpecialName');
-    if (!nameEl.value) nameEl.value = 'ضيافه استاذ محمد الجوهري';
     window._checkoutTotal = 0;
     if (beforeEl) beforeEl.textContent = before + ' جنيه';
     document.getElementById('checkoutTotal').textContent = '0 جنيه (ضيافة مجانية)';
@@ -460,6 +466,12 @@ document.getElementById('checkoutCustomerType').onchange = function() {
   } else {
     window._checkoutTotal = window._itemsTotal;
     document.getElementById('checkoutTotal').textContent = window._itemsTotal + ' جنيه';
+  }
+  if (!isWorkers) {
+    const paidSec = document.getElementById('checkoutPaidSection');
+    const remSec = document.getElementById('checkoutRemainingSection');
+    if (paidSec) paidSec.style.display = 'block';
+    if (remSec) remSec.style.display = 'flex';
   }
   window.calcRemaining();
 };
