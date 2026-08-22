@@ -647,10 +647,11 @@ function calcAddTotals() {
   }
   document.getElementById('addInfoTxt').innerHTML = '';
   document.getElementById('addInfoTxt').style.display = 'none';
-  const base = Number(_addSelected.reduce((s, it) => s + it.qty * it.price, 0));
-  const existingBase = Number(inv.itemsValue != null ? inv.itemsValue : ((inv.items || []).reduce((s, it) => s + Number(it.qty || 1) * Number(it.price || 0), 0)));
+  const addedValue = Number(_addSelected.reduce((s, it) => s + it.qty * it.price, 0));
+  // احسب existingBase من الأصناف الفعلية (مش من itemsValue المدورة)
+  const existingBase = (inv.items || []).reduce((s, it) => s + Number(it.qty || 1) * Number(it.price || 0), 0);
   const ratio = existingBase > 0 && Number(inv.total || 0) > 0 ? (Number(inv.total) / existingBase) : 1;
-  const newTotal = Math.round((existingBase + base) * ratio);
+  const newTotal = Math.round((existingBase + addedValue) * ratio);
   const curEl = document.getElementById('addCurTotal');
   const newEl = document.getElementById('addNewTotal');
   if (curEl) curEl.textContent = Number(inv.total || 0).toLocaleString();
@@ -806,10 +807,11 @@ if (addItemsModal) {
       // تسعير حسب نوع العميل
       const isFreeOrWorkers = inv.customerType === 'free' || inv.customerType === 'workers';
       const oldTotal = Number(inv.total || 0);
-      const addedBase = items.reduce((s, it) => s + it.qty * it.price, 0);
-      const existingBase = Number(inv.itemsValue != null ? inv.itemsValue : (inv.items || []).reduce((s, x) => s + Number(x.qty || 1) * Number(x.price || 0), 0));
-      const newBase = existingBase + addedBase;
-      const newTotal = isFreeOrWorkers ? 0 : Math.round(newBase * (oldTotal > 0 && existingBase > 0 ? (oldTotal / existingBase) : 1));
+      const newItemsValue = merged.reduce((s, it) => s + Number(it.qty || 1) * Number(it.price || 0), 0);
+      // احسب existingBase من الأصناف الفعلية (مش من itemsValue المدورة)
+      const existingBase = (inv.items || []).reduce((s, x) => s + Number(x.qty || 1) * Number(x.price || 0), 0);
+      const ratio = oldTotal > 0 && existingBase > 0 ? (oldTotal / existingBase) : 1;
+      const newTotal = isFreeOrWorkers ? 0 : Math.round(newItemsValue * ratio);
 
       const paid = Number(inv.paid != null ? inv.paid : 0);
       const newPaid = isFreeOrWorkers ? 0 : Math.min(paid, newTotal);
@@ -821,7 +823,7 @@ if (addItemsModal) {
         paid: newPaid,
         remaining: newRemaining,
         status: newRemaining <= 0 ? 'paid' : (invIsPending(inv) ? 'pending' : inv.status),
-        itemsValue: Math.round(newBase),
+        itemsValue: Math.round(newItemsValue),
         serviceAmount: isFreeOrWorkers ? 0 : Math.round(Number(inv.serviceAmount || 0) * scale),
         taxAmount: isFreeOrWorkers ? 0 : Math.round(Number(inv.taxAmount || 0) * scale)
       };
