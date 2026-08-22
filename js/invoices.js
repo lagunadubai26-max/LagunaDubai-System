@@ -562,6 +562,16 @@ const addItemsModal = document.getElementById('addItemsModal');
 let addInvId = null;
 let _addProducts = null;
 let _addSelected = [];
+let _addPopularity = {};
+
+function buildProductPopularity() {
+  const pop = {};
+  (invoices || []).forEach(inv => {
+    if (!inv || !Array.isArray(inv.items)) return;
+    inv.items.forEach(it => { if (it && it.name) pop[it.name] = (pop[it.name] || 0) + Number(it.qty || 1); });
+  });
+  return pop;
+}
 
 function addSelKey(name, hasMilk, note) { return (name || '') + '|' + (hasMilk ? '1' : '0') + '|' + (note || ''); }
 
@@ -572,6 +582,7 @@ function openAddItemsModal(inv) {
   }
   addInvId = inv.id;
   _addSelected = [];
+  _addPopularity = buildProductPopularity();
   document.getElementById('addItemsInfo').innerHTML = '<b>' + escapeHtml(inv.id) + '</b> — ' + escapeHtml(inv.customer || '') +
     ' <span style="color:#888">| الحالي: <b id="addCurTotal">' + Number(inv.total || 0).toLocaleString() + '</b> ج.م ← بعد الإضافة: <b id="addNewTotal" style="color:#d97706">' + Number(inv.total || 0).toLocaleString() + '</b> ج.م</span>';
   document.getElementById('addSearch').value = '';
@@ -609,13 +620,22 @@ async function renderAddGrid(q) {
   const prods = await ensureProducts();
   const val = (q || '').trim().toLowerCase();
   const list = prods.filter(p => !val || (p.name || '').toLowerCase().includes(val));
+  // الأكثر طلبًا في النظام أولًا، ثم أبجديًا
+  list.sort((a, b) => {
+    const pa = _addPopularity[a.name] || 0;
+    const pb = _addPopularity[b.name] || 0;
+    if (pb !== pa) return pb - pa;
+    return (a.name || '').localeCompare(b.name || '', 'ar');
+  });
   grid.innerHTML = list.length ? '' : '<div style="grid-column:1/-1;text-align:center;color:#888;padding:14px">لا توجد منتجات مطابقة</div>';
   list.forEach(p => {
     const price = Number(p.price || 0);
+    const sold = _addPopularity[p.name] || 0;
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'add-prod-card';
-    b.innerHTML = '<span class="ap-name">' + escapeHtml(p.name) + '</span><span class="ap-price">' + price.toLocaleString() + ' ج.م</span>';
+    b.innerHTML = '<span class="ap-name">' + escapeHtml(p.name) + '</span><span class="ap-price">' + price.toLocaleString() + ' ج.م</span>' +
+      (sold > 0 ? '<span class="ap-hot">🔥 ' + sold.toLocaleString('ar-EG') + ' طلب</span>' : '');
     b.onclick = () => {
       const key = addSelKey(p.name, false, '');
       const ex = _addSelected.find(it => it._key === key);
