@@ -52,7 +52,7 @@ function getFiltered() {
     const matchSearch = inv.id.toLowerCase().includes(val) || inv.customer.toLowerCase().includes(val);
     return matchSearch;
   });
-  filtered.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+  filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
   return filtered;
 }
 
