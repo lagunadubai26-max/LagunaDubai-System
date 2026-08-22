@@ -400,3 +400,72 @@
     }
 
 }
+/* ═══ السلف والمرتبات ═══ */
+.adv-badge {
+  display: inline-block;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.actions .advance-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #d97706;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.actions .advance-btn:hover { background: #fef3c7; transform: translateY(-2px); }
+
+.pr-row {
+  border: 1px solid #e7e5e4;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: #fafaf9;
+}
+.pr-row.pr-paid { opacity: .75; background: #f0fdf4; border-color: #bbf7d0; }
+.pr-head { display: flex; align-items: center; gap: 12px; }
+.pr-name { flex: 1; font-weight: 800; font-size: 15px; color: var(--primary); }
+.pr-net { font-size: 17px; font-weight: 900; color: #16a34a; white-space: nowrap; }
+.pr-done { color: #16a34a; font-weight: 800; font-size: 13px; white-space: nowrap; }
+.pr-pay {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pr-pay:disabled { opacity: .5; cursor: wait; }
+.pr-calc { font-size: 12.5px; color: #78716c; margin-top: 6px; }
+.pr-advs { margin-top: 8px; border-top: 1px dashed #e7e5e4; padding-top: 6px; }
+.pr-adv-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #57534e;
+  padding: 3px 0;
+}
+.pr-adv-del {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: none;
+  background: #fee2e2;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 11px;
+}
