@@ -42,6 +42,7 @@
     }
   },
   "dependencies": {
+    "core-js": "^3.50.0",
     "ws": "^8.16.0"
   },
   "devDependencies": {
