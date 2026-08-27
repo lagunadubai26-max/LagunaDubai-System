@@ -863,20 +863,23 @@ function autoFixInvoices() {
     const currentItemsValue = Number(inv.itemsValue || 0);
     const isFreeOrWorkers = inv.customerType === 'free' || inv.customerType === 'workers';
     if (isFreeOrWorkers) {
-      if (currentTotal !== 0 || Math.abs(currentItemsValue - actualItemsValue) > 1) {
+      // فواتير مجانية: اصلح itemsValue فقط، لا تلمس paid
+      if (Math.abs(currentItemsValue - actualItemsValue) > 1 || currentTotal !== 0) {
         const ref = FB.getDb().collection('invoices').doc(inv.id);
-        batch.update(ref, { total: 0, paid: 0, remaining: 0, itemsValue: Math.round(actualItemsValue) });
+        batch.update(ref, { total: 0, remaining: 0, itemsValue: Math.round(actualItemsValue) });
         fixed++;
       }
       continue;
     }
+    // فواتير عادية: احسب Correct total من ratio القديم
     const ratio = currentTotal > 0 && actualItemsValue > 0 ? (currentTotal / actualItemsValue) : 1;
     const correctTotal = Math.round(actualItemsValue * ratio);
     const paid = Number(inv.paid || 0);
     const correctRemaining = Math.max(0, correctTotal - paid);
+    // فقط اصلح itemsValue و remaining — لا تحوّل الحالة تلقائياً
     if (Math.abs(currentItemsValue - actualItemsValue) > 1 || correctTotal !== currentTotal) {
       const ref = FB.getDb().collection('invoices').doc(inv.id);
-      batch.update(ref, { total: correctTotal, itemsValue: Math.round(actualItemsValue), remaining: correctRemaining, status: correctRemaining <= 0 ? 'paid' : inv.status });
+      batch.update(ref, { total: correctTotal, itemsValue: Math.round(actualItemsValue), remaining: correctRemaining });
       fixed++;
     }
   }

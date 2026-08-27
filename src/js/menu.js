@@ -27,7 +27,7 @@ if (isCustomer) {
   const ti = document.getElementById('tableInput');
   if (ti) { ti.disabled = true; ti.value = tableNum; }
 }
-(async () => {
+window._seedReady = (async () => {
   try {
     await DB.seed();
   } catch (e) {
@@ -119,6 +119,7 @@ function syncOrderSheet() {
 }
 
 async function loadProducts() {
+  if (window._seedReady) await window._seedReady;
   const rawCats = await DB.categories.all() || [];
   const seen = {};
   const categories = [];
@@ -437,7 +438,7 @@ document.getElementById('checkoutCustomerType').onchange = function() {
   const isFree = type === 'free';
   const isWorkers = type === 'workers';
   document.getElementById('checkoutSpecialFields').style.display = (isSpecial || isFree || isWorkers) ? 'block' : 'none';
-  const before = window._itemsTotal;
+  const before = window._itemsTotal || 0;
   const beforeEl = document.getElementById('checkoutSpecialBefore');
   const noteEl = document.getElementById('checkoutSpecialNote');
   if (isWorkers) {
@@ -573,9 +574,9 @@ document.getElementById('confirmCheckout').onclick = async () => {
         }
       }
     }
-    const invId = 'INV-' + crypto.randomUUID().slice(0, 8).toUpperCase();
+    const invId = 'INV-' + safeId().slice(0, 8).toUpperCase();
     let inv, matchedCust, custReadFailed = false;
-    if (custType !== 'regular' && custType !== 'workers') {
+    if (custType === 'special') {
       try {
         const allCusts = await DB.customers.all() || [];
         matchedCust = allCusts.find(c => c.name === customer);

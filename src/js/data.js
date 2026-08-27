@@ -1,3 +1,8 @@
+function safeId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return safeId();
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
 const DB_MODE = 'firebase';
 
 function localGet(key, def) {
@@ -17,7 +22,7 @@ const DB = {
   invoices: {
     async all() { return await FB.getCollection('invoices'); },
     async add(inv) {
-      if (!inv.id) inv.id = 'INV-' + crypto.randomUUID().slice(0, 8).toUpperCase();
+      if (!inv.id) inv.id = 'INV-' + safeId().slice(0, 8).toUpperCase();
       return await FB.addDoc('invoices', inv);
     },
     async update(id, data) { await FB.updateDoc('invoices', id, data); },
@@ -26,7 +31,7 @@ const DB = {
 
   employees: {
     async all() { return await FB.getCollection('employees'); },
-    async add(emp) { if (!emp.id) emp.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('employees', emp); },
+    async add(emp) { if (!emp.id) emp.id = safeId().slice(0, 8); return await FB.addDoc('employees', emp); },
     async update(id, data) { await FB.updateDoc('employees', id, data); },
     async remove(id) { await FB.removeDoc('employees', id); }
   },
@@ -54,14 +59,14 @@ const DB = {
     },
     async today() {
       const all = await FB.getCollection('attendance');
-      const range = this.attDayRange();
+      const range = await this.attDayRange();
       return all.filter(a => {
         if (!a.date) return false;
         const d = new Date(a.date);
         return d >= range.start && d <= range.end;
       });
     },
-    async add(rec) { if (!rec.id) rec.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('attendance', rec); },
+    async add(rec) { if (!rec.id) rec.id = safeId().slice(0, 8); return await FB.addDoc('attendance', rec); },
     async update(id, data) { await FB.updateDoc('attendance', id, data); },
     async remove(id) { await FB.removeDoc('attendance', id); },
     async checkIn(employeeId, name, job, customTime, shiftTime) {
@@ -79,7 +84,7 @@ const DB = {
       );
       status = diff > 30 * 60 * 1000 ? 'late' : 'present';
       return await FB.addDoc('attendance', {
-        id: 'att-' + crypto.randomUUID().slice(0, 8), employeeId, name, job,
+        id: 'att-' + safeId().slice(0, 8), employeeId, name, job,
         date: time.toISOString(), checkIn: time.toISOString(), status
       });
     },
@@ -91,59 +96,59 @@ const DB = {
 
   returns: {
     async all() { return await FB.getCollection('returns'); },
-    async add(r) { if (!r.id) r.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('returns', r); },
+    async add(r) { if (!r.id) r.id = safeId().slice(0, 8); return await FB.addDoc('returns', r); },
     async update(id, data) { await FB.updateDoc('returns', id, data); },
     async remove(id) { await FB.removeDoc('returns', id); }
   },
 
   tables: {
     async all() { return await FB.getCollection('tables_'); },
-    async add(t) { if (!t.id) t.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('tables_', t); },
+    async add(t) { if (!t.id) t.id = safeId().slice(0, 8); return await FB.addDoc('tables_', t); },
     async update(id, data) { await FB.updateDoc('tables_', id, data); },
     async remove(id) { await FB.removeDoc('tables_', id); }
   },
 
   expenses: {
     async all() { return await FB.getCollection('expenses'); },
-    async add(e) { if (!e.id) e.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('expenses', e); },
+    async add(e) { if (!e.id) e.id = safeId().slice(0, 8); return await FB.addDoc('expenses', e); },
     async remove(id) { await FB.removeDoc('expenses', id); }
   },
 
   incomes: {
     async all() { return await FB.getCollection('incomes'); },
-    async add(e) { if (!e.id) e.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('incomes', e); },
+    async add(e) { if (!e.id) e.id = safeId().slice(0, 8); return await FB.addDoc('incomes', e); },
     async remove(id) { await FB.removeDoc('incomes', id); }
   },
 
   advances: {
     async all() { return await FB.getCollection('advances'); },
-    async add(a) { if (!a.id) a.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('advances', a); },
+    async add(a) { if (!a.id) a.id = safeId().slice(0, 8); return await FB.addDoc('advances', a); },
     async update(id, data) { await FB.updateDoc('advances', id, data); },
     async remove(id) { await FB.removeDoc('advances', id); }
   },
 
   salaryPayments: {
     async all() { return await FB.getCollection('salary_payments'); },
-    async add(p) { if (!p.id) p.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('salary_payments', p); }
+    async add(p) { if (!p.id) p.id = safeId().slice(0, 8); return await FB.addDoc('salary_payments', p); }
   },
 
   customers: {
     async all() { return await FB.getCollection('customers'); },
-    async add(c) { if (!c.id) c.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('customers', c); },
+    async add(c) { if (!c.id) c.id = safeId().slice(0, 8); return await FB.addDoc('customers', c); },
     async update(id, data) { await FB.updateDoc('customers', id, data); },
     async remove(id) { await FB.removeDoc('customers', id); }
   },
 
   inventory: {
     async all() { return await FB.getCollection('inventory'); },
-    async add(item) { if (!item.id) item.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('inventory', item); },
+    async add(item) { if (!item.id) item.id = safeId().slice(0, 8); return await FB.addDoc('inventory', item); },
     async update(id, data) { await FB.updateDoc('inventory', id, data); },
     async remove(id) { await FB.removeDoc('inventory', id); }
   },
 
   inventory_counts: {
     async all() { return await FB.getCollection('inventory_counts'); },
-    async add(c) { if (!c.id) c.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('inventory_counts', c); },
+    async add(c) { if (!c.id) c.id = safeId().slice(0, 8); return await FB.addDoc('inventory_counts', c); },
   },
 
   settings: {
@@ -165,7 +170,7 @@ const DB = {
 
   categories: {
     async all() { return await FB.getCollection('categories'); },
-    async add(c) { if (!c.id) c.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('categories', c); },
+    async add(c) { if (!c.id) c.id = safeId().slice(0, 8); return await FB.addDoc('categories', c); },
     async update(id, data) { await FB.updateDoc('categories', id, data); },
     async remove(id) { await FB.removeDoc('categories', id); }
   },
@@ -190,7 +195,7 @@ const DB = {
       return all.filter(d => d.date && d.date.startsWith(prefix));
     },
     async close(data) {
-      if (!data.id) data.id = 'dc-' + crypto.randomUUID().slice(0, 8);
+      if (!data.id) data.id = 'dc-' + safeId().slice(0, 8);
       return await FB.addDoc('daycloses', data);
     },
   },
@@ -204,7 +209,7 @@ const DB = {
     async open(name) {
       const now = FB.clockNow();
       const shift = {
-        id: 'sh-' + crypto.randomUUID().slice(0, 8),
+        id: 'sh-' + safeId().slice(0, 8),
         openDate: localDateKey(now),
         openedAt: now.toISOString(),
         openedBy: name || 'الكاشير',
@@ -237,7 +242,7 @@ const DB = {
 
   products: {
     async all() { return await FB.getCollection('products'); },
-    async add(p) { if (!p.id) p.id = crypto.randomUUID().slice(0, 8); return await FB.addDoc('products', p); },
+    async add(p) { if (!p.id) p.id = safeId().slice(0, 8); return await FB.addDoc('products', p); },
     async update(id, data) { await FB.updateDoc('products', id, data); },
     async remove(id) { await FB.removeDoc('products', id); }
   },
@@ -291,10 +296,6 @@ const DB = {
         } catch(e) { console.warn('[seed] mapping error:', e); }
       }
       await this.users.add({ id: 'u1', username: 'admin', password: adminHashed, name: 'الكاشير', role: 'Administrator' });
-    }
-    const ownerUser = users.find(u => u.username === 'owner');
-    if (ownerUser) {
-      await this.users.remove(ownerUser.id);
     }
     console.warn('%c[seed] 👤 كاشير: admin / admin123', 'font-size:14px;font-weight:bold');
 
