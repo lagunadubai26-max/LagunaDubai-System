@@ -5,6 +5,10 @@ function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present,
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
+window.onerror = function (msg, url, line, col, err) {
+  console.error('[menu] UNCAUGHT:', msg, 'at line', line, url);
+};
+console.log('[menu] script loaded');
 var total = 0;
 var taxRate = 0;
 var enableTax = false;
@@ -167,10 +171,12 @@ function loadProducts() {
 }
 function _loadProducts() {
   _loadProducts = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
-    var rawCats, seen, categories, menuCategories, products, container, categoryOrder, _t12, _t13;
+    var rawCats, seen, categories, menuCategories, products, container, categoryOrder, _t12, _t13, _t14;
     return _regenerator().w(function (_context0) {
-      while (1) switch (_context0.n) {
+      while (1) switch (_context0.p = _context0.n) {
         case 0:
+          _context0.p = 0;
+          console.log('[menu] loadProducts start');
           if (!window._seedReady) {
             _context0.n = 1;
             break;
@@ -178,6 +184,7 @@ function _loadProducts() {
           _context0.n = 1;
           return window._seedReady;
         case 1:
+          console.log('[menu] seed ready, fetching categories');
           _context0.n = 2;
           return DB.categories.all();
         case 2:
@@ -189,6 +196,7 @@ function _loadProducts() {
           _t12 = [];
         case 3:
           rawCats = _t12;
+          console.log('[menu] categories:', rawCats.length);
           seen = {};
           categories = [];
           rawCats.forEach(function (c) {
@@ -253,10 +261,17 @@ function _loadProducts() {
           attachAddToCart();
           attachCategoryFilter();
           attachSearch();
+          console.log('[menu] loadProducts done');
+          _context0.n = 8;
+          break;
         case 7:
+          _context0.p = 7;
+          _t14 = _context0.v;
+          console.error('[menu] loadProducts FAILED:', _t14.message, _t14.stack);
+        case 8:
           return _context0.a(2);
       }
-    }, _callee0);
+    }, _callee0, null, [[0, 7]]);
   }));
   return _loadProducts.apply(this, arguments);
 }
@@ -265,7 +280,7 @@ function occupyTable() {
 }
 function _occupyTable() {
   _occupyTable = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1() {
-    var tn, count, allTables, tbl, _t14, _t15;
+    var tn, count, allTables, tbl, _t15, _t16;
     return _regenerator().w(function (_context1) {
       while (1) switch (_context1.p = _context1.n) {
         case 0:
@@ -285,14 +300,14 @@ function _occupyTable() {
           _context1.n = 3;
           return DB.tables.all();
         case 3:
-          _t14 = _context1.v;
-          if (_t14) {
+          _t15 = _context1.v;
+          if (_t15) {
             _context1.n = 4;
             break;
           }
-          _t14 = [];
+          _t15 = [];
         case 4:
-          allTables = _t14;
+          allTables = _t15;
           tbl = allTables.find(function (t) {
             return t.name === 'طاولة ' + tn;
           });
@@ -322,8 +337,8 @@ function _occupyTable() {
           break;
         case 8:
           _context1.p = 8;
-          _t15 = _context1.v;
-          console.warn('[occupy]', _t15);
+          _t16 = _context1.v;
+          console.warn('[occupy]', _t16);
         case 9:
           return _context1.a(2);
       }
@@ -1223,7 +1238,7 @@ function autoConnectPrinter() {
 }
 function _autoConnectPrinter() {
   _autoConnectPrinter = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
-    var btn, _t17;
+    var btn, _t18;
     return _regenerator().w(function (_context11) {
       while (1) switch (_context11.p = _context11.n) {
         case 0:
@@ -1248,7 +1263,7 @@ function _autoConnectPrinter() {
             return btn.style.transform = 'scale(1)';
           };
           btn.onclick = /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10() {
-            var _t16;
+            var _t17;
             return _regenerator().w(function (_context10) {
               while (1) switch (_context10.p = _context10.n) {
                 case 0:
@@ -1270,7 +1285,7 @@ function _autoConnectPrinter() {
                   break;
                 case 3:
                   _context10.p = 3;
-                  _t16 = _context10.v;
+                  _t17 = _context10.v;
                   btn.innerHTML = '❌ فشل';
                   setTimeout(function () {
                     btn.innerHTML = '🖨️ توصيل الطابعة';
@@ -1286,8 +1301,8 @@ function _autoConnectPrinter() {
           break;
         case 3:
           _context11.p = 3;
-          _t17 = _context11.v;
-          console.warn('[printer]', _t17);
+          _t18 = _context11.v;
+          console.warn('[printer]', _t18);
         case 4:
           return _context11.a(2);
       }
