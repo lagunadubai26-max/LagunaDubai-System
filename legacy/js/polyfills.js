@@ -121,4 +121,27 @@
   if(!Number.isNaN){
     Number.isNaN=function(v){return v!==v;};
   }
+
+  // ── fetch API (minimal XHR-based) ──
+  if(!window.fetch){
+    window.fetch=function(url,opts){
+      return new Promise(function(resolve,reject){
+        var xhr=new XMLHttpRequest();
+        xhr.open((opts&&opts.method)||'GET',url,true);
+        if(opts&&opts.headers){
+          var h=opts.headers;
+          for(var k in h){if(h.hasOwnProperty(k))xhr.setRequestHeader(k,h[k]);}
+        }
+        xhr.onload=function(){
+          resolve({ok:xhr.status>=200&&xhr.status<300,status:xhr.status,
+            text:function(){return Promise.resolve(xhr.responseText)},
+            json:function(){return Promise.resolve(JSON.parse(xhr.responseText))},
+            headers:{get:function(k){return xhr.getResponseHeader(k);}}
+          });
+        };
+        xhr.onerror=function(){reject(new TypeError('Network error'));};
+        xhr.send(opts&&opts.body||null);
+      });
+    };
+  }
 })();
