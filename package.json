@@ -45,6 +45,9 @@
     "ws": "^8.16.0"
   },
   "devDependencies": {
+    "@babel/cli": "^8.0.4",
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
     "electron": "^28.3.3",
     "electron-builder": "^24.13.3"
   }
