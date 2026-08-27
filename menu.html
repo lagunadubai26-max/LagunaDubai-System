@@ -11,7 +11,53 @@
   .order-box { position: static !important; width: 100% !important; max-width: 100% !important; margin-top: 16px !important; border-radius: 16px !important; }
   .products { display: -webkit-flex !important; display: flex !important; -webkit-flex-wrap: wrap !important; flex-wrap: wrap !important; gap: 12px !important; }
   .product-card { -webkit-flex: 0 0 calc(25% - 9px) !important; flex: 0 0 calc(25% - 9px) !important; min-width: 140px !important; }
+  #debugLog { position: fixed; bottom: 0; left: 0; right: 0; max-height: 40vh; overflow-y: auto; background: #1a1a2e; color: #0f0; font: 11px monospace; padding: 8px; z-index: 99999; direction: ltr; text-align: left; border-top: 2px solid #f00; }
+  #debugLog .err { color: #f44; }
+  #debugLog .info { color: #4af; }
 </style>
+<script>
+window._debugLog = [];
+function _debugInit(){
+  var d = document.createElement("div");
+  d.id = "debugLog";
+  document.body.appendChild(d);
+  var origLog = console.log;
+  var origErr = console.error;
+  console.log = function(){
+    origLog.apply(console, arguments);
+    var s = Array.prototype.slice.call(arguments).join(" ");
+    window._debugLog.push(s);
+    var el = document.createElement("div");
+    el.className = "info";
+    el.textContent = s;
+    d.appendChild(el);
+    d.scrollTop = d.scrollHeight;
+  };
+  console.error = function(){
+    origErr.apply(console, arguments);
+    var s = Array.prototype.slice.call(arguments).join(" ");
+    window._debugLog.push("ERR: " + s);
+    var el = document.createElement("div");
+    el.className = "err";
+    el.textContent = "ERR: " + s;
+    d.appendChild(el);
+    d.scrollTop = d.scrollHeight;
+  };
+  window.onerror = function(m,u,l,c,e){
+    var s = "CRASH: " + m + " line " + l;
+    window._debugLog.push(s);
+    var el = document.createElement("div");
+    el.className = "err";
+    el.textContent = s;
+    d.appendChild(el);
+    d.scrollTop = d.scrollHeight;
+  };
+}
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",_debugInit);
+else _debugInit();
+</script>
+<style>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>">

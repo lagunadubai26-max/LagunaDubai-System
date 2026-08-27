@@ -147,7 +147,7 @@ function buildMenuHtml() {
   html = html.replace(/<script src="[^"]*role-head\.js[^"]*"><\/script>/, '');
   html = html.replace(/<script src="[^"]*role\.js[^"]*"><\/script>/, '');
 
-  // Inject polyfills + Safari 9 CSS fixes
+  // Inject polyfills + Safari 9 CSS fixes + visual debug console
   const INJECT =
     '<script src="legacy/js/polyfills.js"></script>\n' +
     '<style>\n' +
@@ -158,7 +158,52 @@ function buildMenuHtml() {
     '  .order-box { position: static !important; width: 100% !important; max-width: 100% !important; margin-top: 16px !important; border-radius: 16px !important; }\n' +
     '  .products { display: -webkit-flex !important; display: flex !important; -webkit-flex-wrap: wrap !important; flex-wrap: wrap !important; gap: 12px !important; }\n' +
     '  .product-card { -webkit-flex: 0 0 calc(25% - 9px) !important; flex: 0 0 calc(25% - 9px) !important; min-width: 140px !important; }\n' +
-    '</style>';
+    '  #debugLog { position: fixed; bottom: 0; left: 0; right: 0; max-height: 40vh; overflow-y: auto; background: #1a1a2e; color: #0f0; font: 11px monospace; padding: 8px; z-index: 99999; direction: ltr; text-align: left; border-top: 2px solid #f00; }\n' +
+    '  #debugLog .err { color: #f44; }\n' +
+    '  #debugLog .info { color: #4af; }\n' +
+    '</style>\n' +
+    '<script>\n' +
+    'window._debugLog = [];\n' +
+    'function _debugInit(){\n' +
+    '  var d = document.createElement("div");\n' +
+    '  d.id = "debugLog";\n' +
+    '  document.body.appendChild(d);\n' +
+    '  var origLog = console.log;\n' +
+    '  var origErr = console.error;\n' +
+    '  console.log = function(){\n' +
+    '    origLog.apply(console, arguments);\n' +
+    '    var s = Array.prototype.slice.call(arguments).join(" ");\n' +
+    '    window._debugLog.push(s);\n' +
+    '    var el = document.createElement("div");\n' +
+    '    el.className = "info";\n' +
+    '    el.textContent = s;\n' +
+    '    d.appendChild(el);\n' +
+    '    d.scrollTop = d.scrollHeight;\n' +
+    '  };\n' +
+    '  console.error = function(){\n' +
+    '    origErr.apply(console, arguments);\n' +
+    '    var s = Array.prototype.slice.call(arguments).join(" ");\n' +
+    '    window._debugLog.push("ERR: " + s);\n' +
+    '    var el = document.createElement("div");\n' +
+    '    el.className = "err";\n' +
+    '    el.textContent = "ERR: " + s;\n' +
+    '    d.appendChild(el);\n' +
+    '    d.scrollTop = d.scrollHeight;\n' +
+    '  };\n' +
+    '  window.onerror = function(m,u,l,c,e){\n' +
+    '    var s = "CRASH: " + m + " line " + l;\n' +
+    '    window._debugLog.push(s);\n' +
+    '    var el = document.createElement("div");\n' +
+    '    el.className = "err";\n' +
+    '    el.textContent = s;\n' +
+    '    d.appendChild(el);\n' +
+    '    d.scrollTop = d.scrollHeight;\n' +
+    '  };\n' +
+    '}\n' +
+    'if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",_debugInit);\n' +
+    'else _debugInit();\n' +
+    '</script>\n' +
+    '<style>\n'
 
   html = html.replace(/<head([^>]*)>/i, '<head$1>\n' + INJECT);
 
