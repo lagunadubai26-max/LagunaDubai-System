@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "core-js": "^3.50.0",
+    "sharp": "^0.35.4",
     "ws": "^8.16.0"
   },
   "devDependencies": {

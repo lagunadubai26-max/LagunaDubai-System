@@ -7,9 +7,10 @@
   .sidebar, .sidebar-toggle, .sidebar-overlay { display: none !important; }
   .container { margin: 0 !important; padding: 0 !important; }
   .main { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 16px !important; }
-  .menu-layout { flex-direction: column !important; }
+  .menu-layout { display: -webkit-flex !important; display: flex !important; -webkit-flex-direction: column !important; flex-direction: column !important; }
   .order-box { position: static !important; width: 100% !important; max-width: 100% !important; margin-top: 16px !important; border-radius: 16px !important; }
-  .products { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important; gap: 12px !important; }
+  .products { display: -webkit-flex !important; display: flex !important; -webkit-flex-wrap: wrap !important; flex-wrap: wrap !important; gap: 12px !important; }
+  .product-card { -webkit-flex: 0 0 calc(25% - 9px) !important; flex: 0 0 calc(25% - 9px) !important; min-width: 140px !important; }
 </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -173,7 +174,7 @@
           <input type="text" id="checkoutSpecialName" placeholder="اسم العميل" class="checkout-input" list="custList">
           <datalist id="custList"></datalist>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f5f5f4;border-radius:10px;margin-bottom:10px;font-size:14px;">
+        <div style="display: -webkit-flex; display: flex;-webkit-justify-content: space-between; justify-content: space-between;-webkit-align-items: center; align-items: center;padding:10px 14px;background:#f5f5f4;border-radius:10px;margin-bottom:10px;font-size:14px;">
           <span style="color:#78716c;">الإجمالي قبل الخصم</span>
           <span id="checkoutSpecialBefore" style="font-weight:700;color:#0c0a09;text-decoration:line-through;">0 جنيه</span>
         </div>
@@ -189,7 +190,7 @@
           <option value="Wallet">محفظة</option>
         </select>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:#f8f6f3;border-radius:12px;margin-bottom:15px;">
+      <div style="display: -webkit-flex; display: flex;-webkit-justify-content: space-between; justify-content: space-between;-webkit-align-items: center; align-items: center;padding:14px 16px;background:#f8f6f3;border-radius:12px;margin-bottom:15px;">
         <span style="font-size:16px;font-weight:700;color:#0c0a09;">الإجمالي</span>
         <span id="checkoutTotal" style="font-size:22px;font-weight:800;color:#d97706;">0 جنيه</span>
       </div>
@@ -197,12 +198,12 @@
         <label style="display:block;margin-bottom:6px;font-weight:600;color:#292524;font-size:14px;">المبلغ المدفوع من الزبون</label>
         <input type="number" id="checkoutPaid" placeholder="المبلغ المدفوع" class="checkout-input">
       </div>
-      <div id="checkoutRemainingSection" style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-radius:12px;">
+      <div id="checkoutRemainingSection" style="display: -webkit-flex; display: flex;-webkit-justify-content: space-between; justify-content: space-between;-webkit-align-items: center; align-items: center;padding:10px 16px;border-radius:12px;">
         <span id="checkoutRemainingLabel" style="font-size:15px;font-weight:600;">الباقي للعميل</span>
         <span id="checkoutRemaining" style="font-size:18px;font-weight:800;">0 جنيه</span>
       </div>
     </div>
-    <div class="confirm-buttons" style="margin-top:20px;gap:12px;">
+    <div class="confirm-buttons" style="margin-top:20px;gap: 12px;">
       <button class="cancel-btn" id="cancelCheckout" style="flex:1;height:48px;border-radius:12px;font-size:16px;font-weight:600;background:#f5f5f4;color:#0c0a09;border:none;cursor:pointer;">إلغاء</button>
       <button class="confirm-btn" id="confirmCheckout" style="flex:1;height:48px;border-radius:12px;font-size:16px;font-weight:700;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;border:none;cursor:pointer;">تأكيد الدفع</button>
     </div>
@@ -256,7 +257,7 @@
     <i class="fa-solid fa-circle-check" style="font-size:48px;color:#059669;margin-bottom:12px"></i>
     <h3 style="margin-bottom:8px" id="successTitle">تم إنشاء الفاتورة</h3>
     <div id="successDetails" style="font-size:14px;color:#292524;line-height:1.8;margin-bottom:16px;text-align:right;background:#f8f6f3;border-radius:12px;padding:14px 18px"></div>
-    <div class="confirm-buttons" id="successButtons" style="gap:10px"></div>
+    <div class="confirm-buttons" id="successButtons" style="gap: 10px"></div>
   </div>
 </div>
 
