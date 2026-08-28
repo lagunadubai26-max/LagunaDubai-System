@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/ipad-menu.css">
+  <title>Laguna Dubai - Menu</title>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="ipad-header">
+    <div class="ipad-header-inner">
+      <div class="ipad-logo">
+        <img src="images/logo.png" alt="Laguna" onerror="this.style.display='none'">
+        <div>
+          <h1>Laguna Dubai</h1>
+          <p id="tableLabel">القائمة</p>
+        </div>
+      </div>
+      <div class="ipad-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="ابحث عن منتج...">
+      </div>
+    </div>
+  </header>
+
+  <!-- Categories -->
+  <div class="ipad-categories" id="ipadCategories">
+    <button class="ipad-cat-btn active" data-category="all">الكل</button>
+  </div>
+
+  <!-- Products -->
+  <section class="ipad-products" id="ipadProducts">
+    <div class="ipad-loading" id="loadingSpinner">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>جاري تحميل المنتجات...</span>
+    </div>
+  </section>
+
+  <!-- Floating Cart Button -->
+  <button class="ipad-cart-fab" id="cartFab">
+    <i class="fa-solid fa-bag-shopping"></i>
+    <span class="ipad-badge" id="cartBadge">0</span>
+  </button>
+
+  <!-- Cart Bottom Sheet -->
+  <div class="ipad-sheet-overlay" id="sheetOverlay"></div>
+  <div class="ipad-sheet" id="cartSheet">
+    <div class="ipad-sheet-handle"></div>
+    <div class="ipad-sheet-header">
+      <h2>الطلب الحالي</h2>
+      <button class="ipad-sheet-close" id="sheetClose"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ipad-sheet-list" id="sheetList">
+      <div class="ipad-empty-cart">
+        <i class="fa-solid fa-bag-shopping"></i>
+        <span>لم تُضف منتجات بعد</span>
+      </div>
+    </div>
+    <div class="ipad-sheet-footer">
+      <div class="ipad-sheet-total">
+        <span>الإجمالي</span>
+        <strong id="sheetTotal">0 جنيه</strong>
+      </div>
+      <button class="ipad-checkout-btn" id="sheetCheckout">
+        <i class="fa-solid fa-cart-shopping"></i>
+        إتمام الطلب
+      </button>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
+  <div class="ipad-modal" id="checkoutModal">
+    <div class="ipad-modal-box">
+      <div class="ipad-modal-header">
+        <h3><i class="fa-solid fa-file-invoice"></i> إتمام الطلب</h3>
+        <button class="ipad-modal-close" id="closeCheckout"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="ipad-modal-body">
+        <div class="ipad-summary" id="checkoutSummary"></div>
+        <div class="ipad-form-group">
+          <label>طريقة الدفع</label>
+          <select id="paymentMethod">
+            <option value="Cash">كاش</option>
+            <option value="Visa">فيزا</option>
+            <option value="Wallet">محفظة</option>
+          </select>
+        </div>
+        <div class="ipad-total-row">
+          <span>المبلغ المدفوع</span>
+          <input type="number" id="paidAmount" placeholder="0" min="0">
+        </div>
+        <div class="ipad-change-row" id="changeRow">
+          <span>الباقي</span>
+          <strong id="changeAmount">0 جنيه</strong>
+        </div>
+      </div>
+      <div class="ipad-modal-footer">
+        <button class="ipad-btn-cancel" id="cancelCheckout">إلغاء</button>
+        <button class="ipad-btn-confirm" id="confirmCheckout">تأكيد الدفع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="ipad-modal" id="successModal">
+    <div class="ipad-modal-box ipad-modal-success">
+      <i class="fa-solid fa-circle-check"></i>
+      <h3 id="successTitle">تم إنشاء الفاتورة</h3>
+      <p id="successDetails"></p>
+      <button class="ipad-btn-confirm" id="closeSuccess">تمام</button>
+    </div>
+  </div>
+
+  <!-- Confirm Clear Modal -->
+  <div class="ipad-modal" id="clearModal">
+    <div class="ipad-modal-box ipad-modal-small">
+      <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);font-size:36px;margin-bottom:10px"></i>
+      <h3>مسح جميع الطلبات؟</h3>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:16px">سيتم حذف جميع المنتجات من الطلب.</p>
+      <div style="display:flex;gap:10px">
+        <button class="ipad-btn-cancel" id="cancelClear">إلغاء</button>
+        <button class="ipad-btn-danger" id="confirmClear">مسح الكل</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading overlay for checkout -->
+  <div class="ipad-loading-overlay" id="checkoutLoading" style="display:none">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+    <span>جاري إنشاء الفاتورة...</span>
+  </div>
+
+  <!-- Firebase v7.24.0 (ES5 - Safari 9 compatible) -->
+  <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-auth.js"></script>
+  <script src="js/firebase-config-ipad.js"></script>
+  <script src="js/ipad-menu.js"></script>
+</body>
+</html>
