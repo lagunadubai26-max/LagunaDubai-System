@@ -45,8 +45,8 @@
     if (role === 'Employee') {
       rules.push('.sidebar nav a.admin-only{display:none!important}');
       rules.push('.sidebar nav a.no-employee{display:none!important}');
+      rules.push('#dashDayCloseBtn{display:none!important}');
     }
-    rules.push('#dashDayCloseBtn{display:none!important}');
     s.textContent = rules.join('');
     document.head.appendChild(s);
   } catch(e){

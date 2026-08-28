@@ -6,7 +6,6 @@ const FB = (() => {
     if (db) return;
     const app = firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.firestore(app);
-    db.settings({ merge: true });
     try {
       const cred = await firebase.auth(app).signInAnonymously();
       uid = cred.user.uid;

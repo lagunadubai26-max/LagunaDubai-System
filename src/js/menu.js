@@ -1,7 +1,3 @@
-window.onerror = function(msg, url, line, col, err) {
-  console.error('[menu] UNCAUGHT:', msg, 'at line', line, url);
-};
-console.log('[menu] script loaded');
 let total = 0;
 let taxRate = 0;
 let enableTax = false;
@@ -123,12 +119,8 @@ function syncOrderSheet() {
 }
 
 async function loadProducts() {
-  try {
-  console.log('[menu] loadProducts start');
   if (window._seedReady) await window._seedReady;
-  console.log('[menu] seed ready, fetching categories');
   const rawCats = await DB.categories.all() || [];
-  console.log('[menu] categories:', rawCats.length);
   const seen = {};
   const categories = [];
   rawCats.forEach(c => { if (!seen[c.slug]) { seen[c.slug] = true; categories.push(c); } });
@@ -177,8 +169,6 @@ async function loadProducts() {
   attachAddToCart();
   attachCategoryFilter();
   attachSearch();
-  console.log('[menu] loadProducts done');
-  } catch(e) { console.error('[menu] loadProducts FAILED:', e.message, e.stack); }
 }
 
 async function occupyTable() {

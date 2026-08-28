@@ -25,7 +25,7 @@ const PASSWORD_UTILS = {
         return computedHex === hashHex;
       } catch { return false; }
     }
-    return stored === password;
+    return false;
   },
 
   isHashed(stored) {

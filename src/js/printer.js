@@ -267,7 +267,7 @@ window.PRINTER = (function() {
       }
     }
     var targets = getReceiptPrinters();
-    if (targets.length === 0) return { ok: false, errors: ['لا توجد طابعات فو始终 متصلة'] };
+    if (targets.length === 0) return { ok: false, errors: ['لا توجد طابعات فواتير متصلة'] };
     var errors = [];
     var ok = false;
     for (var p of targets) {
