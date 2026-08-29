@@ -134,6 +134,34 @@
   var customerNameInputEl = document.getElementById('customerNameInput');
   var customersListEl = document.getElementById('customersList');
 
+  // ── Load tables from Firestore ──
+  function loadTables(callback) {
+    fbGetAll('tables_').then(function (arr) {
+      arr.sort(function (a, b) {
+        var na = parseInt((a.name || '').replace(/\D/g, '')) || 0;
+        var nb = parseInt((b.name || '').replace(/\D/g, '')) || 0;
+        return na - nb;
+      });
+      var html = '<option value="">بدون طاولة</option>';
+      for (var i = 0; i < arr.length; i++) {
+        var t = arr[i];
+        var num = (t.name || '').replace(/\D/g, '');
+        var statusLabel = '';
+        if (t.status === 'occupied') statusLabel = ' (مشغولة)';
+        else if (t.status === 'reserved') statusLabel = ' (محجوزة)';
+        html += '<option value="' + esc(num) + '">' + esc(t.name) + statusLabel + '</option>';
+      }
+      if (tableSelectEl) tableSelectEl.innerHTML = html;
+      // Restore selected value if URL param was set
+      if (urlTableNum && tableSelectEl) {
+        tableSelectEl.value = urlTableNum;
+      }
+      callback();
+    }).catch(function () {
+      callback();
+    });
+  }
+
   // ── Load settings + customers ──
   function loadSettings(callback) {
     fbGetAll('settings').then(function (arr) {
@@ -762,6 +790,15 @@
         customerName = customerNameInputEl.value;
       });
     }
+
+    // Load tables from Firestore
+    loadTables(function () {
+      // Tables loaded, sync table badge
+      if (urlTableNum && tableSelectEl) {
+        tableNum = urlTableNum;
+        updateTableBadge();
+      }
+    });
 
     // Load categories + products (initial fetch)
     Promise.all([
