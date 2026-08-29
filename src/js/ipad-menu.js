@@ -155,6 +155,68 @@
     }).catch(function () {});
   }
 
+  // ── Real-time listeners for categories + products ──
+  function startRealtimeListeners() {
+    // Categories listener
+    db.collection('categories').orderBy('__name__', 'asc').onSnapshot(function (snap) {
+      var rawCats = [];
+      snap.forEach(function (d) {
+        var data = d.data();
+        data.id = d.id;
+        rawCats.push(data);
+      });
+      // Dedupe
+      var seen = {};
+      categories = [];
+      for (var i = 0; i < rawCats.length; i++) {
+        if (!seen[rawCats[i].slug]) {
+          seen[rawCats[i].slug] = true;
+          categories.push(rawCats[i]);
+        }
+      }
+      categories.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+      renderCategories();
+      // Re-attach category filter
+      attachCategoryFilter();
+      // Re-filter current view
+      var activeBtn = categoriesEl.querySelector('.ipad-cat-btn.active');
+      if (activeBtn) {
+        var cat = activeBtn.getAttribute('data-category');
+        var cards = productsEl.querySelectorAll('.ipad-product-card');
+        for (var j = 0; j < cards.length; j++) {
+          if (cat === 'all' || cards[j].getAttribute('data-category') === cat) {
+            cards[j].style.display = '';
+          } else {
+            cards[j].style.display = 'none';
+          }
+        }
+      }
+    }, function (err) {
+      console.warn('[realtime] categories error:', err);
+    });
+
+    // Products listener
+    db.collection('products').orderBy('__name__', 'asc').onSnapshot(function (snap) {
+      var rawProds = [];
+      snap.forEach(function (d) {
+        var data = d.data();
+        data.id = d.id;
+        rawProds.push(data);
+      });
+      products = rawProds;
+      // Sort by category order
+      var catOrder = [];
+      for (var j = 0; j < categories.length; j++) catOrder.push(categories[j].slug);
+      products.sort(function (a, b) {
+        return catOrder.indexOf(a.category) - catOrder.indexOf(b.category);
+      });
+      renderProducts(products);
+      attachAddButtons();
+    }, function (err) {
+      console.warn('[realtime] products error:', err);
+    });
+  }
+
   // ── Apply service/tax based on UI toggle ──
   function applyServiceFromSettings() {
     if (hasService && settings.enableService !== false) {
@@ -232,8 +294,11 @@
     }
   }
 
-  // ── Category filter ──
+  // ── Category filter (delegated, attach once) ──
+  var _catFilterAttached = false;
   function attachCategoryFilter() {
+    if (_catFilterAttached) return;
+    _catFilterAttached = true;
     categoriesEl.addEventListener('click', function (e) {
       var btn = e.target;
       if (!btn.classList.contains('ipad-cat-btn')) return;
@@ -252,8 +317,11 @@
     });
   }
 
-  // ── Search ──
+  // ── Search (attach once) ──
+  var _searchAttached = false;
   function attachSearch() {
+    if (_searchAttached) return;
+    _searchAttached = true;
     var input = document.getElementById('searchInput');
     if (!input) return;
     input.addEventListener('keyup', function () {
@@ -266,8 +334,11 @@
     });
   }
 
-  // ── Add to cart ──
+  // ── Add to cart (delegated, attach once) ──
+  var _addBtnAttached = false;
   function attachAddButtons() {
+    if (_addBtnAttached) return;
+    _addBtnAttached = true;
     productsEl.addEventListener('click', function (e) {
       var btn = e.target;
       while (btn && !btn.classList.contains('ipad-add-btn')) {
@@ -681,7 +752,7 @@
       });
     }
 
-    // Load categories + products
+    // Load categories + products (initial fetch)
     Promise.all([
       fbGetAll('categories'),
       fbGetAll('products')
@@ -713,6 +784,9 @@
       attachCategoryFilter();
       attachSearch();
       attachAddButtons();
+
+      // Start real-time listeners for live updates
+      startRealtimeListeners();
 
       // Load settings for tax/service
       loadSettings(function () {
