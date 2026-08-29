@@ -24,6 +24,10 @@
           <p id="tableLabel">القائمة</p>
         </div>
       </div>
+      <div class="ipad-table-badge" id="tableBadge" style="display:none">
+        <i class="fa-solid fa-utensils"></i>
+        <span id="tableBadgeText">طاولة 1</span>
+      </div>
       <div class="ipad-search">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" id="searchInput" placeholder="ابحث عن منتج...">
@@ -36,21 +40,48 @@
     <button class="ipad-cat-btn active" data-category="all">الكل</button>
   </div>
 
-  <!-- Products -->
-  <section class="ipad-products" id="ipadProducts">
-    <div class="ipad-loading" id="loadingSpinner">
-      <i class="fa-solid fa-spinner fa-spin"></i>
-      <span>جاري تحميل المنتجات...</span>
-    </div>
-  </section>
+  <!-- Main Content Area -->
+  <div class="ipad-main">
+    <!-- Products -->
+    <section class="ipad-products" id="ipadProducts">
+      <div class="ipad-loading" id="loadingSpinner">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <span>جاري تحميل المنتجات...</span>
+      </div>
+    </section>
 
-  <!-- Floating Cart Button -->
+    <!-- Sidebar Cart (desktop / iPad landscape) -->
+    <aside class="ipad-sidebar" id="cartSidebar">
+      <div class="ipad-sidebar-header">
+        <h2><i class="fa-solid fa-bag-shopping"></i> الطلب الحالي</h2>
+        <button class="ipad-sidebar-clear" id="sidebarClear"><i class="fa-solid fa-trash"></i></button>
+      </div>
+      <div class="ipad-sidebar-list" id="sidebarList">
+        <div class="ipad-empty-cart">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span>لم تُضف منتجات بعد</span>
+        </div>
+      </div>
+      <div class="ipad-sidebar-footer">
+        <div class="ipad-sidebar-total">
+          <span>الإجمالي</span>
+          <strong id="sidebarTotal">0 جنيه</strong>
+        </div>
+        <button class="ipad-checkout-btn" id="sidebarCheckout">
+          <i class="fa-solid fa-cart-shopping"></i>
+          إتمام الطلب
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Floating Cart Button (mobile only) -->
   <button class="ipad-cart-fab" id="cartFab">
     <i class="fa-solid fa-bag-shopping"></i>
     <span class="ipad-badge" id="cartBadge">0</span>
   </button>
 
-  <!-- Cart Bottom Sheet -->
+  <!-- Cart Bottom Sheet (mobile only) -->
   <div class="ipad-sheet-overlay" id="sheetOverlay"></div>
   <div class="ipad-sheet" id="cartSheet">
     <div class="ipad-sheet-handle"></div>
@@ -122,11 +153,11 @@
   <!-- Confirm Clear Modal -->
   <div class="ipad-modal" id="clearModal">
     <div class="ipad-modal-box ipad-modal-small">
-      <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);font-size:36px;margin-bottom:10px"></i>
+      <i class="fa-solid fa-triangle-exclamation" style="color:#dc2626;font-size:36px;margin-bottom:10px"></i>
       <h3>مسح جميع الطلبات؟</h3>
-      <p style="color:var(--muted);font-size:14px;margin-bottom:16px">سيتم حذف جميع المنتجات من الطلب.</p>
-      <div style="display:flex;gap:10px">
-        <button class="ipad-btn-cancel" id="cancelClear">إلغاء</button>
+      <p style="color:#78716c;font-size:14px;margin-bottom:16px">سيتم حذف جميع المنتجات من الطلب.</p>
+      <div style="display:-webkit-box;display:-webkit-flex;display:flex">
+        <button class="ipad-btn-cancel" id="cancelClear" style="margin-left:10px">إلغاء</button>
         <button class="ipad-btn-danger" id="confirmClear">مسح الكل</button>
       </div>
     </div>

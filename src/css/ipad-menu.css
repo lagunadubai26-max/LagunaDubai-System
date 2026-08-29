@@ -5,16 +5,31 @@
 /* ── Header ── */
 .ipad-header {
   position: sticky; top: 0; z-index: 100;
-  background: #fff; border-bottom: 1px solid #e7e5e4;
+  background: #ffffff; border-bottom: 1px solid #e7e5e4;
   padding: 14px 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,.05);
 }
 .ipad-header-inner {
-  display: flex; align-items: center; justify-content: space-between;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
   max-width: 1200px; margin: 0 auto;
 }
 .ipad-logo {
-  display: flex; align-items: center; flex-shrink: 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
 }
 .ipad-logo img {
   width: 48px; height: 48px; border-radius: 12px;
@@ -26,11 +41,43 @@
 .ipad-logo p {
   font-size: 13px; color: #78716c; margin: 0;
 }
+
+/* ── Table Badge ── */
+.ipad-table-badge {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  background: #d97706;
+  color: #ffffff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  margin: 0 12px;
+}
+.ipad-table-badge i {
+  margin-left: 6px;
+  font-size: 13px;
+}
+
+/* ── Search ── */
 .ipad-search {
-  display: flex; align-items: center;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
   background: #f5f5f4; border-radius: 12px; padding: 0 14px;
+  -webkit-flex: 1;
   flex: 1; max-width: 360px; height: 44px;
-  border: 1px solid transparent;
+  border: 1px solid #d6d3d1;
 }
 .ipad-search i { color: #78716c; font-size: 14px; margin-left: 8px; }
 .ipad-search input {
@@ -38,45 +85,68 @@
   font-family: inherit; font-size: 14px; width: 100%; height: 100%;
   color: #0c0a09;
 }
+.ipad-search input::-webkit-input-placeholder { color: #a8a29e; }
 
 /* ── Categories ── */
 .ipad-categories {
-  display: flex; padding: 14px 20px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  padding: 14px 20px;
   overflow-x: auto; -webkit-overflow-scrolling: touch;
   max-width: 1200px; margin: 0 auto;
   white-space: nowrap;
+  -webkit-flex-wrap: nowrap;
+  flex-wrap: nowrap;
 }
 .ipad-categories::-webkit-scrollbar { display: none; }
 .ipad-cat-btn {
+  -webkit-flex-shrink: 0;
   flex-shrink: 0; padding: 8px 18px; border-radius: 20px;
-  font-family: inherit; font-size: 13px; font-weight: 600;
-  background: #fff; color: #78716c;
-  border: 1px solid #e7e5e4; cursor: pointer;
+  font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600;
+  background: #ffffff; color: #57534e;
+  border: 1px solid #d6d3d1; cursor: pointer;
   margin-left: 8px;
+  white-space: nowrap;
 }
 .ipad-cat-btn.active,
 .ipad-cat-btn:hover {
-  background: #d97706; color: #fff; border-color: #d97706;
+  background: #d97706; color: #ffffff; border-color: #d97706;
+}
+
+/* ── Main Layout ── */
+.ipad-main {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  max-width: 1400px; margin: 0 auto;
 }
 
 /* ── Products Grid (flexbox wrap) ── */
 .ipad-products {
-  display: flex; flex-wrap: wrap;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
   padding: 0 20px 100px;
-  max-width: 1200px; margin: 0 auto;
+  -webkit-flex: 1;
+  flex: 1;
+  min-width: 0;
 }
 .ipad-loading {
   width: 100%; text-align: center; padding: 60px 0;
   color: #78716c; font-size: 16px;
 }
-.ipad-loading i { margin-left: 8px; font-size: 20px; }
+.ipad-loading i { margin-left: 8px; font-size: 20px; color: #d97706; }
 
+/* ── Product Card ── */
 .ipad-product-card {
   -webkit-box-flex: 0;
   -webkit-flex: 0 0 23%;
   flex: 0 0 23%;
   min-width: 170px;
-  background: #fff; border-radius: 16px; padding: 16px;
+  background: #ffffff; border-radius: 16px; padding: 16px;
   text-align: center; border: 1px solid #e7e5e4;
   box-shadow: 0 2px 8px rgba(0,0,0,.04);
   display: -webkit-box;
@@ -91,14 +161,21 @@
 .ipad-product-card:hover {
   box-shadow: 0 6px 20px rgba(0,0,0,.08);
 }
+
+/* ── Product Image (background-image approach for Safari 9) ── */
 .ipad-product-img {
-  width: 100%; height: 130px; border-radius: 12px;
-  overflow: hidden; margin-bottom: 10px; background: #f5f5f4;
+  width: 100%; height: 140px; border-radius: 12px;
+  overflow: hidden; margin-bottom: 10px;
+  background-color: #f5f5f4;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
 }
 .ipad-product-img img {
-  width: 100%; height: 130px;
-  display: block;
+  width: 100%; height: 140px;
+  display: none;
 }
+
 .ipad-product-card h3 {
   font-size: 15px; color: #0c0a09; font-weight: 700;
   margin-bottom: 2px;
@@ -107,7 +184,7 @@
   font-size: 11px; color: #78716c; margin-bottom: 4px;
 }
 .ipad-product-card .ipad-desc {
-  font-size: 11px; color: #888; margin-bottom: 6px;
+  font-size: 11px; color: #888888; margin-bottom: 6px;
   line-height: 1.4;
 }
 .ipad-product-card .ipad-price {
@@ -117,8 +194,8 @@
 .ipad-add-btn {
   width: 100%; height: 40px; border-radius: 10px;
   background: #d97706;
-  color: #fff; font-size: 14px; font-weight: 600;
-  font-family: inherit; border: none; cursor: pointer;
+  color: #ffffff; font-size: 14px; font-weight: 600;
+  font-family: 'Cairo', sans-serif; border: none; cursor: pointer;
   display: -webkit-box;
   display: -webkit-flex;
   display: flex;
@@ -128,29 +205,110 @@
   -webkit-box-pack: center;
   -webkit-justify-content: center;
   justify-content: center;
-  transition: .2s;
+  -webkit-transition: opacity .2s;
+  transition: opacity .2s;
 }
 .ipad-add-btn:active { opacity: .85; }
 
-/* ── Cart FAB ── */
+/* ── Sidebar Cart (desktop / iPad landscape) ── */
+.ipad-sidebar {
+  display: none;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  width: 320px;
+  min-height: 0;
+  background: #ffffff;
+  border-right: 1px solid #e7e5e4;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+.ipad-sidebar-header {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e7e5e4;
+}
+.ipad-sidebar-header h2 {
+  font-size: 16px; font-weight: 700; color: #0c0a09; margin: 0;
+  font-family: 'Cairo', sans-serif;
+}
+.ipad-sidebar-header h2 i {
+  color: #d97706; margin-left: 8px; font-size: 15px;
+}
+.ipad-sidebar-clear {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #fef2f2; border: none; cursor: pointer;
+  font-size: 13px; color: #dc2626;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+}
+.ipad-sidebar-list {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1;
+  flex: 1; overflow-y: auto; padding: 14px 20px;
+  -webkit-overflow-scrolling: touch;
+}
+.ipad-sidebar-footer {
+  padding: 14px 20px; border-top: 1px solid #e7e5e4;
+  background: #ffffff;
+}
+.ipad-sidebar-total {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.ipad-sidebar-total span { font-size: 15px; color: #78716c; }
+.ipad-sidebar-total strong {
+  font-size: 20px; color: #d97706; font-weight: 800;
+}
+.ipad-empty-cart {
+  text-align: center; padding: 40px 0; color: #a8a29e;
+}
+.ipad-empty-cart i { font-size: 32px; margin-bottom: 8px; display: block; color: #d6d3d1; }
+
+/* ── Cart FAB (mobile only) ── */
 .ipad-cart-fab {
   display: none; position: fixed; bottom: 24px; left: 24px;
   width: 60px; height: 60px; border-radius: 50%;
-  background: #d97706; color: #fff;
+  background: #d97706; color: #ffffff;
   font-size: 22px; border: none; cursor: pointer;
   box-shadow: 0 4px 16px rgba(217,119,6,.4);
   z-index: 200;
 }
 .ipad-badge {
   position: absolute; top: -4px; right: -4px;
-  background: #dc2626; color: #fff;
+  background: #dc2626; color: #ffffff;
   font-size: 11px; font-weight: 700;
   min-width: 20px; height: 20px; border-radius: 10px;
   display: none; padding: 0 5px;
   text-align: center; line-height: 20px;
 }
 
-/* ── Cart Sheet ── */
+/* ── Cart Sheet (mobile bottom sheet) ── */
 .ipad-sheet-overlay {
   display: none; position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -159,7 +317,7 @@
 .ipad-sheet-overlay.show { display: block; }
 .ipad-sheet {
   position: fixed; bottom: 0; left: 0; right: 0;
-  background: #fff; border-radius: 20px 20px 0 0;
+  background: #ffffff; border-radius: 20px 20px 0 0;
   z-index: 310; max-height: 80vh;
   display: -webkit-box;
   display: -webkit-flex;
@@ -175,11 +333,19 @@
 }
 .ipad-sheet.open { -webkit-transform: translateY(0); transform: translateY(0); }
 .ipad-sheet-handle {
-  width: 40px; height: 4px; background: #ddd;
+  width: 40px; height: 4px; background: #d6d3d1;
   border-radius: 2px; margin: 10px auto 0;
 }
 .ipad-sheet-header {
-  display: flex; align-items: center; justify-content: space-between;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
   padding: 14px 20px; border-bottom: 1px solid #e7e5e4;
 }
 .ipad-sheet-header h2 {
@@ -196,14 +362,35 @@
   flex: 1; overflow-y: auto; padding: 14px 20px;
   -webkit-overflow-scrolling: touch;
 }
-.ipad-empty-cart {
-  text-align: center; padding: 40px 0; color: #78716c;
+.ipad-sheet-footer {
+  padding: 14px 20px; border-top: 1px solid #e7e5e4;
+  background: #ffffff;
 }
-.ipad-empty-cart i { font-size: 32px; margin-bottom: 8px; display: block; }
+.ipad-sheet-total {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.ipad-sheet-total span { font-size: 15px; color: #78716c; }
+.ipad-sheet-total strong {
+  font-size: 20px; color: #d97706; font-weight: 800;
+}
 
-/* ── Sheet Order Item ── */
+/* ── Order Item (shared for sidebar + sheet) ── */
 .ipad-order-item {
-  display: flex; align-items: center;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
   padding: 12px 0; border-bottom: 1px solid #f0f0f0;
 }
 .ipad-order-item:last-child { border-bottom: none; }
@@ -224,43 +411,57 @@
   white-space: nowrap;
 }
 .ipad-oi-controls {
-  display: flex; align-items: center; flex-shrink: 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
 }
 .ipad-oi-btn {
   width: 30px; height: 30px; border-radius: 8px;
-  border: 1px solid #e7e5e4; background: #fff;
+  border: 1px solid #e7e5e4; background: #ffffff;
   font-size: 14px; font-weight: 700; color: #0c0a09;
   margin-left: 4px; cursor: pointer;
 }
 .ipad-oi-qty {
   font-size: 14px; font-weight: 700; min-width: 20px; text-align: center;
+  color: #0c0a09;
 }
 .ipad-oi-delete {
   width: 30px; height: 30px; border-radius: 8px;
   border: none; background: #fef2f2; color: #dc2626;
   font-size: 12px; cursor: pointer; margin-left: 4px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
 }
 
-/* ── Sheet Footer ── */
-.ipad-sheet-footer {
-  padding: 14px 20px; border-top: 1px solid #e7e5e4;
-  background: #fff;
-}
-.ipad-sheet-total {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 12px;
-}
-.ipad-sheet-total span { font-size: 15px; color: #78716c; }
-.ipad-sheet-total strong {
-  font-size: 20px; color: #d97706; font-weight: 800;
-}
+/* ── Checkout Button (shared) ── */
 .ipad-checkout-btn {
   width: 100%; height: 48px; border-radius: 12px;
   background: #d97706;
-  color: #fff; font-size: 16px; font-weight: 700;
-  font-family: inherit; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: .2s;
+  color: #ffffff; font-size: 16px; font-weight: 700;
+  font-family: 'Cairo', sans-serif; border: none; cursor: pointer;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-transition: opacity .2s;
+  transition: opacity .2s;
 }
 .ipad-checkout-btn:active { opacity: .9; }
 
@@ -283,11 +484,19 @@
   justify-content: center;
 }
 .ipad-modal-box {
-  background: #fff; border-radius: 20px; width: 100%; max-width: 440px;
+  background: #ffffff; border-radius: 20px; width: 100%; max-width: 440px;
   max-height: 90vh; overflow-y: auto;
 }
 .ipad-modal-header {
-  display: flex; align-items: center; justify-content: space-between;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
   padding: 18px 20px; border-bottom: 1px solid #e7e5e4;
 }
 .ipad-modal-header h3 {
@@ -302,11 +511,17 @@
 .ipad-modal-body { padding: 20px; }
 .ipad-summary {
   background: #f8f6f3; border-radius: 12px; padding: 14px;
-  margin-bottom: 16px; font-size: 13px; color: #555;
+  margin-bottom: 16px; font-size: 13px; color: #555555;
   max-height: 120px; overflow-y: auto;
 }
 .ipad-summary .ipad-sum-item {
-  display: flex; justify-content: space-between; padding: 3px 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  padding: 3px 0;
 }
 .ipad-form-group { margin-bottom: 14px; }
 .ipad-form-group label {
@@ -315,12 +530,20 @@
 }
 .ipad-form-group select {
   width: 100%; height: 44px; border-radius: 10px;
-  border: 1px solid #e7e5e4; padding: 0 12px;
-  font-family: inherit; font-size: 14px; background: #fff;
+  border: 1px solid #d6d3d1; padding: 0 12px;
+  font-family: 'Cairo', sans-serif; font-size: 14px; background: #ffffff;
   outline: none; color: #0c0a09;
 }
 .ipad-total-row {
-  display: flex; align-items: center; justify-content: space-between;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
   background: #f8f6f3; border-radius: 12px; padding: 12px 14px;
   margin-bottom: 12px;
 }
@@ -329,12 +552,21 @@
 }
 .ipad-total-row input {
   width: 120px; height: 40px; border-radius: 8px;
-  border: 1px solid #e7e5e4; padding: 0 10px;
+  border: 1px solid #d6d3d1; padding: 0 10px;
   font-family: inherit; font-size: 16px; text-align: left;
-  direction: ltr; background: #fff; outline: none;
+  direction: ltr; background: #ffffff; outline: none;
+  color: #0c0a09;
 }
 .ipad-change-row {
-  display: flex; justify-content: space-between; align-items: center;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
   padding: 10px 14px; border-radius: 10px; margin-bottom: 4px;
 }
 .ipad-change-row.negative { background: #fef2f2; color: #dc2626; }
@@ -343,7 +575,10 @@
 .ipad-change-row strong { font-size: 16px; font-weight: 800; }
 
 .ipad-modal-footer {
-  display: flex; padding: 16px 20px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  padding: 16px 20px;
   border-top: 1px solid #e7e5e4;
 }
 .ipad-btn-cancel {
@@ -351,7 +586,7 @@
   -webkit-flex: 1;
   flex: 1; height: 44px; border-radius: 10px;
   background: #f5f5f4; color: #0c0a09;
-  font-family: inherit; font-size: 14px; font-weight: 600;
+  font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 600;
   border: none; cursor: pointer; margin-left: 10px;
 }
 .ipad-btn-confirm {
@@ -359,15 +594,15 @@
   -webkit-flex: 1;
   flex: 1; height: 44px; border-radius: 10px;
   background: #d97706;
-  color: #fff; font-family: inherit; font-size: 14px; font-weight: 700;
+  color: #ffffff; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 700;
   border: none; cursor: pointer;
 }
 .ipad-btn-danger {
   -webkit-box-flex: 1;
   -webkit-flex: 1;
   flex: 1; height: 44px; border-radius: 10px;
-  background: #dc2626; color: #fff;
-  font-family: inherit; font-size: 14px; font-weight: 700;
+  background: #dc2626; color: #ffffff;
+  font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 700;
   border: none; cursor: pointer;
 }
 
@@ -417,7 +652,7 @@
 }
 .ipad-loading-overlay i { font-size: 28px; color: #d97706; margin-left: 8px; }
 
-/* ── Responsive: iPad Portrait ── */
+/* ── Responsive: Mobile / Small screens ── */
 @media (max-width: 768px) {
   .ipad-product-card {
     -webkit-flex: 0 0 48%;
@@ -425,22 +660,35 @@
     min-width: 150px;
   }
   .ipad-header-inner { -webkit-flex-wrap: wrap; flex-wrap: wrap; }
-  .ipad-search { max-width: 100%; -webkit-order: 3; order: 3; }
+  .ipad-search { max-width: 100%; -webkit-order: 3; order: 3; margin-top: 10px; }
+  .ipad-table-badge { -webkit-order: 2; order: 2; margin: 0 0 0 auto; }
   .ipad-cart-fab { display: block; }
+  .ipad-sidebar { display: none !important; }
 }
 
-/* ── Responsive: iPad Landscape ── */
+/* ── Responsive: iPad Portrait ── */
 @media (min-width: 769px) and (max-width: 1024px) {
   .ipad-product-card {
     -webkit-flex: 0 0 31%;
     flex: 0 0 31%;
   }
+  .ipad-sidebar { display: none !important; }
+  .ipad-cart-fab { display: block; }
 }
 
-/* ── Responsive: Large screens ── */
+/* ── Responsive: iPad Landscape + Desktop ── */
 @media (min-width: 1025px) {
   .ipad-product-card {
-    -webkit-flex: 0 0 23%;
-    flex: 0 0 23%;
+    -webkit-flex: 0 0 31%;
+    flex: 0 0 31%;
+  }
+  .ipad-sidebar {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+  }
+  .ipad-cart-fab { display: none; }
+  .ipad-products {
+    padding-bottom: 20px;
   }
 }

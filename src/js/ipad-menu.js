@@ -118,6 +118,10 @@
   var sheetList = document.getElementById('sheetList');
   var sheetTotal = document.getElementById('sheetTotal');
   var loadingEl = document.getElementById('loadingSpinner');
+  var sidebarList = document.getElementById('sidebarList');
+  var sidebarTotal = document.getElementById('sidebarTotal');
+  var tableBadge = document.getElementById('tableBadge');
+  var tableBadgeText = document.getElementById('tableBadgeText');
 
   // ── Load settings ──
   function loadSettings(callback) {
@@ -172,7 +176,7 @@
       productsEl.innerHTML = '<div class="ipad-loading"><span>لا توجد منتجات</span></div>';
       return;
     }
-    var fallbackImg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f5f5f4"/><text x="50" y="55" text-anchor="middle" font-size="40">🍽</text></svg>';
+    var fallbackBg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f5f5f4"/><text x="50" y="55" text-anchor="middle" font-size="40">🍽</text></svg>';
     for (var i = 0; i < list.length; i++) {
       var p = list[i];
       if (!p.available && p.available !== undefined) continue;
@@ -180,13 +184,12 @@
       card.className = 'ipad-product-card';
       card.setAttribute('data-category', p.category || '');
       var imgSrc = sanitizeUrl(p.image) || '';
-      // Try .webp → .jpg fallback for Safari 9
       if (imgSrc && imgSrc.indexOf('.webp') !== -1) {
         imgSrc = imgSrc.replace('.webp', '.jpg');
       }
-      if (!imgSrc) imgSrc = fallbackImg;
+      if (!imgSrc) imgSrc = fallbackBg;
       var html = '';
-      html += '<div class="ipad-product-img"><img src="' + imgSrc + '" alt="' + esc(p.name) + '" onerror="if(this.src!==\''+fallbackImg+'\')this.src=\''+fallbackImg+'\';"></div>';
+      html += '<div class="ipad-product-img" style="background-image:url(\'' + imgSrc + '\')"></div>';
       html += '<h3>' + esc(p.name) + '</h3>';
       if (p.nameEn) html += '<div class="ipad-en">' + esc(p.nameEn) + '</div>';
       if (p.description) html += '<div class="ipad-desc">' + esc(p.description) + '</div>';
@@ -295,38 +298,41 @@
       total += orderItems[i].qty * orderItems[i].price;
     }
     var t = calculateTotals(total);
-    sheetTotal.textContent = t.grandTotal + ' جنيه';
+    var totalText = t.grandTotal + ' جنيه';
+    sheetTotal.textContent = totalText;
+    if (sidebarTotal) sidebarTotal.textContent = totalText;
     var count = 0;
     for (var j = 0; j < orderItems.length; j++) count += orderItems[j].qty;
     cartBadge.textContent = count;
     cartBadge.style.display = count > 0 ? 'flex' : 'none';
   }
 
-  // ── Render cart sheet ──
+  // ── Render cart sheet + sidebar ──
   function renderSheet() {
-    if (orderItems.length === 0) {
-      sheetList.innerHTML = '<div class="ipad-empty-cart"><i class="fa-solid fa-bag-shopping"></i><span>لم تُضف منتجات بعد</span></div>';
-      return;
-    }
     var html = '';
-    for (var i = 0; i < orderItems.length; i++) {
-      var item = orderItems[i];
-      var itemTotal = item.qty * item.price;
-      html += '<div class="ipad-order-item">';
-      html += '  <div class="ipad-oi-info">';
-      html += '    <div class="ipad-oi-name">' + esc(item.name) + '</div>';
-      if (item.note) html += '    <div class="ipad-oi-note">' + esc(item.note) + '</div>';
-      html += '    <div class="ipad-oi-price">' + itemTotal + ' جنيه</div>';
-      html += '  </div>';
-      html += '  <div class="ipad-oi-controls">';
-      html += '    <button class="ipad-oi-btn ipad-oi-minus" data-idx="' + i + '">-</button>';
-      html += '    <span class="ipad-oi-qty">' + item.qty + '</span>';
-      html += '    <button class="ipad-oi-btn ipad-oi-plus" data-idx="' + i + '">+</button>';
-      html += '    <button class="ipad-oi-delete ipad-oi-del" data-idx="' + i + '"><i class="fa-solid fa-trash"></i></button>';
-      html += '  </div>';
-      html += '</div>';
+    if (orderItems.length === 0) {
+      html = '<div class="ipad-empty-cart"><i class="fa-solid fa-bag-shopping"></i><span>لم تُضف منتجات بعد</span></div>';
+    } else {
+      for (var i = 0; i < orderItems.length; i++) {
+        var item = orderItems[i];
+        var itemTotal = item.qty * item.price;
+        html += '<div class="ipad-order-item">';
+        html += '  <div class="ipad-oi-info">';
+        html += '    <div class="ipad-oi-name">' + esc(item.name) + '</div>';
+        if (item.note) html += '    <div class="ipad-oi-note">' + esc(item.note) + '</div>';
+        html += '    <div class="ipad-oi-price">' + itemTotal + ' جنيه</div>';
+        html += '  </div>';
+        html += '  <div class="ipad-oi-controls">';
+        html += '    <button class="ipad-oi-btn ipad-oi-minus" data-idx="' + i + '">-</button>';
+        html += '    <span class="ipad-oi-qty">' + item.qty + '</span>';
+        html += '    <button class="ipad-oi-btn ipad-oi-plus" data-idx="' + i + '">+</button>';
+        html += '    <button class="ipad-oi-delete ipad-oi-del" data-idx="' + i + '"><i class="fa-solid fa-trash"></i></button>';
+        html += '  </div>';
+        html += '</div>';
+      }
     }
     sheetList.innerHTML = html;
+    if (sidebarList) sidebarList.innerHTML = html;
   }
 
   // ── Sheet controls ──
@@ -531,9 +537,13 @@
 
   // ── Init ──
   function startApp() {
-    // Set table label
+    // Set table label + badge
     if (isCustomer) {
       document.getElementById('tableLabel').textContent = 'القائمة - طاولة ' + tableNum;
+      if (tableBadge && tableBadgeText) {
+        tableBadgeText.textContent = 'طاولة ' + tableNum;
+        tableBadge.style.display = '-webkit-box';
+      }
     }
 
     // Load categories + products
@@ -599,6 +609,32 @@
     clearCart();
     closeClearModal();
   });
+
+  // Sidebar cart events
+  if (document.getElementById('sidebarCheckout')) {
+    document.getElementById('sidebarCheckout').addEventListener('click', openCheckout);
+  }
+  if (document.getElementById('sidebarClear')) {
+    document.getElementById('sidebarClear').addEventListener('click', openClearModal);
+  }
+
+  // Sidebar cart item controls (delegated)
+  if (sidebarList) {
+    sidebarList.addEventListener('click', function (e) {
+      var btn = e.target;
+      var idx;
+      if (btn.classList.contains('ipad-oi-minus')) {
+        idx = parseInt(btn.getAttribute('data-idx'));
+        changeQty(idx, -1);
+      } else if (btn.classList.contains('ipad-oi-plus')) {
+        idx = parseInt(btn.getAttribute('data-idx'));
+        changeQty(idx, 1);
+      } else if (btn.classList.contains('ipad-oi-del')) {
+        idx = parseInt(btn.getAttribute('data-idx'));
+        removeFromCart(idx);
+      }
+    });
+  }
 
   // Long press on cart fab to clear
   var longPressTimer = null;
