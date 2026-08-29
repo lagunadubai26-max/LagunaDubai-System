@@ -34,14 +34,13 @@
     return !isNaN(n) && isFinite(n) ? n : (def !== undefined ? def : 0);
   }
 
-  // ── Parse URL params ──
+  // ── Parse URL params (fallback if no UI selection) ──
   function getParam(name) {
     var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
     return match ? decodeURIComponent(match[1]) : null;
   }
-  var tableNum = /^\d+$/.test(getParam('table')) ? getParam('table') : '';
-  var hasService = getParam('service') === '1';
-  var isCustomer = !!tableNum;
+  var urlTableNum = /^\d+$/.test(getParam('table')) ? getParam('table') : '';
+  var urlHasService = getParam('service') === '1';
 
   // ── State ──
   var products = [];
@@ -53,6 +52,11 @@
   var serviceRate = 0;
   var enableService = false;
   var settings = {};
+  var tableNum = urlTableNum;
+  var hasService = urlHasService;
+  var customerType = 'regular';
+  var customerName = '';
+  var customersCache = [];
 
   // ── Firebase init ──
   var db = null;
@@ -122,23 +126,51 @@
   var sidebarTotal = document.getElementById('sidebarTotal');
   var tableBadge = document.getElementById('tableBadge');
   var tableBadgeText = document.getElementById('tableBadgeText');
+  var tableSelectEl = document.getElementById('tableSelect');
+  var serviceToggleEl = document.getElementById('serviceToggle');
+  var serviceToggleTextEl = document.getElementById('serviceToggleText');
+  var customerTypeEl = document.getElementById('customerTypeSelect');
+  var customerNameGroupEl = document.getElementById('customerNameGroup');
+  var customerNameInputEl = document.getElementById('customerNameInput');
+  var customersListEl = document.getElementById('customersList');
 
-  // ── Load settings ──
+  // ── Load settings + customers ──
   function loadSettings(callback) {
     fbGetAll('settings').then(function (arr) {
       if (arr.length > 0) {
         settings = arr[0];
       }
-      if (hasService) {
-        enableService = settings.enableService !== false;
-        serviceRate = settings.serviceTax || 10;
-        enableTax = settings.enableTax !== false;
-        taxRate = settings.taxRate || 14;
-      }
       callback();
     }).catch(function () {
       callback();
     });
+    // Fetch customers for VIP dropdown
+    fbGetAll('customers').then(function (arr) {
+      customersCache = arr;
+      var html = '';
+      for (var i = 0; i < arr.length; i++) {
+        html += '<option value="' + esc(arr[i].name) + '">';
+      }
+      if (customersListEl) customersListEl.innerHTML = html;
+    }).catch(function () {});
+  }
+
+  // ── Apply service/tax based on UI toggle ──
+  function applyServiceFromSettings() {
+    if (hasService && settings.enableService !== false) {
+      enableService = true;
+      serviceRate = settings.serviceTax || 10;
+    } else {
+      enableService = false;
+      serviceRate = 0;
+    }
+    if (hasService && settings.enableTax !== false) {
+      enableTax = true;
+      taxRate = settings.taxRate || 14;
+    } else {
+      enableTax = false;
+      taxRate = 0;
+    }
   }
 
   // ── Calculate totals ──
@@ -297,8 +329,18 @@
     for (var i = 0; i < orderItems.length; i++) {
       total += orderItems[i].qty * orderItems[i].price;
     }
+    applyServiceFromSettings();
     var t = calculateTotals(total);
-    var totalText = t.grandTotal + ' جنيه';
+    var grandTotal = t.grandTotal;
+
+    // Apply customer type adjustments
+    if (customerType === 'special') {
+      grandTotal = Math.round(grandTotal * 0.75);
+    } else if (customerType === 'free') {
+      grandTotal = 0;
+    }
+
+    var totalText = grandTotal + ' جنيه';
     sheetTotal.textContent = totalText;
     if (sidebarTotal) sidebarTotal.textContent = totalText;
     var count = 0;
@@ -395,7 +437,10 @@
     for (var i = 0; i < orderItems.length; i++) {
       baseTotal += orderItems[i].qty * orderItems[i].price;
     }
+    applyServiceFromSettings();
     var t = calculateTotals(baseTotal);
+    var grandTotal = t.grandTotal;
+
     // Build summary
     var sumHtml = '';
     for (var j = 0; j < orderItems.length; j++) {
@@ -408,14 +453,26 @@
     if (t.taxAmount > 0) {
       sumHtml += '<div class="ipad-sum-item"><span>ضريبة (' + taxRate + '%)</span><span>' + t.taxAmount + ' ج.م</span></div>';
     }
-    sumHtml += '<div class="ipad-sum-item" style="font-weight:700;font-size:15px;border-top:2px dashed #ddd;padding-top:6px;margin-top:4px"><span>الإجمالي</span><span>' + t.grandTotal + ' ج.م</span></div>';
+
+    // Apply customer type
+    if (customerType === 'special') {
+      var disc = Math.round(grandTotal * 0.25);
+      grandTotal = grandTotal - disc;
+      sumHtml += '<div class="ipad-sum-item" style="color:#059669"><span>خصم مميز (25%)</span><span>-' + disc + ' ج.م</span></div>';
+    } else if (customerType === 'free') {
+      sumHtml += '<div class="ipad-sum-item" style="color:#d97706"><span>ضيافة مجانية</span><span>0 ج.م</span></div>';
+      grandTotal = 0;
+    }
+
+    sumHtml += '<div class="ipad-sum-item" style="font-weight:700;font-size:15px;border-top:2px dashed #ddd;padding-top:6px;margin-top:4px"><span>الإجمالي</span><span>' + grandTotal + ' ج.م</span></div>';
     document.getElementById('checkoutSummary').innerHTML = sumHtml;
-    document.getElementById('paidAmount').value = '';
+    document.getElementById('paidAmount').value = grandTotal > 0 ? '' : '0';
     document.getElementById('changeAmount').textContent = '0 جنيه';
     document.getElementById('changeRow').className = 'ipad-change-row';
     document.getElementById('checkoutModal').classList.add('show');
     // Store for confirm
-    document.getElementById('checkoutModal')._grandTotal = t.grandTotal;
+    document.getElementById('checkoutModal')._grandTotal = grandTotal;
+    document.getElementById('checkoutModal')._baseTotal = baseTotal;
     document.getElementById('checkoutModal')._serviceAmount = t.serviceAmount;
     document.getElementById('checkoutModal')._taxAmount = t.taxAmount;
   }
@@ -441,15 +498,17 @@
 
   function confirmCheckout() {
     var grandTotal = document.getElementById('checkoutModal')._grandTotal || 0;
+    var baseTotal = document.getElementById('checkoutModal')._baseTotal || 0;
     var serviceAmount = document.getElementById('checkoutModal')._serviceAmount || 0;
     var taxAmount = document.getElementById('checkoutModal')._taxAmount || 0;
     var paid = num(document.getElementById('paidAmount').value, 0);
     var method = document.getElementById('paymentMethod').value;
     var table = tableNum ? 'طاولة ' + tableNum : null;
 
-    if (paid <= 0) {
-      alert('يرجى إدخال المبلغ المدفوع');
-      return;
+    // Determine invoice status
+    var invStatus = 'pending';
+    if (customerType === 'free' || paid >= grandTotal) {
+      invStatus = 'paid';
     }
 
     // Show loading
@@ -467,27 +526,34 @@
       });
     }
 
+    var custLabel = 'نقدي';
+    if (customerType === 'special' && customerName) {
+      custLabel = customerName;
+    } else if (customerType === 'free') {
+      custLabel = 'ضيافة';
+    }
+
     var invData = {
       id: invId,
-      customer: 'نقدي',
+      customer: custLabel,
       table: table,
       date: nowISO(),
       items: itemsData,
-      total: grandTotal,
+      total: baseTotal,
+      grandTotal: grandTotal,
       paid: paid,
       change: Math.max(0, paid - grandTotal),
       remaining: Math.max(0, grandTotal - paid),
       serviceAmount: serviceAmount,
       taxAmount: taxAmount,
       paymentMethod: method,
-      status: 'pending',
-      customerType: 'regular',
+      status: invStatus,
+      customerType: customerType,
       itemsValue: total,
       createdBy: 'iPad'
     };
 
     fbRunTransaction(function (tx) {
-      // Update table status
       if (tableNum) {
         return fbGetAll('tables_').then(function (allTables) {
           var tbl = null;
@@ -503,6 +569,20 @@
         tx.set(db.collection('invoices').doc(invId), invData);
       }
     }).then(function () {
+      // Update customer stats if VIP
+      if (customerType === 'special' && customerName) {
+        for (var k = 0; k < customersCache.length; k++) {
+          if (customersCache[k].name === customerName) {
+            var c = customersCache[k];
+            fbUpdate('customers', c.id, {
+              visits: (c.visits || 0) + 1,
+              totalSpent: (c.totalSpent || 0) + baseTotal,
+              lastVisit: nowISO()
+            }).catch(function () {});
+            break;
+          }
+        }
+      }
       document.getElementById('checkoutLoading').style.display = 'none';
       closeCheckout();
       // Show success
@@ -513,8 +593,12 @@
       detHtml += '<div><b>المدفوع:</b> ' + paid + ' جنيه</div>';
       if (paid > grandTotal) {
         detHtml += '<div style="color:#059669"><b>الباقي:</b> ' + (paid - grandTotal) + ' جنيه</div>';
+      } else if (paid < grandTotal) {
+        detHtml += '<div style="color:#dc2626"><b>المتبقي:</b> ' + (grandTotal - paid) + ' جنيه</div>';
       }
       if (table) detHtml += '<div><b>الطاولة:</b> ' + table + '</div>';
+      if (customerType === 'special') detHtml += '<div><b>العميل:</b> ' + esc(custLabel) + ' (مميز)</div>';
+      if (customerType === 'free') detHtml += '<div style="color:#d97706"><b>ضيافة مجانية</b></div>';
       detHtml += '</div>';
       document.getElementById('successDetails').innerHTML = detHtml;
       document.getElementById('successModal').classList.add('show');
@@ -524,6 +608,20 @@
       console.error('[checkout] error:', e);
       alert('حدث خطأ أثناء إنشاء الفاتورة: ' + (e.message || e));
     });
+  }
+
+  // ── Update table badge display ──
+  function updateTableBadge() {
+    if (tableNum) {
+      document.getElementById('tableLabel').textContent = 'القائمة - طاولة ' + tableNum;
+      if (tableBadge && tableBadgeText) {
+        tableBadgeText.textContent = 'طاولة ' + tableNum;
+        tableBadge.style.display = '-webkit-box';
+      }
+    } else {
+      document.getElementById('tableLabel').textContent = 'القائمة';
+      if (tableBadge) tableBadge.style.display = 'none';
+    }
   }
 
   // ── Clear modal ──
@@ -537,13 +635,49 @@
 
   // ── Init ──
   function startApp() {
-    // Set table label + badge
-    if (isCustomer) {
-      document.getElementById('tableLabel').textContent = 'القائمة - طاولة ' + tableNum;
-      if (tableBadge && tableBadgeText) {
-        tableBadgeText.textContent = 'طاولة ' + tableNum;
-        tableBadge.style.display = '-webkit-box';
-      }
+    // Set table from URL if provided
+    if (urlTableNum && tableSelectEl) {
+      tableSelectEl.value = urlTableNum;
+    }
+    // Set service from URL if provided
+    if (urlHasService && serviceToggleEl) {
+      serviceToggleEl.checked = true;
+      if (serviceToggleTextEl) serviceToggleTextEl.textContent = 'نعم';
+    }
+    // Sync table badge
+    updateTableBadge();
+
+    // Table select handler
+    if (tableSelectEl) {
+      tableSelectEl.addEventListener('change', function () {
+        tableNum = tableSelectEl.value;
+        updateTableBadge();
+      });
+    }
+    // Service toggle handler
+    if (serviceToggleEl) {
+      serviceToggleEl.addEventListener('change', function () {
+        hasService = serviceToggleEl.checked;
+        if (serviceToggleTextEl) serviceToggleTextEl.textContent = hasService ? 'نعم' : 'بدون';
+        applyServiceFromSettings();
+        recalcTotal();
+      });
+    }
+    // Customer type handler
+    if (customerTypeEl) {
+      customerTypeEl.addEventListener('change', function () {
+        customerType = customerTypeEl.value;
+        if (customerNameGroupEl) {
+          customerNameGroupEl.style.display = (customerType === 'special') ? '-webkit-box' : 'none';
+        }
+        recalcTotal();
+      });
+    }
+    // Customer name handler
+    if (customerNameInputEl) {
+      customerNameInputEl.addEventListener('input', function () {
+        customerName = customerNameInputEl.value;
+      });
     }
 
     // Load categories + products
@@ -581,7 +715,8 @@
 
       // Load settings for tax/service
       loadSettings(function () {
-        // Ready
+        applyServiceFromSettings();
+        recalcTotal();
       });
     }).catch(function (e) {
       console.error('[load] error:', e);

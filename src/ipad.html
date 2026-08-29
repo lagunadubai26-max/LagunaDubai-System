@@ -16,7 +16,7 @@
 
   <!-- Header -->
   <header class="ipad-header">
-    <div class="ipad-header-inner">
+    <div class="ipad-header-top">
       <div class="ipad-logo">
         <img src="images/logo.png" alt="Laguna" onerror="this.style.display='none'">
         <div>
@@ -24,13 +24,45 @@
           <p id="tableLabel">القائمة</p>
         </div>
       </div>
-      <div class="ipad-table-badge" id="tableBadge" style="display:none">
-        <i class="fa-solid fa-utensils"></i>
-        <span id="tableBadgeText">طاولة 1</span>
-      </div>
       <div class="ipad-search">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" id="searchInput" placeholder="ابحث عن منتج...">
+      </div>
+    </div>
+    <div class="ipad-controls-bar">
+      <div class="ipad-ctrl-group">
+        <label class="ipad-ctrl-label"><i class="fa-solid fa-utensils"></i> الطاولة</label>
+        <select id="tableSelect" class="ipad-ctrl-select">
+          <option value="">بدون طاولة</option>
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+          <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+          <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+          <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+          <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+          <option value="19">19</option><option value="20">20</option>
+        </select>
+      </div>
+      <div class="ipad-ctrl-group">
+        <label class="ipad-ctrl-label"><i class="fa-solid fa-concierge-bell"></i> الخدمة</label>
+        <div class="ipad-toggle-wrap">
+          <input type="checkbox" id="serviceToggle" class="ipad-toggle-input">
+          <label for="serviceToggle" class="ipad-toggle-label"></label>
+          <span class="ipad-toggle-text" id="serviceToggleText">بدون</span>
+        </div>
+      </div>
+      <div class="ipad-ctrl-group">
+        <label class="ipad-ctrl-label"><i class="fa-solid fa-user"></i> نوع العميل</label>
+        <select id="customerTypeSelect" class="ipad-ctrl-select">
+          <option value="regular">عادي</option>
+          <option value="special">مميز (خصم 25%)</option>
+          <option value="free">ضيافة</option>
+        </select>
+      </div>
+      <div class="ipad-ctrl-group" id="customerNameGroup" style="display:none">
+        <label class="ipad-ctrl-label"><i class="fa-solid fa-address-card"></i> اسم العميل</label>
+        <input type="text" id="customerNameInput" class="ipad-ctrl-input" list="customersList" placeholder="اختر أو اكتب...">
+        <datalist id="customersList"></datalist>
       </div>
     </div>
   </header>
