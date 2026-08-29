@@ -404,13 +404,17 @@
     var t = calculateTotals(total);
     var grandTotal = t.grandTotal;
 
-    // Apply customer type adjustments (special gets 25% discount in display)
+    // Apply customer type adjustments
     if (customerType === 'special') {
       grandTotal = Math.round(grandTotal * 0.75);
+    } else if (customerType === 'free') {
+      grandTotal = 0;
     }
-    // free (ضيافة): show real total in cart, invoice will be paid in full
 
     var totalText = grandTotal + ' جنيه';
+    if (customerType === 'free') {
+      totalText = '0 جنيه (ضيافة)';
+    }
     sheetTotal.textContent = totalText;
     if (sidebarTotal) sidebarTotal.textContent = totalText;
     var count = 0;
@@ -530,7 +534,8 @@
       grandTotal = grandTotal - disc;
       sumHtml += '<div class="ipad-sum-item" style="color:#059669"><span>خصم مميز (25%)</span><span>-' + disc + ' ج.م</span></div>';
     } else if (customerType === 'free') {
-      sumHtml += '<div class="ipad-sum-item" style="color:#d97706"><span>ضيافة مجانية</span><span>مدفوع بالكامل</span></div>';
+      grandTotal = 0;
+      sumHtml += '<div class="ipad-sum-item" style="color:#d97706"><span>ضيافة مجانية</span><span>مجاني</span></div>';
     }
 
     sumHtml += '<div class="ipad-sum-item" style="font-weight:700;font-size:15px;border-top:2px dashed #ddd;padding-top:6px;margin-top:4px"><span>الإجمالي</span><span>' + grandTotal + ' ج.م</span></div>';
@@ -577,7 +582,8 @@
     var invStatus = 'pending';
     var paid = num(document.getElementById('paidAmount').value, 0);
     if (customerType === 'free') {
-      paid = grandTotal;
+      paid = 0;
+      grandTotal = 0;
       invStatus = 'paid';
     } else if (paid >= grandTotal) {
       invStatus = 'paid';
@@ -611,13 +617,13 @@
       table: table,
       date: nowISO(),
       items: itemsData,
-      total: baseTotal,
+      total: customerType === 'free' ? 0 : baseTotal,
       grandTotal: grandTotal,
       paid: paid,
       change: Math.max(0, paid - grandTotal),
       remaining: Math.max(0, grandTotal - paid),
-      serviceAmount: serviceAmount,
-      taxAmount: taxAmount,
+      serviceAmount: customerType === 'free' ? 0 : serviceAmount,
+      taxAmount: customerType === 'free' ? 0 : taxAmount,
       paymentMethod: method,
       status: invStatus,
       customerType: customerType,
@@ -661,12 +667,17 @@
       document.getElementById('successTitle').textContent = 'تم إنشاء الفاتورة';
       var detHtml = '<div style="text-align:right;font-size:14px;line-height:1.8">';
       detHtml += '<div><b>رقم:</b> ' + invId + '</div>';
-      detHtml += '<div><b>الإجمالي:</b> ' + grandTotal + ' جنيه</div>';
-      detHtml += '<div><b>المدفوع:</b> ' + paid + ' جنيه</div>';
-      if (paid > grandTotal) {
-        detHtml += '<div style="color:#059669"><b>الباقي:</b> ' + (paid - grandTotal) + ' جنيه</div>';
-      } else if (paid < grandTotal) {
-        detHtml += '<div style="color:#dc2626"><b>المتبقي:</b> ' + (grandTotal - paid) + ' جنيه</div>';
+      if (customerType === 'free') {
+        detHtml += '<div><b>الإجمالي:</b> 0 جنيه (ضيافة مجانية)</div>';
+        detHtml += '<div><b>المدفوع:</b> 0 جنيه</div>';
+      } else {
+        detHtml += '<div><b>الإجمالي:</b> ' + grandTotal + ' جنيه</div>';
+        detHtml += '<div><b>المدفوع:</b> ' + paid + ' جنيه</div>';
+        if (paid > grandTotal) {
+          detHtml += '<div style="color:#059669"><b>الباقي:</b> ' + (paid - grandTotal) + ' جنيه</div>';
+        } else if (paid < grandTotal) {
+          detHtml += '<div style="color:#dc2626"><b>المتبقي:</b> ' + (grandTotal - paid) + ' جنيه</div>';
+        }
       }
       if (table) detHtml += '<div><b>الطاولة:</b> ' + table + '</div>';
       if (customerType === 'special') detHtml += '<div><b>العميل:</b> ' + esc(custLabel) + ' (مميز)</div>';
