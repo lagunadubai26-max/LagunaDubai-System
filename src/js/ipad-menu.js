@@ -179,9 +179,14 @@
       var card = document.createElement('div');
       card.className = 'ipad-product-card';
       card.setAttribute('data-category', p.category || '');
-      var imgSrc = sanitizeUrl(p.image) || fallbackImg;
+      var imgSrc = sanitizeUrl(p.image) || '';
+      // Try .webp → .jpg fallback for Safari 9
+      if (imgSrc && imgSrc.indexOf('.webp') !== -1) {
+        imgSrc = imgSrc.replace('.webp', '.jpg');
+      }
+      if (!imgSrc) imgSrc = fallbackImg;
       var html = '';
-      html += '<div class="ipad-product-img"><img src="' + imgSrc + '" alt="' + esc(p.name) + '" onerror="this.src=\'' + fallbackImg + '\'"></div>';
+      html += '<div class="ipad-product-img"><img src="' + imgSrc + '" alt="' + esc(p.name) + '" onerror="if(this.src!==\''+fallbackImg+'\')this.src=\''+fallbackImg+'\';"></div>';
       html += '<h3>' + esc(p.name) + '</h3>';
       if (p.nameEn) html += '<div class="ipad-en">' + esc(p.nameEn) + '</div>';
       if (p.description) html += '<div class="ipad-desc">' + esc(p.description) + '</div>';
