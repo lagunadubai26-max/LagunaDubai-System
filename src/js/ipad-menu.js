@@ -333,12 +333,11 @@
     var t = calculateTotals(total);
     var grandTotal = t.grandTotal;
 
-    // Apply customer type adjustments
+    // Apply customer type adjustments (special gets 25% discount in display)
     if (customerType === 'special') {
       grandTotal = Math.round(grandTotal * 0.75);
-    } else if (customerType === 'free') {
-      grandTotal = 0;
     }
+    // free (ضيافة): show real total in cart, invoice will be paid in full
 
     var totalText = grandTotal + ' جنيه';
     sheetTotal.textContent = totalText;
@@ -460,8 +459,7 @@
       grandTotal = grandTotal - disc;
       sumHtml += '<div class="ipad-sum-item" style="color:#059669"><span>خصم مميز (25%)</span><span>-' + disc + ' ج.م</span></div>';
     } else if (customerType === 'free') {
-      sumHtml += '<div class="ipad-sum-item" style="color:#d97706"><span>ضيافة مجانية</span><span>0 ج.م</span></div>';
-      grandTotal = 0;
+      sumHtml += '<div class="ipad-sum-item" style="color:#d97706"><span>ضيافة مجانية</span><span>مدفوع بالكامل</span></div>';
     }
 
     sumHtml += '<div class="ipad-sum-item" style="font-weight:700;font-size:15px;border-top:2px dashed #ddd;padding-top:6px;margin-top:4px"><span>الإجمالي</span><span>' + grandTotal + ' ج.م</span></div>';
@@ -501,13 +499,16 @@
     var baseTotal = document.getElementById('checkoutModal')._baseTotal || 0;
     var serviceAmount = document.getElementById('checkoutModal')._serviceAmount || 0;
     var taxAmount = document.getElementById('checkoutModal')._taxAmount || 0;
-    var paid = num(document.getElementById('paidAmount').value, 0);
     var method = document.getElementById('paymentMethod').value;
     var table = tableNum ? 'طاولة ' + tableNum : null;
 
     // Determine invoice status
     var invStatus = 'pending';
-    if (customerType === 'free' || paid >= grandTotal) {
+    var paid = num(document.getElementById('paidAmount').value, 0);
+    if (customerType === 'free') {
+      paid = grandTotal;
+      invStatus = 'paid';
+    } else if (paid >= grandTotal) {
       invStatus = 'paid';
     }
 
@@ -530,7 +531,7 @@
     if (customerType === 'special' && customerName) {
       custLabel = customerName;
     } else if (customerType === 'free') {
-      custLabel = 'ضيافة';
+      custLabel = 'الاستاذ محمد الجوهري';
     }
 
     var invData = {
@@ -598,7 +599,7 @@
       }
       if (table) detHtml += '<div><b>الطاولة:</b> ' + table + '</div>';
       if (customerType === 'special') detHtml += '<div><b>العميل:</b> ' + esc(custLabel) + ' (مميز)</div>';
-      if (customerType === 'free') detHtml += '<div style="color:#d97706"><b>ضيافة مجانية</b></div>';
+      if (customerType === 'free') detHtml += '<div style="color:#d97706"><b>ضيافة:</b> ' + esc(custLabel) + '</div>';
       detHtml += '</div>';
       document.getElementById('successDetails').innerHTML = detHtml;
       document.getElementById('successModal').classList.add('show');
