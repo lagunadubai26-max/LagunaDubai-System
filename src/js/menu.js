@@ -33,12 +33,32 @@ window._seedReady = (async () => {
   } catch (e) {
     console.error('[menu] seed error:', e);
   }
-  if (hasService) {
-    const settings = await DB.settings.get();
-    enableService = settings.enableService !== false;
-    serviceRate = settings.serviceTax || 10;
-    enableTax = settings.enableTax !== false;
-    taxRate = settings.taxRate || 14;
+  const settings = await DB.settings.get();
+  enableService = settings.enableService !== false;
+  serviceRate = settings.serviceTax || 10;
+  enableTax = settings.enableTax !== false;
+  taxRate = settings.serviceTax || 14;
+  // Auto-shift: enable service at 3 PM if not already enabled
+  if (!isCustomer && !enableService) {
+    try {
+      const now = FB.clockNow ? FB.clockNow() : new Date();
+      const hour = now.getHours();
+      if (hour >= 15) {
+        enableService = true;
+        serviceRate = settings.serviceTax || 10;
+        enableTax = true;
+        taxRate = settings.serviceTax || 14;
+        await FB.updateDoc('settings', settings.id || 'main', {
+          enableService: true,
+          enableTax: true
+        });
+        setTimeout(function() {
+          alert('تم فتح الشيفت تلقائياً الساعة 3:00 مساءً');
+        }, 500);
+      }
+    } catch (e) {
+      console.warn('[menu] auto-shift error:', e);
+    }
   }
 })();
 
@@ -150,14 +170,18 @@ async function loadProducts() {
     const card = document.createElement('div');
     card.className = 'product-card';
     card.dataset.category = p.category;
-    const imgSrc = sanitizeUrl(p.image) || '';
+    let imgSrc = sanitizeUrl(p.image) || '';
+    if (imgSrc && imgSrc.indexOf('.webp') !== -1) {
+      imgSrc = imgSrc.replace('.webp', '.jpg');
+    }
     const safeName = escapeHtml(p.name);
     const safeNameEn = escapeHtml(p.nameEn || '');
     const safeDesc = escapeHtml(p.description || '');
     const safePrice = validateNumber(p.price, 0);
     const fallbackImg = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f5f5f4%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 font-size=%2240%22>🍽</text></svg>';
+    const safeImgSrc = imgSrc || fallbackImg;
     card.innerHTML = `
-      <div class="menu-icon"><img loading="lazy" src="${imgSrc || fallbackImg}" alt="${safeName}" onerror="this.src='${fallbackImg}'"></div>
+      <div class="menu-icon"><img src="${safeImgSrc}" alt="${safeName}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
       <h3>${safeName}</h3>
       <p>${safeNameEn}</p>
       ${safeDesc ? `<p class="desc">${safeDesc}</p>` : ''}

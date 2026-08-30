@@ -105,4 +105,21 @@ document.getElementById('cancelTable').onclick = () => modal.classList.remove('s
 document.getElementById('closeTableModal').onclick = () => modal.classList.remove('show');
 window.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
 
+document.getElementById('resetAllBtn').onclick = async () => {
+  if (!confirm('هل تريد جعل جميع الطاولات متاحة؟\nسيتم تغيير حالة كل الطاولات المشغولة والمحجوزة إلى متاحة.')) return;
+  const nonAvailable = tables.filter(t => t.status !== 'available');
+  if (nonAvailable.length === 0) return alert('جميع الطاولات متاحة بالفعل');
+  let count = 0;
+  for (var i = 0; i < nonAvailable.length; i++) {
+    try {
+      await DB.tables.update(nonAvailable[i].id, { status: 'available' });
+      count++;
+    } catch (e) {
+      console.warn('[tables] reset error:', e);
+    }
+  }
+  alert('تم جعل ' + count + ' طاولة متاحة');
+  render();
+};
+
 render();
