@@ -326,10 +326,6 @@
     for (var i = 0; i < orderItems.length; i++) {
       if (orderItems[i].name === name) {
         orderItems[i].qty++;
-        // Toggle milk if already exists
-        if (orderItems[i].hasMilk !== undefined) {
-          orderItems[i].hasMilk = !orderItems[i].hasMilk;
-        }
         found = true;
         break;
       }
@@ -402,22 +398,20 @@ function recalcTotal() {
     } else {
       for (var i = 0; i < orderItems.length; i++) {
         var item = orderItems[i];
-        var itemTotal = item.qty * item.price;
-        // Add milk price if hasMilk
-        var milkPrice = item.hasMilk ? 15 : 0;
-        var itemTotalWithMilk = itemTotal + milkPrice;
+        var mp = item.hasMilk ? 15 : 0;
+        var itemTotal = item.qty * (item.price + mp);
         html += '<div class="ipad-order-item">';
         html += '  <div class="ipad-oi-info">';
         html += '    <div class="ipad-oi-name">' + esc(item.name) + '</div>';
-        if (item.note) html += '    <div class="ipad-oi-note">' + esc(item.note) + '</div>';
-        html += '    <div class="ipad-oi-price">' + itemTotalWithMilk + ' جنيه</div>';
+        html += '    <input class="ipad-oi-note-input" type="text" placeholder="ملاحظة..." data-idx="' + i + '" value="' + esc(item.note || '') + '">';
+        html += '    <div class="ipad-oi-price">' + itemTotal + ' جنيه</div>';
         html += '  </div>';
         html += '  <div class="ipad-oi-controls">';
         html += '    <button class="ipad-oi-btn ipad-oi-minus" data-idx="' + i + '">-</button>';
         html += '    <span class="ipad-oi-qty">' + item.qty + '</span>';
         html += '    <button class="ipad-oi-btn ipad-oi-plus" data-idx="' + i + '">+</button>';
-        html += '    <button class="ipad-oi-btn ipad-oi-milk ' + (item.hasMilk ? 'active' : '') + ' ipad-oi-btn" data-idx="' + i + '"><i class="fa-solid fa-milk-bottle"></i> لبن</button>';
-        html += '    <button class="ipad-oi-delete ipad-oi-del" data-idx="' + i + '"><i class="fa-solid fa-trash"></i></button>';
+        html += '    <button class="ipad-oi-milk ' + (item.hasMilk ? 'active' : '') + '" data-idx="' + i + '"> لبن</button>';
+        html += '    <button class="ipad-oi-del" data-idx="' + i + '"><i class="fa-solid fa-trash"></i></button>';
         html += '  </div>';
         html += '</div>';
       }
@@ -445,6 +439,15 @@ function recalcTotal() {
         orderItems[idx].hasMilk = !orderItems[idx].hasMilk;
         renderSheet();
         recalcTotal();
+      }
+    });
+    // Note input handler (delegated)
+    sheetList.addEventListener('input', function (e) {
+      if (e.target.classList.contains('ipad-oi-note-input')) {
+        var idx = parseInt(e.target.getAttribute('data-idx'));
+        if (!isNaN(idx)) {
+          orderItems[idx].note = e.target.value;
+        }
       }
     });
   }
@@ -487,9 +490,11 @@ function recalcTotal() {
       alert('الطلب فارغ، أضف منتجات أولاً');
       return;
     }
+    // Include milk price in base total
     var baseTotal = 0;
     for (var i = 0; i < orderItems.length; i++) {
-      baseTotal += orderItems[i].qty * orderItems[i].price;
+      var milkPrice = orderItems[i].hasMilk ? 15 : 0;
+      baseTotal += orderItems[i].qty * (orderItems[i].price + milkPrice);
     }
     applyServiceFromSettings();
     var t = calculateTotals(baseTotal);
@@ -499,7 +504,10 @@ function recalcTotal() {
     var sumHtml = '';
     for (var j = 0; j < orderItems.length; j++) {
       var it = orderItems[j];
-      sumHtml += '<div class="ipad-sum-item"><span>' + esc(it.name) + ' x' + it.qty + '</span><span>' + (it.qty * it.price) + ' ج.م</span></div>';
+      var mp = it.hasMilk ? 15 : 0;
+      var lineTotal = it.qty * (it.price + mp);
+      var milkLabel = it.hasMilk ? ' <small style="color:#d97706">(لبن +15)</small>' : '';
+      sumHtml += '<div class="ipad-sum-item"><span>' + esc(it.name) + ' x' + it.qty + milkLabel + '</span><span>' + lineTotal + ' ج.م</span></div>';
     }
     if (t.serviceAmount > 0) {
       sumHtml += '<div class="ipad-sum-item"><span>خدمة (' + serviceRate + '%)</span><span>' + t.serviceAmount + ' ج.م</span></div>';
@@ -580,7 +588,7 @@ function recalcTotal() {
         qty: orderItems[i].qty,
         price: orderItems[i].price,
         note: orderItems[i].note || '',
-        hasMilk: false
+        hasMilk: orderItems[i].hasMilk || false
       });
     }
 
@@ -839,6 +847,20 @@ function recalcTotal() {
       } else if (btn.classList.contains('ipad-oi-del')) {
         idx = parseInt(btn.getAttribute('data-idx'));
         removeFromCart(idx);
+      } else if (btn.classList.contains('ipad-oi-milk')) {
+        idx = parseInt(btn.getAttribute('data-idx'));
+        orderItems[idx].hasMilk = !orderItems[idx].hasMilk;
+        renderSheet();
+        recalcTotal();
+      }
+    });
+    // Note input handler for sidebar
+    sidebarList.addEventListener('input', function (e) {
+      if (e.target.classList.contains('ipad-oi-note-input')) {
+        var idx = parseInt(e.target.getAttribute('data-idx'));
+        if (!isNaN(idx)) {
+          orderItems[idx].note = e.target.value;
+        }
       }
     });
   }
