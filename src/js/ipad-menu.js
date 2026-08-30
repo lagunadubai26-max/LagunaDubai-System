@@ -183,68 +183,6 @@
     }).catch(function () {});
   }
 
-  // ── Real-time listeners for categories + products ──
-  function startRealtimeListeners() {
-    // Categories listener
-    db.collection('categories').orderBy('__name__', 'asc').onSnapshot(function (snap) {
-      var rawCats = [];
-      snap.forEach(function (d) {
-        var data = d.data();
-        data.id = d.id;
-        rawCats.push(data);
-      });
-      // Dedupe
-      var seen = {};
-      categories = [];
-      for (var i = 0; i < rawCats.length; i++) {
-        if (!seen[rawCats[i].slug]) {
-          seen[rawCats[i].slug] = true;
-          categories.push(rawCats[i]);
-        }
-      }
-      categories.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-      renderCategories();
-      // Re-attach category filter
-      attachCategoryFilter();
-      // Re-filter current view
-      var activeBtn = categoriesEl.querySelector('.ipad-cat-btn.active');
-      if (activeBtn) {
-        var cat = activeBtn.getAttribute('data-category');
-        var cards = productsEl.querySelectorAll('.ipad-product-card');
-        for (var j = 0; j < cards.length; j++) {
-          if (cat === 'all' || cards[j].getAttribute('data-category') === cat) {
-            cards[j].style.display = '';
-          } else {
-            cards[j].style.display = 'none';
-          }
-        }
-      }
-    }, function (err) {
-      console.warn('[realtime] categories error:', err);
-    });
-
-    // Products listener
-    db.collection('products').orderBy('__name__', 'asc').onSnapshot(function (snap) {
-      var rawProds = [];
-      snap.forEach(function (d) {
-        var data = d.data();
-        data.id = d.id;
-        rawProds.push(data);
-      });
-      products = rawProds;
-      // Sort by category order
-      var catOrder = [];
-      for (var j = 0; j < categories.length; j++) catOrder.push(categories[j].slug);
-      products.sort(function (a, b) {
-        return catOrder.indexOf(a.category) - catOrder.indexOf(b.category);
-      });
-      renderProducts(products);
-      attachAddButtons();
-    }, function (err) {
-      console.warn('[realtime] products error:', err);
-    });
-  }
-
   // ── Apply service/tax based on UI toggle ──
   function applyServiceFromSettings() {
     if (hasService && settings.enableService !== false) {
@@ -388,12 +326,16 @@
     for (var i = 0; i < orderItems.length; i++) {
       if (orderItems[i].name === name) {
         orderItems[i].qty++;
+        // Toggle milk if already exists
+        if (orderItems[i].hasMilk !== undefined) {
+          orderItems[i].hasMilk = !orderItems[i].hasMilk;
+        }
         found = true;
         break;
       }
     }
     if (!found) {
-      orderItems.push({ name: name, price: price, qty: 1, note: '' });
+      orderItems.push({ name: name, price: price, qty: 1, note: '', hasMilk: false });
     }
     recalcTotal();
     renderSheet();
@@ -423,10 +365,11 @@
     renderSheet();
   }
 
-  function recalcTotal() {
+function recalcTotal() {
     total = 0;
     for (var i = 0; i < orderItems.length; i++) {
-      total += orderItems[i].qty * orderItems[i].price;
+      var milkPrice = orderItems[i].hasMilk ? 15 : 0;
+      total += orderItems[i].qty * (orderItems[i].price + milkPrice);
     }
     applyServiceFromSettings();
     var t = calculateTotals(total);
@@ -460,16 +403,20 @@
       for (var i = 0; i < orderItems.length; i++) {
         var item = orderItems[i];
         var itemTotal = item.qty * item.price;
+        // Add milk price if hasMilk
+        var milkPrice = item.hasMilk ? 15 : 0;
+        var itemTotalWithMilk = itemTotal + milkPrice;
         html += '<div class="ipad-order-item">';
         html += '  <div class="ipad-oi-info">';
         html += '    <div class="ipad-oi-name">' + esc(item.name) + '</div>';
         if (item.note) html += '    <div class="ipad-oi-note">' + esc(item.note) + '</div>';
-        html += '    <div class="ipad-oi-price">' + itemTotal + ' جنيه</div>';
+        html += '    <div class="ipad-oi-price">' + itemTotalWithMilk + ' جنيه</div>';
         html += '  </div>';
         html += '  <div class="ipad-oi-controls">';
         html += '    <button class="ipad-oi-btn ipad-oi-minus" data-idx="' + i + '">-</button>';
         html += '    <span class="ipad-oi-qty">' + item.qty + '</span>';
         html += '    <button class="ipad-oi-btn ipad-oi-plus" data-idx="' + i + '">+</button>';
+        html += '    <button class="ipad-oi-btn ipad-oi-milk ' + (item.hasMilk ? 'active' : '') + ' ipad-oi-btn" data-idx="' + i + '"><i class="fa-solid fa-milk-bottle"></i> لبن</button>';
         html += '    <button class="ipad-oi-delete ipad-oi-del" data-idx="' + i + '"><i class="fa-solid fa-trash"></i></button>';
         html += '  </div>';
         html += '</div>';
@@ -493,6 +440,11 @@
       } else if (btn.classList.contains('ipad-oi-del')) {
         idx = parseInt(btn.getAttribute('data-idx'));
         removeFromCart(idx);
+      } else if (btn.classList.contains('ipad-oi-milk')) {
+        idx = parseInt(btn.getAttribute('data-idx'));
+        orderItems[idx].hasMilk = !orderItems[idx].hasMilk;
+        renderSheet();
+        recalcTotal();
       }
     });
   }
@@ -832,9 +784,6 @@
       attachCategoryFilter();
       attachSearch();
       attachAddButtons();
-
-      // Start real-time listeners for live updates
-      startRealtimeListeners();
 
       // Load settings for tax/service
       loadSettings(function () {
