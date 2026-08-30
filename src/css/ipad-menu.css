@@ -258,18 +258,15 @@
   box-shadow: 0 6px 20px rgba(0,0,0,.08);
 }
 
-/* ── Product Image (background-image approach for Safari 9) ── */
+/* ── Product Image ── */
 .ipad-product-img {
   width: 140px; height: 140px; border-radius: 12px;
   overflow: hidden; margin: 0 auto 10px;
   background-color: #f5f5f4;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
 }
 .ipad-product-img img {
-  width: 140px; height: 140px;
-  display: block;
+  width: 100%; height: 100%;
+  display: block; object-fit: cover;
 }
 
 .ipad-product-card h3 {
@@ -481,69 +478,72 @@
 
 /* ── Order Item (shared for sidebar + sheet) ── */
 .ipad-order-item {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: flex;
-  -webkit-box-align: center;
-  -webkit-align-items: center;
-  align-items: center;
-  padding: 12px 0; border-bottom: 1px solid #f0f0f0;
+  padding: 10px 0; border-bottom: 1px solid #f0f0f0;
 }
 .ipad-order-item:last-child { border-bottom: none; }
-.ipad-oi-info {
-  -webkit-box-flex: 1;
-  -webkit-flex: 1;
-  flex: 1; min-width: 0;
-}
-.ipad-oi-name {
-  font-size: 14px; font-weight: 600; color: #0c0a09;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ipad-oi-note {
-  font-size: 11px; color: #78716c; margin-top: 2px;
-}
-.ipad-oi-note-input {
-  width: 100%; height: 26px; border-radius: 6px;
-  border: 1px solid #e7e5e4; background: #fafaf9;
-  font-family: 'Cairo', sans-serif; font-size: 11px;
-  padding: 0 8px; color: #57534e; outline: none;
-  margin-top: 4px;
-  -webkit-box-sizing: border-box;
-  box-sizing: border-box;
-}
-.ipad-oi-note-input:focus {
-  border-color: #d97706;
-  background: #ffffff;
-}
-.ipad-oi-note-input::-webkit-input-placeholder { color: #a8a29e; font-size: 11px; }
-.ipad-oi-price {
-  font-size: 13px; color: #d97706; font-weight: 700;
-  white-space: nowrap;
-}
-.ipad-oi-controls {
+.ipad-oi-top {
   display: -webkit-box;
   display: -webkit-flex;
   display: flex;
   -webkit-box-align: center;
   -webkit-align-items: center;
   align-items: center;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.ipad-oi-name {
+  font-size: 13px; font-weight: 600; color: #0c0a09;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  -webkit-box-flex: 1;
+  -webkit-flex: 1;
+  flex: 1;
+}
+.ipad-oi-price {
+  font-size: 12px; color: #d97706; font-weight: 700;
+  white-space: nowrap; margin-right: 8px;
+}
+.ipad-oi-del {
+  width: 26px; height: 26px; border-radius: 6px;
+  border: none; background: #fef2f2; color: #dc2626;
+  font-size: 11px; cursor: pointer;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
+.ipad-oi-bottom {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ipad-oi-qty-row {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+}
 .ipad-oi-btn {
-  width: 30px; height: 30px; border-radius: 8px;
+  width: 26px; height: 26px; border-radius: 6px;
   border: 1px solid #e7e5e4; background: #ffffff;
-  font-size: 14px; font-weight: 700; color: #0c0a09;
-  margin-left: 4px; cursor: pointer;
-}
-.ipad-oi-qty {
-  font-size: 14px; font-weight: 700; min-width: 20px; text-align: center;
-  color: #0c0a09;
-}
-.ipad-oi-delete {
-  width: 30px; height: 30px; border-radius: 8px;
-  border: none; background: #fef2f2; color: #dc2626;
-  font-size: 12px; cursor: pointer; margin-left: 4px;
+  font-size: 11px; font-weight: 700; color: #0c0a09;
+  cursor: pointer;
   display: -webkit-box;
   display: -webkit-flex;
   display: flex;
@@ -554,9 +554,12 @@
   -webkit-justify-content: center;
   justify-content: center;
 }
-/* Milk button */
+.ipad-oi-qty {
+  font-size: 13px; font-weight: 700; min-width: 22px; text-align: center;
+  color: #0c0a09;
+}
 .ipad-oi-milk {
-  height: 28px; border-radius: 6px;
+  height: 26px; border-radius: 6px;
   border: 1px solid #e7e5e4; background: #ffffff;
   font-size: 11px; font-weight: 600; color: #57534e; cursor: pointer;
   padding: 0 8px;
@@ -567,14 +570,25 @@
   -webkit-box-align: center;
   -webkit-align-items: center;
   align-items: center;
-  -webkit-box-pack: center;
-  -webkit-justify-content: center;
-  justify-content: center;
   white-space: nowrap;
 }
+.ipad-oi-milk i { margin-left: 4px; font-size: 10px; }
 .ipad-oi-milk.active {
   background: #fef3c7; color: #92400e; border-color: #d97706;
 }
+.ipad-oi-note-input {
+  width: 100%; height: 24px; border-radius: 6px;
+  border: 1px solid #e7e5e4; background: #fafaf9;
+  font-family: 'Cairo', sans-serif; font-size: 11px;
+  padding: 0 8px; color: #57534e; outline: none;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+}
+.ipad-oi-note-input:focus {
+  border-color: #d97706;
+  background: #ffffff;
+}
+.ipad-oi-note-input::-webkit-input-placeholder { color: #a8a29e; font-size: 11px; }
 
 /* ── Checkout Button (shared) ── */
 .ipad-checkout-btn {

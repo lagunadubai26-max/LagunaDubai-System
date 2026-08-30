@@ -247,9 +247,8 @@
       if (imgSrc && imgSrc.indexOf('.webp') !== -1) {
         imgSrc = imgSrc.replace('.webp', '.jpg');
       }
-      if (!imgSrc) imgSrc = fallbackBg;
       var html = '';
-      html += '<div class="ipad-product-img" style="background-image:url(\'' + imgSrc + '\')"></div>';
+      html += '<div class="ipad-product-img"><img src="' + (imgSrc || fallbackBg) + '" alt="' + esc(p.name) + '" onerror="this.onerror=null;this.src=\'' + fallbackBg + '\'"></div>';
       html += '<h3>' + esc(p.name) + '</h3>';
       if (p.nameEn) html += '<div class="ipad-en">' + esc(p.nameEn) + '</div>';
       if (p.description) html += '<div class="ipad-desc">' + esc(p.description) + '</div>';
@@ -401,17 +400,18 @@ function recalcTotal() {
         var mp = item.hasMilk ? 15 : 0;
         var itemTotal = item.qty * (item.price + mp);
         html += '<div class="ipad-order-item">';
-        html += '  <div class="ipad-oi-info">';
-        html += '    <div class="ipad-oi-name">' + esc(item.name) + '</div>';
-        html += '    <input class="ipad-oi-note-input" type="text" placeholder="ملاحظة..." data-idx="' + i + '" value="' + esc(item.note || '') + '">';
-        html += '    <div class="ipad-oi-price">' + itemTotal + ' جنيه</div>';
-        html += '  </div>';
-        html += '  <div class="ipad-oi-controls">';
-        html += '    <button class="ipad-oi-btn ipad-oi-minus" data-idx="' + i + '">-</button>';
-        html += '    <span class="ipad-oi-qty">' + item.qty + '</span>';
-        html += '    <button class="ipad-oi-btn ipad-oi-plus" data-idx="' + i + '">+</button>';
-        html += '    <button class="ipad-oi-milk ' + (item.hasMilk ? 'active' : '') + '" data-idx="' + i + '"> لبن</button>';
+        html += '  <div class="ipad-oi-top">';
+        html += '    <div class="ipad-oi-name">' + esc(item.name) + ' <span class="ipad-oi-price">' + itemTotal + ' ج.م</span></div>';
         html += '    <button class="ipad-oi-del" data-idx="' + i + '"><i class="fa-solid fa-trash"></i></button>';
+        html += '  </div>';
+        html += '  <div class="ipad-oi-bottom">';
+        html += '    <div class="ipad-oi-qty-row">';
+        html += '      <button class="ipad-oi-btn ipad-oi-minus" data-idx="' + i + '"><i class="fa-solid fa-minus"></i></button>';
+        html += '      <span class="ipad-oi-qty">' + item.qty + '</span>';
+        html += '      <button class="ipad-oi-btn ipad-oi-plus" data-idx="' + i + '"><i class="fa-solid fa-plus"></i></button>';
+        html += '      <button class="ipad-oi-milk ' + (item.hasMilk ? 'active' : '') + '" data-idx="' + i + '"><i class="fa-solid fa-droplet"></i> لبن</button>';
+        html += '    </div>';
+        html += '    <input class="ipad-oi-note-input" type="text" placeholder="ملاحظة" data-idx="' + i + '" value="' + esc(item.note || '') + '">';
         html += '  </div>';
         html += '</div>';
       }
@@ -441,8 +441,17 @@ function recalcTotal() {
         recalcTotal();
       }
     });
-    // Note input handler (delegated)
-    sheetList.addEventListener('input', function (e) {
+    // Note input handler - keyup for iOS 9 compat
+    sheetList.addEventListener('keyup', function (e) {
+      if (e.target.classList.contains('ipad-oi-note-input')) {
+        var idx = parseInt(e.target.getAttribute('data-idx'));
+        if (!isNaN(idx)) {
+          orderItems[idx].note = e.target.value;
+        }
+      }
+    });
+    // Also handle paste and change
+    sheetList.addEventListener('change', function (e) {
       if (e.target.classList.contains('ipad-oi-note-input')) {
         var idx = parseInt(e.target.getAttribute('data-idx'));
         if (!isNaN(idx)) {
@@ -854,8 +863,16 @@ function recalcTotal() {
         recalcTotal();
       }
     });
-    // Note input handler for sidebar
-    sidebarList.addEventListener('input', function (e) {
+    // Note input handler for sidebar - keyup for iOS 9
+    sidebarList.addEventListener('keyup', function (e) {
+      if (e.target.classList.contains('ipad-oi-note-input')) {
+        var idx = parseInt(e.target.getAttribute('data-idx'));
+        if (!isNaN(idx)) {
+          orderItems[idx].note = e.target.value;
+        }
+      }
+    });
+    sidebarList.addEventListener('change', function (e) {
       if (e.target.classList.contains('ipad-oi-note-input')) {
         var idx = parseInt(e.target.getAttribute('data-idx'));
         if (!isNaN(idx)) {

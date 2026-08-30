@@ -823,6 +823,48 @@ loadProducts();
   };
 })();
 
+// ── Service toggle (enable/disable service & tax) ──
+(function() {
+  const toggle = document.getElementById('serviceToggle');
+  const text = document.getElementById('serviceToggleText');
+  const sw = document.getElementById('serviceToggleSwitch');
+  if (!toggle || !text || !sw) return;
+  function updateUI() {
+    if (enableService) {
+      text.textContent = 'مفعلة';
+      text.style.color = '#059669';
+      sw.style.background = '#059669';
+      sw.querySelector('span').style.transform = 'translateX(-18px)';
+    } else {
+      text.textContent = 'معطلة';
+      text.style.color = '#78716c';
+      sw.style.background = '#d6d3d1';
+      sw.querySelector('span').style.transform = 'translateX(0)';
+    }
+  }
+  // Set initial state from settings
+  _seedReady.then(() => {
+    toggle.checked = enableService;
+    updateUI();
+    recalcTotal();
+  });
+  toggle.onchange = async () => {
+    enableService = toggle.checked;
+    enableTax = toggle.checked;
+    try {
+      const settings = await DB.settings.get();
+      if (settings && settings.id) {
+        await FB.updateDoc('settings', settings.id, {
+          enableService: enableService,
+          enableTax: enableTax
+        });
+      }
+    } catch(e) { console.warn('[service toggle]', e); }
+    updateUI();
+    recalcTotal();
+  };
+})();
+
 function printReceipt(inv) {
   TEMPLATE.getTemplate('cashier').then(cashierTpl => {
     if (!cashierTpl) cashierTpl = TEMPLATE.defaultCashierTemplate;
