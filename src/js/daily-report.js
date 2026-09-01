@@ -147,23 +147,6 @@ async function showDayReport() {
 
     const dc = (allDaycloses || []).find(d => d.date === dateVal);
 
-    // Debug: show raw counts for verification
-    const debugInfo = '<div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:10px;padding:12px;margin:12px 0;font-size:12px;color:#92400e">' +
-      '<b>Debug:</b> dayInvoices=' + dayInvoices.length +
-      ' | soldInvoices=' + soldInvoices.length +
-      ' | paidInvoices=' + paidInvoices.length +
-      ' | pendingInvoices=' + pendingInvoices.length +
-      ' | totalSales=' + totalSales +
-      ' | totalReturns=' + totalReturns +
-      ' | totalExpenses=' + totalExpenses +
-      ' | totalIncome=' + totalIncome +
-      ' | lateTotal=' + lateTotal +
-      ' | workersCost=' + workersCost +
-      ' | netProfit=' + netProfit +
-      ' | dayclose=' + (dc ? 'YES' : 'NO') +
-      ' | dc.totalSales=' + (dc ? dc.totalSales : '—') +
-      '</div>';
-
     const auditInvoices = (allAudit || [])
       .filter(a => {
         if (a.type !== 'invoice_created' || !a.timestamp) return false;
@@ -199,7 +182,6 @@ async function showDayReport() {
         '<h2>\u0644\u0627\u062c\u0648\u0646\u0627 \u062f\u0628\u064a - \u0643\u0627\u0641\u064a\u0647 \u0648\u0645\u0637\u0639\u0645</h2>' +
         '<p>' + title + ' - ' + dateVal + '</p>' +
       '</div>' +
-      debugInfo +
       '<div class="dr-summary">' + cards + '</div>' +
       '<div class="dr-title">\u0641\u0648\u0627\u062a\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 (\u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a)</div>' +
       auditHtml +

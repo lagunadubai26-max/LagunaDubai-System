@@ -111,58 +111,21 @@ async function render() {
     const incomes = filterByDate(allIncomes, range);
     const prevIncomes = filterByDate(allIncomes, prevRange);
 
-    const monthKey = monthInput.value;
-    const coveredDays = {};
-    allDaycloses.forEach(d => { const k = d.date || ''; if (k.indexOf(monthKey) === 0 && Number(d.totalSales || 0) > 0) coveredDays[k] = d; });
-    const openDayInvoices = invoices.filter(i => !coveredDays[(i.date || '').slice(0, 10)]);
+    // حساب المبيعات من الفواتير مباشرة (بدون dayclose snapshots) — يضمن التطابق مع التقرير اليومي
+    const paidInvoices = invoices.filter(i => i.status === 'paid' || i.status === '\u0645\u062f\u0641\u0648\u0639\u0629');
+    const salesFromInvoices = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+    const cashFromInvoices = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === '\u0643\u0627\u0634')
+      .reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
 
-    let closedSales = 0, closedCash = 0, closedCard = 0, closedNum = 0, closedItems = 0, closedRet = 0, closedExp = 0, closedIncome = 0;
-    const chartDays = [];
-    Object.keys(coveredDays).forEach(k => {
-      const dc = coveredDays[k];
-      closedSales += Number(dc.totalSales || 0);
-      closedCash += Number(dc.cashAmount || 0);
-      closedCard += Number(dc.cardAmount || 0);
-      closedNum += Number(dc.numInvoices || 0);
-      closedItems += Number(dc.itemsSold || 0);
-      closedRet += Number(dc.totalReturns || 0);
-      closedExp += Number(dc.totalExpenses || 0);
-      closedIncome += Number(dc.totalIncome || 0);
-      chartDays.push({ date: k + 'T12:00:00Z', total: Number(dc.totalSales || 0), paymentMethod: 'Cash', items: [] });
-    });
+    const stats = calcStats(invoices, expenses, returns, incomes);
+    stats.totalSales = salesFromInvoices;
+    stats.collectedCash = cashFromInvoices;
+    stats.totalCard = salesFromInvoices - cashFromInvoices;
+    stats.avgInvoice = stats.numPaid > 0 ? Math.round(stats.totalSales / stats.numPaid) : 0;
 
-    const coveredZero = {};
-    allDaycloses.forEach(d => { const k = d.date || ''; if (k.indexOf(monthKey) === 0 && !(Number(d.totalSales || 0) > 0)) coveredZero[k] = true; });
-    // الفواتير الموجودة فعليًا (لاستبعاد المحذوف من سجل العمليات)
-    const existingInvIds = {};
-    (allInvoices || []).forEach(i => { if (i && i.id) existingInvIds[i.id] = true; });
-    const maxAuditT = new Date(FB.clockNow().getTime() + 5 * 60 * 1000);
-    Object.keys(coveredZero).forEach(k => {
-      const r = shiftSessionRange(k, allShifts);
-      let s = 0, c = 0, n = 0;
-      allAudit.forEach(a => {
-        if (a.type !== 'invoice_created' || !a.timestamp) return;
-        const t = new Date(a.timestamp);
-        if (t >= r.start && t <= r.end && t <= maxAuditT) {
-          let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
-          const id = a.detail_id || det.id;
-          if (!id || !existingInvIds[id]) return; // فاتورة محذوفة — تتجاهل
-          const v = Number(det.total || 0);
-          s += v; n++;
-          if (det.method === 'Cash' || det.method === '\u0643\u0627\u0634') c += v;
-        }
-      });
-      if (n) {
-        closedSales += s; closedCash += c; closedCard += (s - c); closedNum += n;
-        chartDays.push({ date: k + 'T12:00:00Z', total: s, paymentMethod: 'Cash', items: [] });
-      }
-    });
-
-    // مصاريف العمالة للشهر: من الأيام المفتوحة + المسجلة في الإغلاقات
-    const monthWorkersCost =
-      openDayInvoices.filter(i => i.customerType === 'workers')
-        .reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : ((i.items || []).reduce((ss, it) => ss + Number(it.qty || 1) * Number(it.price || 0), 0))), 0) +
-      Object.keys(coveredDays).reduce((s, k) => s + Number(coveredDays[k].workersCost || 0), 0);
+    // مصاريف العمالة للشهر: من الفواتير مباشرة
+    stats.workersCost = invoices.filter(i => i.customerType === 'workers')
+      .reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : ((i.items || []).reduce((ss, it) => ss + Number(it.qty || 1) * Number(it.price || 0), 0))), 0);
 
     // تحصيلات متأخرة خلال الشهر (مدفوعات لفواتير أُنشئت في يوم مختلف)
     let monthLateTotal = 0;
@@ -176,22 +139,10 @@ async function render() {
       if (det.invDate && localDateKey(det.invDate) === localDateKey(a.timestamp)) return; // تسديد بنفس يوم الإنشاء محسوب في المبيعات
       monthLateTotal += amt;
     });
-
-    const stats = calcStats(openDayInvoices, expenses, returns, incomes);
-    stats.totalSales += closedSales;
-    stats.totalIncome += closedIncome;
-    stats.collectedCash += closedCash;
-    stats.totalReturns += closedRet;
-    stats.totalExpenses += closedExp;
-    stats.numPaid += closedNum;
-    stats.numInvoices += closedNum;
-    stats.avgInvoice = stats.numPaid > 0 ? Math.round(stats.totalSales / stats.numPaid) : 0;
-    stats.workersCost = monthWorkersCost;
     stats.lateTotal = monthLateTotal;
-    stats.netProfit = stats.totalSales + stats.totalIncome + monthLateTotal - stats.totalReturns - stats.totalExpenses - monthWorkersCost;
-    stats.totalCard = closedCard;
+    stats.netProfit = stats.totalSales + stats.totalIncome + monthLateTotal - stats.totalReturns - stats.totalExpenses - stats.workersCost;
 
-    const chartInvoices = openDayInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة').concat(chartDays);
+    const chartInvoices = paidInvoices;
     const prevStats = calcStats(prevInvoices, [], [], prevIncomes);
 
     document.getElementById('reportSales').textContent = fmtMoney(stats.totalSales);
