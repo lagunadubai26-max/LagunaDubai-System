@@ -34,7 +34,7 @@ window._seedReady = (async () => {
     console.error('[menu] seed error:', e);
   }
   const settings = await DB.settings.get();
-  enableService = settings.enableService !== false;
+  enableService = settings.enableService === true;
   serviceRate = settings.serviceTax || 10;
   enableTax = settings.enableTax !== false;
   taxRate = settings.serviceTax || 14;

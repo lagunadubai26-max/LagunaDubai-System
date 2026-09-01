@@ -401,34 +401,43 @@
   text-align: center; line-height: 20px;
 }
 
-/* ── Cart Sheet (mobile bottom sheet) ── */
+/* ── Cart Sheet (centered modal) ── */
 .ipad-sheet-overlay {
   display: none; position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,.4); z-index: 300;
+  background: rgba(0,0,0,.5); z-index: 300;
 }
 .ipad-sheet-overlay.show { display: block; }
 .ipad-sheet {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: #ffffff; border-radius: 20px 20px 0 0;
-  z-index: 310; max-height: 80vh;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: flex;
+  display: none; position: fixed;
+  top: 50%; left: 50%; right: auto; bottom: auto;
+  background: #ffffff; border-radius: 20px;
+  z-index: 310; max-height: 85vh; max-width: 560px;
+  width: calc(100% - 40px);
   -webkit-box-orient: vertical;
   -webkit-box-direction: normal;
   -webkit-flex-direction: column;
   flex-direction: column;
-  -webkit-transform: translateY(100%);
-  transform: translateY(100%);
-  -webkit-transition: transform .3s ease;
-  transition: transform .3s ease;
+  overflow: hidden;
 }
-.ipad-sheet.open { -webkit-transform: translateY(0); transform: translateY(0); }
-.ipad-sheet-handle {
-  width: 40px; height: 4px; background: #d6d3d1;
-  border-radius: 2px; margin: 10px auto 0;
+.ipad-sheet.open {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  -webkit-animation: sheetFadeIn .25s ease;
+  animation: sheetFadeIn .25s ease;
 }
+@-webkit-keyframes sheetFadeIn {
+  from { opacity: 0; -webkit-transform: translate(-50%, -50%) scale(0.95); transform: translate(-50%, -50%) scale(0.95); }
+  to   { opacity: 1; -webkit-transform: translate(-50%, -50%) scale(1); transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes sheetFadeIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.ipad-sheet-handle { display: none; }
 .ipad-sheet-header {
   display: -webkit-box;
   display: -webkit-flex;
@@ -439,15 +448,16 @@
   -webkit-box-pack: justify;
   -webkit-justify-content: space-between;
   justify-content: space-between;
-  padding: 14px 20px; border-bottom: 1px solid #e7e5e4;
+  padding: 18px 20px; border-bottom: 1px solid #e7e5e4;
 }
 .ipad-sheet-header h2 {
-  font-size: 18px; font-weight: 700; color: #0c0a09; margin: 0;
+  font-size: 17px; font-weight: 700; color: #0c0a09; margin: 0;
 }
+.ipad-sheet-header h2 i { color: #d97706; margin-left: 8px; }
 .ipad-sheet-close {
-  width: 36px; height: 36px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%;
   background: #f5f5f4; border: none; cursor: pointer;
-  font-size: 16px; color: #78716c;
+  font-size: 14px; color: #78716c;
 }
 .ipad-sheet-list {
   -webkit-box-flex: 1;
@@ -456,7 +466,7 @@
   -webkit-overflow-scrolling: touch;
 }
 .ipad-sheet-footer {
-  padding: 14px 20px; border-top: 1px solid #e7e5e4;
+  padding: 16px 20px; border-top: 1px solid #e7e5e4;
   background: #ffffff;
 }
 .ipad-sheet-total {

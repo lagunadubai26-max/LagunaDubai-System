@@ -120,6 +120,12 @@ const DB = {
     async remove(id) { await FB.removeDoc('incomes', id); }
   },
 
+  equipment: {
+    async all() { return await FB.getCollection('equipment'); },
+    async add(e) { if (!e.id) e.id = safeId().slice(0, 8); return await FB.addDoc('equipment', e); },
+    async remove(id) { await FB.removeDoc('equipment', id); }
+  },
+
   advances: {
     async all() { return await FB.getCollection('advances'); },
     async add(a) { if (!a.id) a.id = safeId().slice(0, 8); return await FB.addDoc('advances', a); },

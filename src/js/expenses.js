@@ -2,7 +2,39 @@ let expenses = [];
 let allExpenses = [];
 const expList = document.getElementById('expList');
 const expMonth = document.getElementById('expMonth');
+const expCategory = document.getElementById('expCategory');
 const _expUser = (() => { try { return JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return {}; } })();
+
+const DEFAULT_EXP_CATEGORIES = ['إيجار', 'فواتير', 'مشتريات', 'مرتبات', 'صيانة', 'أخرى'];
+
+function getExpCategories() {
+  try { var saved = JSON.parse(localStorage.getItem('laguna_exp_categories')); if (Array.isArray(saved) && saved.length) return saved; } catch(e) {}
+  return DEFAULT_EXP_CATEGORIES.slice();
+}
+
+function saveExpCategories(cats) { localStorage.setItem('laguna_exp_categories', JSON.stringify(cats)); }
+
+function renderExpCategories() {
+  var cats = getExpCategories();
+  expCategory.innerHTML = '';
+  cats.forEach(function(c) {
+    var opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    expCategory.appendChild(opt);
+  });
+}
+
+document.getElementById('addCatBtn').onclick = function() {
+  var name = prompt('اسم نوع المصروف الجديد:');
+  if (!name || !name.trim()) return;
+  name = name.trim();
+  var cats = getExpCategories();
+  if (cats.indexOf(name) !== -1) return alert('هذا النوع موجود بالفعل');
+  cats.push(name);
+  saveExpCategories(cats);
+  renderExpCategories();
+  expCategory.value = name;
+};
 
 const _expMonthNow = () => { const d = FB.clockNow(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
 
@@ -87,4 +119,5 @@ document.getElementById('addExpBtn').onclick = async () => {
   };
 
 expMonth.addEventListener('change', render);
+renderExpCategories();
 render();

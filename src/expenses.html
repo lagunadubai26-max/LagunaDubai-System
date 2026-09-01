@@ -32,10 +32,12 @@
         <a href="attendance.html"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
         <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
         <a href="inventory.html"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
+        <a href="equipment.html" class="no-employee"><i class="fa-solid fa-mug-hot"></i><span>المعدات</span></a>
         <a href="expenses.html" class="active no-employee"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
         <a href="incomes.html" class="no-employee"><i class="fa-solid fa-plus"></i><span>أخرى</span></a>
         <a href="customers.html"><i class="fa-solid fa-user-group"></i><span>العملاء المميزين</span></a>
         <a href="daily-report.html" class="no-employee"><i class="fa-solid fa-calendar-day"></i><span>التقرير اليومي</span></a>
+        <a href="weekly-report.html" class="no-employee"><i class="fa-solid fa-calendar-week"></i><span>التقرير الأسبوعي</span></a>
         <a href="reports.html" class="no-employee"><i class="fa-solid fa-chart-simple"></i><span>التقارير</span></a>
         <a href="qr.html"><i class="fa-solid fa-qrcode"></i><span>QR Code</span></a>
         <a href="settings.html" class="no-owner"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
@@ -95,14 +97,17 @@
     <div class="expense-form">
       <input type="text" id="expDesc" placeholder="وصف المصروف">
       <input type="number" id="expAmount" placeholder="المبلغ">
-      <select id="expCategory">
-        <option value="إيجار">إيجار</option>
-        <option value="فواتير">فواتير</option>
-        <option value="مشتريات">مشتريات</option>
-        <option value="مرتبات">مرتبات</option>
-        <option value="صيانة">صيانة</option>
-        <option value="أخرى">أخرى</option>
-      </select>
+      <div style="display:flex;align-items:center;gap:6px">
+        <select id="expCategory">
+          <option value="إيجار">إيجار</option>
+          <option value="فواتير">فواتير</option>
+          <option value="مشتريات">مشتريات</option>
+          <option value="مرتبات">مرتبات</option>
+          <option value="صيانة">صيانة</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+        <button id="addCatBtn" title="إضافة نوع جديد" style="padding:10px 12px;background:#059669;color:#fff;border:none;border-radius:10px;font-size:16px;cursor:pointer;font-family:inherit;white-space:nowrap"><i class="fa-solid fa-plus"></i></button>
+      </div>
       <button class="add-btn" id="addExpBtn"><i class="fa-solid fa-plus"></i>إضافة</button>
     </div>
     <section class="expense-table">

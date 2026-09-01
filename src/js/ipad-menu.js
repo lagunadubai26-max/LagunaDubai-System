@@ -185,14 +185,21 @@
 
   // ── Apply service/tax based on UI toggle ──
   function applyServiceFromSettings() {
-    if (hasService && settings.enableService !== false) {
+    if (!hasService) {
+      enableService = false;
+      serviceRate = 0;
+      enableTax = false;
+      taxRate = 0;
+      return;
+    }
+    if (settings.enableService !== false) {
       enableService = true;
       serviceRate = settings.serviceTax || 10;
     } else {
       enableService = false;
       serviceRate = 0;
     }
-    if (hasService && settings.enableTax !== false) {
+    if (settings.enableTax !== false) {
       enableTax = true;
       taxRate = settings.taxRate || 14;
     } else {

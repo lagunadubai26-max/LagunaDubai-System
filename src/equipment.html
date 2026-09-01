@@ -4,15 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>">
-  <title>أخرى | Laguna Cafe</title>
+  <title>المعدات | Laguna Cafe</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css?v=3">
   <link rel="stylesheet" href="css/expenses.css">
-  
-<link rel="stylesheet" href="css/responsive.css"><script src="js/role-head.js?v=2"></script></head>
+  <link rel="stylesheet" href="css/responsive.css">
+  <script src="js/role-head.js?v=2"></script>
+  <style>
+    .equip-form { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; background: #fff; padding: 20px; border-radius: 16px; box-shadow: var(--shadow); }
+    .equip-form input, .equip-form select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: #fff; flex: 1; min-width: 120px; }
+    .equip-form .add-btn { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; font-weight: 700; white-space: nowrap; }
+    .equip-form .add-btn:hover { background: var(--primary); }
+    .equip-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .equip-stats .stat-card { background: #fff; padding: 20px; border-radius: 16px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 14px; }
+    .equip-stats .stat-card i { font-size: 28px; color: var(--accent); width: 50px; height: 50px; background: rgba(217,119,6,.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .equip-stats .stat-card h2 { font-size: 20px; color: var(--primary-light); margin: 0; }
+    .equip-stats .stat-card span { font-size: 13px; color: #888; }
+    .equip-table { background: #fff; border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+    .equip-table .table-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 80px; padding: 14px 20px; background: var(--primary); color: #fff; font-weight: 700; font-size: 14px; }
+    .equip-table .table-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 80px; padding: 12px 20px; border-bottom: 1px solid #f0f0f0; font-size: 14px; align-items: center; }
+    .equip-table .table-row:hover { background: #fafaf9; }
+    .equip-table .delete-btn { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 16px; }
+    .equip-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  </style>
+</head>
 <body>
 <button class="sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -32,9 +50,9 @@
         <a href="attendance.html"><i class="fa-solid fa-calendar-check"></i><span>الحضور</span></a>
         <a href="tables.html"><i class="fa-solid fa-table-cells-large"></i><span>الترابيزات</span></a>
         <a href="inventory.html"><i class="fa-solid fa-boxes-stacked"></i><span>المخزون</span></a>
-        <a href="equipment.html" class="no-employee"><i class="fa-solid fa-mug-hot"></i><span>المعدات</span></a>
+        <a href="equipment.html" class="active no-employee"><i class="fa-solid fa-mug-hot"></i><span>المعدات</span></a>
         <a href="expenses.html" class="no-employee"><i class="fa-solid fa-money-bill-transfer"></i><span>المصروفات</span></a>
-        <a href="incomes.html" class="active no-employee"><i class="fa-solid fa-plus"></i><span>أخرى</span></a>
+        <a href="incomes.html" class="no-employee"><i class="fa-solid fa-plus"></i><span>أخرى</span></a>
         <a href="customers.html"><i class="fa-solid fa-user-group"></i><span>العملاء المميزين</span></a>
         <a href="daily-report.html" class="no-employee"><i class="fa-solid fa-calendar-day"></i><span>التقرير اليومي</span></a>
         <a href="weekly-report.html" class="no-employee"><i class="fa-solid fa-calendar-week"></i><span>التقرير الأسبوعي</span></a>
@@ -56,8 +74,8 @@
   <main class="main">
     <div class="page-header">
       <div>
-        <h1><i class="fa-solid fa-plus"></i>أخرى</h1>
-        <p>إيرادات إضافية خارج المبيعات — أعياد ميلاد، خطوبات، حفلات صغيرة...</p>
+        <h1><i class="fa-solid fa-mug-hot"></i>المعدات واللوازم</h1>
+        <p>إدارة معدات ومستلزمات Laguna Cafe</p>
       </div>
     </div>
     <div class="topbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;background:#fff;padding:15px 25px;border-radius:18px;box-shadow:var(--shadow);">
@@ -82,29 +100,49 @@
         document.getElementById('profileRole').textContent = _user.role === 'Administrator' ? 'مدير' : _user.role === 'Owner' ? 'م/ محمد الجوهري' : 'موظف';
       }
     </script>
-    <section class="expense-stats">
-      <div class="stat-card"><i class="fa-solid fa-coins"></i><div><h2 id="incTotal">0</h2><span>إيرادات الشهر</span></div></div>
-      <div class="stat-card"><i class="fa-solid fa-calendar-day"></i><div><h2 id="incToday">0</h2><span>عدد إيرادات الشهر</span></div></div>
-      <div class="stat-card"><i class="fa-solid fa-list"></i><div><h2 id="incCount">0</h2><span>إجمالي كل الإيرادات</span></div></div>
+    <section class="equip-stats">
+      <div class="stat-card"><i class="fa-solid fa-money-bill-wave"></i><div><h2 id="eqTotal">0</h2><span>إجمالي تكلفة الشهر</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-cubes"></i><div><h2 id="eqCount">0</h2><span>عدد الأصناف</span></div></div>
+      <div class="stat-card"><i class="fa-solid fa-tag"></i><div><h2 id="eqTopCat">—</h2><span>أعلى فئة تكلفة</span></div></div>
     </section>
-    <div class="report-controls" style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
-      <div class="month-picker-wrap" style="display:flex;align-items:center;gap:8px">
+    <div class="equip-controls">
+      <div style="display:flex;align-items:center;gap:8px">
         <label style="font-size:14px;color:var(--text-secondary)"><i class="fa-solid fa-calendar"></i> الشهر:</label>
-        <input type="month" id="incMonth" style="padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:#fff">
+        <input type="month" id="eqMonth" style="padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:#fff">
       </div>
-      <button id="exportIncBtn" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit"><i class="fa-solid fa-file-export"></i> تصدير CSV</button>
+      <select id="eqFilterCat" style="padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:#fff">
+        <option value="">كل الفئات</option>
+        <option value="كوباوات">كوباوات</option>
+        <option value="شاي">شاي</option>
+        <option value="قهوة">قهوة</option>
+        <option value="حليب">حليب</option>
+        <option value="أخرى">أخرى</option>
+      </select>
+      <button id="exportEqBtn" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit"><i class="fa-solid fa-file-export"></i> تصدير CSV</button>
     </div>
-    <div class="expense-form" style="grid-template-columns:2fr 1fr 1fr auto">
-      <input type="text" id="incDesc" placeholder="وصف الإيراد (مثال: عيد ميلاد، خطوبة)">
-      <input type="number" id="incAmount" placeholder="المبلغ">
-      <input type="date" id="incDate" style="height:50px">
-      <button class="add-btn" id="addIncBtn"><i class="fa-solid fa-plus"></i>إضافة</button>
-    </div>
-    <section class="expense-table">
-      <div class="table-header" style="grid-template-columns:2fr 1fr 1.2fr 1fr">
-        <span>الوصف</span><span>المبلغ</span><span>التاريخ</span><span>الإجراءات</span>
+    <div class="equip-form">
+      <input type="text" id="eqName" placeholder="اسم الصنف">
+      <div style="display:flex;align-items:center;gap:6px">
+        <select id="eqCategory">
+          <option value="كوباوات">كوباوات</option>
+          <option value="شاي">شاي</option>
+          <option value="قهوة">قهوة</option>
+          <option value="حليب">حليب</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+        <button id="addEqCatBtn" title="إضافة فئة جديدة" style="padding:10px 12px;background:#059669;color:#fff;border:none;border-radius:10px;font-size:16px;cursor:pointer;font-family:inherit;white-space:nowrap"><i class="fa-solid fa-plus"></i></button>
       </div>
-      <div id="incList"></div>
+      <input type="number" id="eqQty" placeholder="الكمية" min="0">
+      <input type="number" id="eqUnitCost" placeholder="تكلفة الوحدة" min="0" step="0.01">
+      <input type="text" id="eqSupplier" placeholder="المورد (اختياري)">
+      <input type="text" id="eqNotes" placeholder="ملاحظات (اختياري)">
+      <button class="add-btn" id="addEqBtn"><i class="fa-solid fa-plus"></i>إضافة</button>
+    </div>
+    <section class="equip-table">
+      <div class="table-header">
+        <span>الصنف</span><span>الفئة</span><span>الكمية</span><span>تكلفة الوحدة</span><span>الإجمالي</span><span>المورد</span><span>الإجراءات</span>
+      </div>
+      <div id="eqList"></div>
     </section>
   </main>
 </div>
@@ -115,8 +153,8 @@
 <script src="js/firebase-client.js?v=3"></script>
 <script src="js/sanitize.js"></script>
 <script src="js/data.js?v=13"></script>
-        <script src="js/notifications.js?v=3"></script>
-        <script src="js/incomes.js?v=1"></script>
+<script src="js/notifications.js?v=3"></script>
+<script src="js/equipment.js?v=1"></script>
 <script src="js/daily-inventory-check.js?v=2"></script>
 <script src="js/role.js?v=6"></script>
 </body>
