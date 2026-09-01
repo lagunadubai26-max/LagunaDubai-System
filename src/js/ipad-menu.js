@@ -53,7 +53,7 @@
   var enableService = false;
   var settings = {};
   var tableNum = urlTableNum;
-  var hasService = urlHasService;
+  var hasService = false;
   var customerType = 'regular';
   var customerName = '';
   var customersCache = [];
@@ -726,11 +726,8 @@ function recalcTotal() {
     if (urlTableNum && tableSelectEl) {
       tableSelectEl.value = urlTableNum;
     }
-    // Set service from URL if provided
-    if (urlHasService && serviceToggleEl) {
-      serviceToggleEl.checked = true;
-      if (serviceToggleTextEl) serviceToggleTextEl.textContent = 'نعم';
-    }
+    // Service toggle: default OFF (user must manually enable)
+    // Ignore URL ?service=1 for initial state
     // Sync table badge
     updateTableBadge();
 

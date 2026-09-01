@@ -116,10 +116,19 @@
       }
     </script>
     <div class="weekrep-controls">
-      <input type="date" id="weekStartDate" title="بداية الأسبوع (السبت)">
-      <button class="btn-show" id="weekShowBtn"><i class="fa-solid fa-magnifying-glass"></i> عرض الأسبوع</button>
-      <button class="btn-pdf" id="weekPdfBtn" title="تحميل التقرير كملف PDF"><i class="fa-solid fa-file-pdf"></i> تحميل PDF</button>
-      <button class="btn-img" id="weekImgBtn" title="تحميل التقرير كصورة"><i class="fa-solid fa-file-image"></i> تحميل صورة</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="selectWeek(0)" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">هذا الأسبوع</button>
+        <button onclick="selectWeek(1)" style="padding:8px 16px;background:#6b7280;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">الأسبوع السابق</button>
+        <button onclick="selectWeek(2)" style="padding:8px 16px;background:#6b7280;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">أسبوعين فاتوا</button>
+        <button onclick="selectWeek(3)" style="padding:8px 16px;background:#6b7280;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">3 أسابيع</button>
+        <button onclick="selectWeek(4)" style="padding:8px 16px;background:#6b7280;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">4 أسابيع</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="date" id="weekStartDate" title="أو اختر يدوياً">
+        <button class="btn-show" id="weekShowBtn"><i class="fa-solid fa-magnifying-glass"></i> عرض</button>
+      </div>
+      <button class="btn-pdf" id="weekPdfBtn" title="تحميل التقرير كملف PDF"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+      <button class="btn-img" id="weekImgBtn" title="تحميل التقرير كصورة"><i class="fa-solid fa-file-image"></i> صورة</button>
     </div>
     <div id="weekReport"></div>
   </main>

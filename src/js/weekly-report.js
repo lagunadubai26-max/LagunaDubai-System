@@ -2,14 +2,23 @@ var weekStartDate = document.getElementById('weekStartDate');
 var weekReportEl = document.getElementById('weekReport');
 var dayNames = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
 
-function setDefaultWeekStart() {
+function getSaturdayOffset(weeksAgo) {
   var now = FB.clockNow();
   var day = now.getDay();
   var diff = (day === 6) ? 0 : (day + 1) % 7;
   var sat = new Date(now);
-  sat.setDate(now.getDate() - diff);
+  sat.setDate(now.getDate() - diff - (weeksAgo * 7));
   sat.setHours(0, 0, 0, 0);
-  weekStartDate.value = sat.toISOString().slice(0, 10);
+  return sat.toISOString().slice(0, 10);
+}
+
+function setDefaultWeekStart() {
+  weekStartDate.value = getSaturdayOffset(0);
+}
+
+function selectWeek(weeksAgo) {
+  weekStartDate.value = getSaturdayOffset(weeksAgo);
+  showWeekReport();
 }
 
 function getWeekDays(startStr) {

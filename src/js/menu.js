@@ -36,22 +36,20 @@ window._seedReady = (async () => {
   const settings = await DB.settings.get();
   enableService = settings.enableService === true;
   serviceRate = settings.serviceTax || 10;
-  enableTax = settings.enableTax !== false;
+  enableTax = settings.enableTax === true;
   taxRate = settings.serviceTax || 14;
-  // Auto-shift: enable service at 3 PM if not already enabled
+  // Migration: reset old enableService that was forced ON
+  if (enableService && settings._svcMigrated !== 2) {
+    enableService = false;
+    enableTax = false;
+    try { await FB.updateDoc('settings', settings.id || 'main', { enableService: false, enableTax: false, _svcMigrated: 2 }); } catch(e) {}
+  }
+  // Auto-shift: open shift at 3 PM (service stays OFF unless manually toggled)
   if (!isCustomer && !enableService) {
     try {
       const now = FB.clockNow ? FB.clockNow() : new Date();
       const hour = now.getHours();
       if (hour >= 15) {
-        enableService = true;
-        serviceRate = settings.serviceTax || 10;
-        enableTax = true;
-        taxRate = settings.serviceTax || 14;
-        await FB.updateDoc('settings', settings.id || 'main', {
-          enableService: true,
-          enableTax: true
-        });
         setTimeout(function() {
           alert('تم فتح الشيفت تلقائياً الساعة 3:00 مساءً');
         }, 500);
