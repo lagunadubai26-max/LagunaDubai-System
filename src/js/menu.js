@@ -449,6 +449,12 @@ checkoutBtn.addEventListener("click", () => {
   window._checkoutItems = items;
   window._checkoutService = serviceAmount;
   window._checkoutTax = taxAmount;
+  // Set date picker to today
+  var dateEl = document.getElementById('checkoutDate');
+  if (dateEl) {
+    var now = new Date();
+    dateEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  }
   window.calcRemaining();
   document.getElementById('checkoutModal').classList.add('show');
 });
@@ -528,14 +534,22 @@ document.getElementById('checkoutPaid').addEventListener('input', window.calcRem
 
 document.getElementById('confirmCheckout').onclick = async () => {
   if (checkoutProcessing) return;
-  try {
-    const openShift = await DB.shifts.getOpen();
-    if (!openShift) {
-      return alert('⚠️ لا يمكن إرسال الطلب قبل فتح الشيفت.\nمن فضلك افتح الشيفت أولًا من لوحة التحكم.');
+  // Check if a past date is selected
+  var dateEl = document.getElementById('checkoutDate');
+  var selectedDate = dateEl ? dateEl.value : '';
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  var isPastDate = selectedDate && selectedDate < todayStr;
+  if (!isPastDate) {
+    try {
+      const openShift = await DB.shifts.getOpen();
+      if (!openShift) {
+        return alert('⚠️ لا يمكن إرسال الطلب قبل فتح الشيفت.\nمن فضلك افتح الشيفت أولًا من لوحة التحكم.');
+      }
+    } catch(e) {
+      console.warn('[checkout] shift check failed:', e);
+      return alert('⚠️ تعذر التحقق من الشيفت. تأكد من الاتصال وحاول مرة أخرى.');
     }
-  } catch(e) {
-    console.warn('[checkout] shift check failed:', e);
-    return alert('⚠️ تعذر التحقق من الشيفت. تأكد من الاتصال وحاول مرة أخرى.');
   }
   if (isCustomer && tableNum) {
     const lastKey = 'laguna_last_order_t' + tableNum;
@@ -617,7 +631,9 @@ document.getElementById('confirmCheckout').onclick = async () => {
             tx.update(tableRef, { status: 'occupied' });
           }
         }
-        const invData = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: (custType === 'free' || custType === 'workers') ? 'paid' : 'pending', customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
+        // Use selected date for past dates, otherwise current time
+        var invDate = isPastDate ? selectedDate + 'T12:00:00' : FB.nowISO();
+        const invData = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: (custType === 'free' || custType === 'workers') ? 'paid' : 'pending', customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);
@@ -631,7 +647,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
           });
         }
       } catch(e) { console.warn('[checkout] customer stats update failed:', e); }
-      inv = { id: invId, customer, table, date: FB.nowISO(), items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: (custType === 'free' || custType === 'workers') ? 'paid' : 'pending', customerType: custType };
+      inv = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: (custType === 'free' || custType === 'workers') ? 'paid' : 'pending', customerType: custType };
     } catch (e) {
       resetCheckout();
       console.error('[checkout] transaction error:', e);
