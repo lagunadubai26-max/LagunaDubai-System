@@ -244,35 +244,6 @@ async function showDayReport() {
     const liveSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
     const pendingAmount = pendingInvoices.reduce((s, i) => s + Math.max(0, Number(i.total || 0) - Number(i.paid || 0)), 0);
 
-    const auditInvoices = (allAudit || [])
-      .filter(a => {
-        if (a.type !== 'invoice_created' || !a.timestamp) return false;
-        const t = new Date(a.timestamp); const maxT = new Date(FB.clockNow().getTime() + 5 * 60 * 1000);
-        if (!(t >= start && t <= end && t <= maxT)) return false;
-        let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
-        const id = a.detail_id || det.id;
-        return !!id && !!existingInvMap[id]; // تجاهل الفواتير المحذوفة
-      })
-      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    let auditHtml = '<div class="dr-empty">\u0644\u0627 \u062a\u0648\u062c\u062f \u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0633\u062c\u0644\u0629 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645</div>';
-    if (auditInvoices.length) {
-      let rows = '';
-      auditInvoices.forEach(a => {
-        let det = {};
-        try { det = JSON.parse(a.detail || '{}'); } catch(e) {}
-        const t = new Date(a.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        const invRef = existingInvMap[a.detail_id || det.id];
-        const isWorkerRow = (invRef ? invRef.customerType === 'workers' : det.customerType === 'workers');
-        const isFreeRow = (invRef ? invRef.customerType === 'free' : det.customerType === 'free');
-        const custHtml = escapeHtml(det.customer || '—') +
-          (isWorkerRow ? ' <span class="dr-badge dr-badge-workers">(عمالة)</span>' :
-           isFreeRow ? ' <span class="dr-badge dr-badge-free">(ضيافة)</span>' : '');
-        const rowStyle = isWorkerRow ? ' class="dr-row-workers"' : isFreeRow ? ' class="dr-row-free"' : '';
-        rows += '<tr' + rowStyle + '><td>' + t + '</td><td>' + escapeHtml(a.detail_id || det.id || '—') + '</td><td>' + custHtml + '</td><td>' + fmtMoney(det.total || 0) + '</td><td>' + escapeHtml(det.method || '—') + '</td></tr>';
-      });
-      auditHtml = '<table class="dr-table"><thead><tr><th>\u0627\u0644\u0648\u0642\u062a</th><th>\u0631\u0642\u0645 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629</th><th>\u0627\u0644\u0639\u0645\u064a\u0644</th><th>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th><th>\u0627\u0644\u0637\u0631\u064a\u0642\u0629</th></tr></thead><tbody>' + rows + '</tbody></table>';
-    }
-
     const summaryHtml = (title, cards, extra) =>
       '<div class="dr-header">' +
         '<img src="images/logo.png" alt="Laguna Dubai">' +
@@ -280,22 +251,9 @@ async function showDayReport() {
         '<p>' + title + ' - ' + dateVal + '</p>' +
       '</div>' +
       '<div class="dr-summary">' + cards + '</div>' +
-      '<div class="dr-title">\u0641\u0648\u0627\u062a\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 (\u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a)</div>' +
-      auditHtml +
-      (latePayments.length ? '<div class="dr-title" style="color:#b45309">\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0633\u0627\u0628\u0642\u0629 (\u0645\u062a\u0623\u062e\u0631\u0627\u062a \u0627\u062a\u0633\u062f\u062f\u062a \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645)</div>' + buildLatePaymentsTable(latePayments) : '') +
       (extra || '');
 
-    if (auditInvoices.length && !soldInvoices.length) {
-      // All invoices for this day were deleted — show audit trail only
-      const audSales = auditInvoices.reduce((s, a) => { let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {} return s + Number(det.total || 0); }, 0);
-      const audCash = auditInvoices.reduce((s, a) => { let det = {}; try { det = JSON.parse(a.detail || '{}'); } catch(e) {} return s + ((det.method === 'Cash' || det.method === '\u0643\u0627\u0634') ? Number(det.total || 0) : 0); }, 0);
-      const cards =
-        '<div class="card"><span>\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631</span><b>' + auditInvoices.length + '</b></div>' +
-        '<div class="card"><span>\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a</span><b>' + fmtMoney(audSales) + '</b></div>' +
-        '<div class="card"><span>\u0643\u0627\u0634</span><b>' + fmtMoney(audCash) + '</b></div>' +
-        '<div class="card"><span>\u0634\u0628\u0643\u0629 / \u0641\u064a\u0632\u0627</span><b>' + fmtMoney(audSales - audCash) + '</b></div>';
-      dayReportEl.innerHTML = summaryHtml('\u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0627\u0644\u064a\u0648\u0645\u064a (\u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a)', cards, '');
-    } else if (!paidInvoices.length && !pendingInvoices.length && !dayReturns.length && !dayExpenses.length) {
+    if (!paidInvoices.length && !pendingInvoices.length && !dayReturns.length && !dayExpenses.length) {
       dayReportEl.innerHTML = '<div class="dr-empty">\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645</div>';
     } else {
       // Always use live invoice data (not dayclose snapshots) for accuracy
@@ -330,9 +288,6 @@ async function showDayReport() {
           '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(netProfit) + '</b></div>' +
           (pendingInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0639\u0644\u0642\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f\u0629)</span><b style="color:#d97706">' + pendingInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(pendingAmount) + '</b></div>' : '') +
         '</div>' +
-        '<div class="dr-title">\u0641\u0648\u0627\u062a\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 (\u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a)</div>' +
-        auditHtml +
-        (latePayments.length ? '<div class="dr-title" style="color:#b45309">\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0633\u0627\u0628\u0642\u0629 (\u0645\u062a\u0623\u062e\u0631\u0627\u062a \u0627\u062a\u0633\u062f\u062f\u062a \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645)</div>' + buildLatePaymentsTable(latePayments) : '') +
         '<div class="dr-title">\u0627\u0644\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0639\u0629</div>' +
         '<div style="color:#6b7280;font-size:12px;margin:-8px 0 12px">\u0627\u0644\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629 \u0642\u0628\u0644 \u0627\u0644\u062e\u0635\u0648\u0645\u0627\u062a \u0648\u0627\u0644\u0639\u0645\u0644\u0627\u062a \u2014 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0641\u0639\u0644\u064a \u064a\u0636\u0645\u0646 \u0627\u0644\u062e\u0635\u0648\u0645\u0627\u062a</div>' +
         buildDrinkTable(itemsMap) +
