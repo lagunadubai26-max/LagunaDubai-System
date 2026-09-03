@@ -87,6 +87,89 @@ function buildItemsMap(invs) {
   return m;
 }
 
+function customerBadge(inv) {
+  if (inv.customerType === 'workers') return ' <span class="dr-badge dr-badge-workers">\u0639\u0645\u0627\u0644\u0629</span>';
+  if (inv.customerType === 'free') return ' <span class="dr-badge dr-badge-free">\u0636\u064a\u0627\u0641\u0629</span>';
+  if (inv.customerType === 'special') return ' <span class="dr-badge dr-badge-special">\u0645\u0645\u064a\u0632</span>';
+  return '';
+}
+
+function invoiceItemsSummary(inv) {
+  return (inv.items || []).map(function(it) {
+    var label = escapeHtml(it.name || '\u0645\u0646\u062a\u062c');
+    if (it.hasMilk) label += ' (+\u0644\u0628\u0646)';
+    return label + ' \u00d7' + Number(it.qty || 1);
+  }).join(', ');
+}
+
+function buildPaidInvoicesTable(paidInvoices) {
+  if (!paidInvoices.length) return '';
+  var html = '<table class="dr-table dr-table-invoices"><thead><tr>' +
+    '<th>\u0627\u0644\u0648\u0642\u062a</th>' +
+    '<th>\u0631\u0642\u0645 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629</th>' +
+    '<th>\u0627\u0644\u0639\u0645\u064a\u0644</th>' +
+    '<th>\u0627\u0644\u062a\u0631\u0627\u0628\u064a\u0632\u0629</th>' +
+    '<th>\u0627\u0644\u0623\u0635\u0646\u0627\u0641</th>' +
+    '<th>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th>' +
+    '<th>\u0627\u0644\u0637\u0631\u064a\u0642\u0629</th>' +
+    '</tr></thead><tbody>';
+  paidInvoices.forEach(function(inv) {
+    var t = inv.date ? new Date(inv.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '\u2014';
+    var isWorker = inv.customerType === 'workers';
+    var isFree = inv.customerType === 'free';
+    var rowClass = isWorker ? ' class="dr-row-workers"' : isFree ? ' class="dr-row-free"' : '';
+    var custName = escapeHtml(inv.customer || '\u2014') + customerBadge(inv);
+    var tableNum = inv.table ? '#' + escapeHtml(String(inv.table)) : '\u2014';
+    var items = invoiceItemsSummary(inv);
+    var method = methodLabel(inv.paymentMethod);
+    html += '<tr' + rowClass + '>' +
+      '<td>' + t + '</td>' +
+      '<td>' + escapeHtml(inv.id) + '</td>' +
+      '<td>' + custName + '</td>' +
+      '<td>' + tableNum + '</td>' +
+      '<td class="dr-inv-items">' + items + '</td>' +
+      '<td style="font-weight:700">' + fmtMoney(inv.total) + '</td>' +
+      '<td>' + method + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function buildPendingInvoicesTable(pendingInvoices) {
+  if (!pendingInvoices.length) return '';
+  var html = '<table class="dr-table dr-table-invoices"><thead><tr>' +
+    '<th>\u0627\u0644\u0648\u0642\u062a</th>' +
+    '<th>\u0631\u0642\u0645 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629</th>' +
+    '<th>\u0627\u0644\u0639\u0645\u064a\u0644</th>' +
+    '<th>\u0627\u0644\u062a\u0631\u0627\u0628\u064a\u0632\u0629</th>' +
+    '<th>\u0627\u0644\u0623\u0635\u0646\u0627\u0641</th>' +
+    '<th>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th>' +
+    '<th>\u0627\u0644\u0645\u062a\u0628\u0642\u064a</th>' +
+    '</tr></thead><tbody>';
+  pendingInvoices.forEach(function(inv) {
+    var t = inv.date ? new Date(inv.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '\u2014';
+    var isWorker = inv.customerType === 'workers';
+    var isFree = inv.customerType === 'free';
+    var rowClass = isWorker ? ' class="dr-row-workers"' : isFree ? ' class="dr-row-free"' : '';
+    var custName = escapeHtml(inv.customer || '\u2014') + customerBadge(inv);
+    var tableNum = inv.table ? '#' + escapeHtml(String(inv.table)) : '\u2014';
+    var items = invoiceItemsSummary(inv);
+    var remaining = Math.max(0, Number(inv.total || 0) - Number(inv.paid || 0));
+    html += '<tr' + rowClass + '>' +
+      '<td>' + t + '</td>' +
+      '<td>' + escapeHtml(inv.id) + '</td>' +
+      '<td>' + custName + '</td>' +
+      '<td>' + tableNum + '</td>' +
+      '<td class="dr-inv-items">' + items + '</td>' +
+      '<td style="font-weight:700">' + fmtMoney(inv.total) + '</td>' +
+      '<td style="color:#d97706;font-weight:700">' + fmtMoney(remaining) + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
 async function showDayReport() {
   const dateVal = dayReportDate.value;
   if (!dateVal) return alert('\u0627\u062e\u062a\u0631 \u0627\u0644\u062a\u0627\u0631\u064a\u062e \u0623\u0648\u0644\u0627\u064b');
@@ -105,8 +188,24 @@ async function showDayReport() {
     const dayIncomes = (allIncomes || []).filter(e => { const d = new Date(e.date); return d >= start && d <= end; });
 
     const soldInvoices = dayInvoices.filter(i => i.status !== 'returned' && i.status !== '\u0645\u0631\u062a\u062c\u0639\u0629');
-    const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === '\u0645\u062f\u0641\u0648\u0639\u0629');
-    const pendingInvoices = soldInvoices.filter(i => i.status !== 'paid' && i.status !== '\u0645\u062f\u0641\u0648\u0639\u0629');
+
+    // الفواتير المدفوعة = الليpaidAt بتاعها اليوم ده (بغض النظر عن تاريخ الإنشاء)
+    const paidInvoices = (allInvoices || []).filter(i => {
+      if (i.status === 'returned' || i.status === '\u0645\u0631\u062a\u062c\u0639\u0629') return false;
+      if (!i.paidAt) return false;
+      const paidDate = new Date(i.paidAt);
+      return paidDate >= start && paidDate <= end;
+    });
+
+    // الفواتير المعلقة = اللي اتنشأت اليوم ولسه متسددتش
+    // (لو اتسددت بعدين تتشال من هنا وتتحول للفواتير المدفوعة في يوم التسديد)
+    const pendingInvoices = dayInvoices.filter(i => {
+      if (i.status === 'paid' || i.status === '\u0645\u062f\u0641\u0648\u0639\u0629') return false;
+      if (!i.paidAt) return true;
+      const paidDate = new Date(i.paidAt);
+      return paidDate > end;
+    });
+
     const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
     const totalCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
     const totalCard = paidInvoices.filter(i => i.paymentMethod !== 'Cash' && i.paymentMethod !== '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
@@ -231,9 +330,14 @@ async function showDayReport() {
           '<div class="card"><span>\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d</span><b style="color:var(--success)">' + fmtMoney(netProfit) + '</b></div>' +
           (pendingInvoices.length ? '<div class="card"><span>\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0639\u0644\u0642\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f\u0629)</span><b style="color:#d97706">' + pendingInvoices.length + ' \u0641\u0627\u062a\u0648\u0631\u0629 / ' + fmtMoney(pendingAmount) + '</b></div>' : '') +
         '</div>' +
+        '<div class="dr-title">\u0641\u0648\u0627\u062a\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 (\u0645\u0646 \u0633\u062c\u0644 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a)</div>' +
+        auditHtml +
+        (latePayments.length ? '<div class="dr-title" style="color:#b45309">\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0633\u0627\u0628\u0642\u0629 (\u0645\u062a\u0623\u062e\u0631\u0627\u062a \u0627\u062a\u0633\u062f\u062f\u062a \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645)</div>' + buildLatePaymentsTable(latePayments) : '') +
         '<div class="dr-title">\u0627\u0644\u0645\u0634\u0631\u0648\u0628\u0627\u062a \u0648\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0639\u0629</div>' +
         '<div style="color:#6b7280;font-size:12px;margin:-8px 0 12px">\u0627\u0644\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629 \u0642\u0628\u0644 \u0627\u0644\u062e\u0635\u0648\u0645\u0627\u062a \u0648\u0627\u0644\u0639\u0645\u0644\u0627\u062a \u2014 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0641\u0639\u0644\u064a \u064a\u0636\u0645\u0646 \u0627\u0644\u062e\u0635\u0648\u0645\u0627\u062a</div>' +
         buildDrinkTable(itemsMap) +
+        (paidInvoices.length ? '<div class="dr-title">\u0641\u0648\u0627\u062a\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629</div>' + buildPaidInvoicesTable(paidInvoices) : '') +
+        (pendingInvoices.length ? '<div class="dr-title" style="color:#d97706">\u0641\u0648\u0627\u062a\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645 \u0627\u0644\u0645\u0639\u0644\u0642\u0629</div>' + buildPendingInvoicesTable(pendingInvoices) : '') +
         '<div class="dr-title">\u0645\u0631\u062a\u062c\u0639\u0627\u062a \u0627\u0644\u064a\u0648\u0645</div>' +
         buildReturnTable(dayReturns) +
         (latePayments.length ? '<div class="dr-title" style="color:#b45309">\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0633\u0627\u0628\u0642\u0629</div>' + buildLatePaymentsTable(latePayments) : '');
