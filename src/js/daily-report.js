@@ -198,12 +198,20 @@ async function showDayReport() {
     const soldInvoices = dayInvoices.filter(i => i.status !== 'returned' && i.status !== '\u0645\u0631\u062a\u062c\u0639\u0629');
 
     // الفواتير المدفوعة = الليpaidAt بتاعها اليوم ده (بغض النظر عن تاريخ الإنشاء)
+    // + فواتير العمالة والضيافة اللي اتنشأت اليوم (حتى لو بدون paidAt)
     const paidInvoices = (allInvoices || []).filter(i => {
       if (i._warning) return false;
       if (i.status === 'returned' || i.status === '\u0645\u0631\u062a\u062c\u0639\u0629') return false;
-      if (!i.paidAt) return false;
-      const paidDate = new Date(i.paidAt);
-      return paidDate >= start && paidDate <= end;
+      if (i.paidAt) {
+        const paidDate = new Date(i.paidAt);
+        return paidDate >= start && paidDate <= end;
+      }
+      // فواتير العمالة والضيافة المدفوعة (حتى لو بدون paidAt)
+      if (i.status === 'paid' && (i.customerType === 'workers' || i.customerType === 'free')) {
+        const created = new Date(i.date);
+        return created >= start && created <= end;
+      }
+      return false;
     });
 
     // الفواتير المعلقة = اللي اتنشأت اليوم ولسه متسددتش
