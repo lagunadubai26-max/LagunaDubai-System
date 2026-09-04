@@ -1,0 +1,357 @@
+async function updateDashboard() {
+  const invoices = await DB.invoices.all() || [];
+  const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
+  const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const pendingTotal = invoices.filter(i => i.status !== 'paid' && i.status !== 'مدفوعة' && i.status !== 'returned' && i.status !== 'مرتجعة').reduce((s, i) => s + Number(i.total || 0), 0);
+  const customers = (await DB.customers.all() || []).length;
+  const totalOrders = invoices.reduce((s, i) => s + (i.items ? i.items.reduce((a, b) => a + Number(b.qty || 0), 0) : 0), 0);
+
+  animateCount(document.getElementById('totalSales'), totalSales, ' جنيه');
+  const salesStatus = document.getElementById('salesStatus');
+  if (salesStatus) salesStatus.textContent = (pendingTotal > 0 ? pendingTotal.toLocaleString() + ' ج.م معلقة | ' : '') + 'مدفوعة';
+  animateCount(document.getElementById('totalInvoices'), invoices.length, '');
+  animateCount(document.getElementById('totalCustomers'), customers || 0, '');
+  animateCount(document.getElementById('totalOrders'), totalOrders || 0, '');
+
+  // Day close button (Owner role removed — always visible)
+  const dayCloseBtn = document.getElementById('dashDayCloseBtn');
+  if (dayCloseBtn) dayCloseBtn.style.display = 'flex';
+
+  // Payment percentages
+  const methods = { Cash: 0, Visa: 0, Wallet: 0 };
+  invoices.forEach(i => { const m = i.paymentMethod || 'Cash'; if (methods[m] !== undefined) methods[m]++; });
+  const total = Object.values(methods).reduce((a, b) => a + b, 0) || 1;
+  document.getElementById('cashPercent').textContent = Math.round(methods.Cash / total * 100) + '%';
+  document.getElementById('visaPercent').textContent = Math.round(methods.Visa / total * 100) + '%';
+  document.getElementById('walletPercent').textContent = Math.round(methods.Wallet / total * 100) + '%';
+
+  await updateChart(paidInvoices);
+  await renderRecentInvoices(soldInvoices);
+  renderTopProducts(soldInvoices);
+  drawPaymentDonut(invoices);
+  checkDashDayClose();
+}
+
+// ── Animated counters ──
+function animateCount(el, target, suffix) {
+  if (!el) return;
+  suffix = suffix || '';
+  var from = el._counted || 0;
+  var start = performance.now();
+  var dur = 800;
+  function tick(now) {
+    var p = Math.min((now - start) / dur, 1);
+    var eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + (target - from) * eased).toLocaleString() + suffix;
+    if (p < 1) requestAnimationFrame(tick); else el._counted = target;
+  }
+  requestAnimationFrame(tick);
+}
+
+// ── Recent invoices panel ──
+async function renderRecentInvoices(invoices) {
+  const box = document.getElementById('recentInvoices');
+  if (!box) return;
+  // اليوم = شيفت اليوم الحالي (ثابت حتى إغلاق الشيفت يدويًا)
+  let cutoff = null;
+  try {
+    const shifts = await DB.shifts.all() || [];
+    const open = shifts.find(s => !s.closedAt);
+    if (open) cutoff = new Date(open.openedAt || ((open.openDate || '') + 'T00:00:00Z')).getTime();
+  } catch (e) {}
+  if (cutoff == null) {
+    const now = new Date();
+    cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  }
+  const todayInvoices = invoices.filter(inv => inv.date && new Date(inv.date).getTime() >= cutoff);
+  const list = todayInvoices.slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 6);
+  if (!list.length) {
+    box.innerHTML = '<div class="empty-state" style="padding:26px 10px"><i class="fa-solid fa-receipt"></i><h3>لا توجد فواتير اليوم</h3><p>ستظهر فواتير شيفت اليوم هنا</p></div>';
+    return;
+  }
+  const methodMap = { Cash: 'كاش', Visa: 'فيزا', Wallet: 'محفظة', Card: 'شبكة' };
+  box.innerHTML = list.map(inv => {
+    const d = inv.date ? new Date(inv.date) : null;
+    const time = d ? d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const method = methodMap[inv.paymentMethod] || inv.paymentMethod || '—';
+    const ok = inv.status === 'paid' || inv.status === 'مدفوعة';
+    return '<div class="recent-item">' +
+      '<div class="recent-icon ' + (ok ? 'ok' : 'pending') + '"><i class="fa-solid fa-receipt"></i></div>' +
+      '<div class="recent-info"><div class="recent-name">فاتورة #' + escapeHtml(String(inv.id || '—').slice(-6)) + '</div>' +
+      '<div class="recent-meta">اليوم ' + time + ' · ' + escapeHtml(method) + '</div></div>' +
+      '<div class="recent-total">' + Number(inv.total || 0).toLocaleString() + ' ج.م</div></div>';
+  }).join('');
+}
+
+// ── Top products panel ──
+function renderTopProducts(invoices) {
+  const box = document.getElementById('topProducts');
+  if (!box) return;
+  const agg = {};
+  invoices.forEach(inv => (inv.items || []).forEach(it => {
+    const key = it.name || it.productName || 'منتج';
+    agg[key] = (agg[key] || 0) + Number(it.qty || 0);
+  }));
+  const top = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (!top.length) {
+    box.innerHTML = '<div class="empty-state" style="padding:26px 10px"><i class="fa-solid fa-utensils"></i><h3>لا توجد مبيعات بعد</h3><p>ستظهر الأصناف الأكثر مبيعاً هنا</p></div>';
+    return;
+  }
+  const max = top[0][1] || 1;
+  const medals = ['#f59e0b', '#94a3b8', '#d97706'];
+  box.innerHTML = top.map(([name, qty], idx) =>
+    '<div class="top-item"><div class="top-row">' +
+    '<span class="top-name"><i class="fa-solid fa-medal" style="color:' + (medals[idx] || '#d6d3d1') + '"></i> ' + escapeHtml(name) + '</span>' +
+    '<span class="top-qty">' + qty + '</span></div>' +
+    '<div class="top-bar"><div class="top-fill" style="width:' + Math.round(qty / max * 100) + '%"></div></div></div>'
+  ).join('');
+}
+
+// ── Payment methods donut ──
+function drawPaymentDonut(invoices) {
+  const canvas = document.getElementById('paymentDonut');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const methods = { Cash: 0, Visa: 0, Wallet: 0 };
+  invoices.forEach(i => { const m = i.paymentMethod || 'Cash'; if (methods[m] !== undefined) methods[m]++; });
+  if (window.paymentDonut instanceof Chart) window.paymentDonut.destroy();
+  window.paymentDonut = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['كاش', 'فيزا', 'محفظة'],
+      datasets: [{ data: [methods.Cash, methods.Visa, methods.Wallet], backgroundColor: ['#059669', '#2563eb', '#7c3aed'], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Cairo', size: 12 } } } } }
+  });
+}
+
+async function updateChart(invoices) {
+  const canvas = document.getElementById('salesChart');
+  if (!canvas) return;
+
+  // نفس تقسيم التقارير: اليوم = شيفت. الأيام المقفولة من سجل الإغلاق،
+  // والشيفت المفتوح بيظهر يوم واحد مهما عبر منتصف الليل.
+  let daycloses = [];
+  let shifts = [];
+  try { daycloses = await DB.daycloses.all() || []; } catch (e) {}
+  try { shifts = await DB.shifts.all() || []; } catch (e) {}
+
+  const closedByDate = {};
+  daycloses.forEach(dc => {
+    const k = (dc.date || '').slice(0, 10);
+    if (k && Number(dc.totalSales || 0) > 0) closedByDate[k] = Number(dc.totalSales || 0);
+  });
+
+  const openShift = shifts.find(s => !s.closedAt) || null;
+  let openStart = null, openKey = null;
+  if (openShift) {
+    openStart = openShift.openedAt ? new Date(openShift.openedAt) : new Date((openShift.openDate || '') + 'T00:00:00Z');
+    openKey = (openShift.openDate || '').slice(0, 10);
+  }
+
+  const buckets = {};
+  invoices.forEach(inv => {
+    if (!inv.date) return;
+    const dayKey = String(inv.date).slice(0, 10);
+    if (closedByDate[dayKey]) return;
+    const t = new Date(inv.date).getTime();
+    let assignKey;
+    if (openShift && openStart && t >= openStart.getTime()) assignKey = openKey;
+    else assignKey = dayKey;
+    if (!assignKey) return;
+    buckets[assignKey] = (buckets[assignKey] || 0) + Number(inv.total || 0);
+  });
+  Object.keys(closedByDate).forEach(k => { buckets[k] = closedByDate[k]; });
+
+  const recent = Object.keys(buckets).sort().slice(-14);
+  if (!recent.length) recent.push(localDateKey(new Date()));
+
+  const labels = recent.map(k => {
+    try { return new Date(k + 'T12:00:00').toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }); }
+    catch (e) { return k; }
+  });
+  const data = recent.map(k => buckets[k] || 0);
+
+  if (typeof Chart !== 'undefined' && window.salesChart instanceof Chart) window.salesChart.destroy();
+  window.salesChart = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'المبيعات', data, backgroundColor: '#d97706', borderRadius: 6 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() + ' ج.م' } } }
+    }
+  });
+}
+
+// ── Day Close on Dashboard ──
+function fmtMoney(v) { return v.toLocaleString() + ' ج.م'; }
+
+function filterDate(items, start, end) {
+  if (!items) return [];
+  return items.filter(item => {
+    if (!item.date) return false;
+    const d = new Date(item.date);
+    return d >= start && d <= end;
+  });
+}
+
+async function checkDashDayClose() {
+  const shift = await DB.shifts.getOpen();
+  const btn = document.getElementById('dashDayCloseBtn');
+  if (shift) {
+    btn.innerHTML = '<i class="fa-solid fa-moon"></i> غلق الشيفت';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.innerHTML = '<i class="fa-solid fa-sun"></i> فتح الشيفت';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  }
+}
+
+document.getElementById('dashDayCloseBtn').onclick = async () => {
+  const shift = await DB.shifts.getOpen();
+  if (shift) {
+    showDashDayCloseModal(shift);
+  } else {
+    showDashStartDayModal();
+  }
+};
+
+// ── Start Day (Open Shift) ──
+function showDashStartDayModal() {
+  const now = FB.clockNow();
+  document.getElementById('dashStartDate').textContent = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('dashStartTime').textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('dashStartDayModal').classList.add('show');
+}
+
+document.getElementById('dashConfirmStartDay').onclick = async () => {
+  const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
+  try {
+    const shift = await DB.shifts.open(user.name || 'الكاشير');
+    DB.audit.log('shift_open', { openDate: shift.openDate, openedBy: shift.openedBy });
+    closeDashStartDay();
+    checkDashDayClose();
+    alert('✅ تم بدء اليوم ' + new Date(shift.openDate + 'T12:00:00').toLocaleDateString('ar-EG') + '\nاليوم ثابت حتى إغلاق الشيفت يدويًا');
+  } catch (e) {
+    console.error('[startday]', e);
+    alert('❌ حدث خطأ أثناء بدء اليوم');
+  }
+};
+
+function closeDashStartDay() { document.getElementById('dashStartDayModal').classList.remove('show'); }
+const dashCloseStartDayEl = document.getElementById('dashCloseStartDay');
+if (dashCloseStartDayEl) dashCloseStartDayEl.onclick = closeDashStartDay;
+document.getElementById('dashCancelStartDay').onclick = closeDashStartDay;
+window.addEventListener('click', e => { if (e.target === document.getElementById('dashStartDayModal')) closeDashStartDay(); });
+
+async function showDashDayCloseModal(shift) {
+  const allInvoices = await DB.invoices.all() || [];
+  const allExpenses = await DB.expenses.all() || [];
+  const allReturns = await DB.returns.all() || [];
+  const allIncomes = await DB.incomes.all() || [];
+
+  const start = new Date(shift.openedAt || (shift.openDate + 'T00:00:00Z'));
+  const end = FB.clockNow();
+
+  const invoices = filterDate(allInvoices, start, end);
+  const expenses = filterDate(allExpenses, start, end);
+  const returns = filterDate(allReturns, start, end);
+  const incomes = filterDate(allIncomes, start, end);
+  const soldInvoices = invoices.filter(i => i.status !== 'returned' && i.status !== 'مرتجعة');
+  const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+
+  const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const cashAmount = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const cardAmount = paidInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const otherAmount = totalSales - cashAmount - cardAmount;
+  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalIncome = incomes.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const workersCost = paidInvoices.filter(i => i.customerType === 'workers').reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : ((i.items || []).reduce((ss, it) => ss + Number(it.qty || 1) * Number(it.price || 0), 0))), 0);
+  const netProfit = totalSales + totalIncome - totalReturns - totalExpenses - workersCost;
+  const itemsSold = paidInvoices.reduce((s, i) => s + (i.items ? i.items.reduce((ss, it) => ss + Number(it.qty || 0), 0) : 0), 0);
+
+  const shiftDate = new Date(shift.openDate + 'T12:00:00');
+  const todayStr = 'شيفت ' + shiftDate.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + ' (من ' + (shift.openedAt ? new Date(shift.openedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—') + ')';
+  document.getElementById('dashDcDate').textContent = todayStr;
+  document.getElementById('dashDcSales').textContent = fmtMoney(totalSales);
+  document.getElementById('dashDcInvoices').textContent = paidInvoices.length;
+  document.getElementById('dashDcCard').textContent = fmtMoney(cardAmount);
+  document.getElementById('dashDcItemsSold').textContent = itemsSold;
+  document.getElementById('dashDcExpenses').textContent = fmtMoney(totalExpenses);
+  document.getElementById('dashDcIncome').textContent = fmtMoney(totalIncome);
+  document.getElementById('dashDcReturns').textContent = fmtMoney(totalReturns);
+  document.getElementById('dashDcNet').textContent = fmtMoney(netProfit);
+
+  const confBtn = document.getElementById('dashConfirmDayClose');
+  confBtn.dataset.cashAmount = cashAmount;
+  confBtn.dataset.cardAmount = cardAmount;
+  confBtn.dataset.totalSales = totalSales;
+  confBtn.dataset.paidInvoices = paidInvoices.length;
+  confBtn.dataset.itemsSold = itemsSold;
+  confBtn.dataset.totalExpenses = totalExpenses;
+  confBtn.dataset.totalIncome = totalIncome;
+  confBtn.dataset.totalReturns = totalReturns;
+  confBtn.dataset.workersCost = workersCost;
+  confBtn.dataset.netProfit = netProfit;
+  confBtn.dataset.openDate = shift.openDate;
+
+  document.getElementById('dashDayCloseModal').classList.add('show');
+}
+
+document.getElementById('dashConfirmDayClose').onclick = async () => {
+  const btn = document.getElementById('dashConfirmDayClose');
+  const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
+  const shift = await DB.shifts.getOpen();
+  if (!shift) { alert('❌ لا يوجد شيفت مفتوح حاليًا'); return; }
+  const openDate = btn.dataset.openDate || shift.openDate;
+  const data = {
+    date: openDate,
+    totalSales: Number(btn.dataset.totalSales),
+    numInvoices: Number(btn.dataset.paidInvoices),
+    cashAmount: Number(btn.dataset.cashAmount),
+    cardAmount: Number(btn.dataset.cardAmount),
+    totalExpenses: Number(btn.dataset.totalExpenses),
+    totalIncome: Number(btn.dataset.totalIncome),
+    totalReturns: Number(btn.dataset.totalReturns),
+    workersCost: Number(btn.dataset.workersCost || 0),
+    netProfit: Number(btn.dataset.netProfit),
+    itemsSold: Number(btn.dataset.itemsSold),
+    closedBy: user.name || 'الكاشير',
+    closedAt: FB.nowISO()
+  };
+  try {
+    await DB.daycloses.close(data);
+    await DB.shifts.close(shift.id, { closedAt: FB.nowISO(), closedBy: user.name || 'الكاشير' });
+    DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales });
+    document.getElementById('dashDayCloseModal').classList.remove('show');
+    checkDashDayClose();
+    alert('✅ تم إغلاق اليوم بنجاح');
+  } catch (e) {
+    console.error('[dash-dayclose]', e);
+    alert('❌ حدث خطأ أثناء إغلاق اليوم');
+  }
+};
+
+function closeDashDayClose() { document.getElementById('dashDayCloseModal').classList.remove('show'); }
+document.getElementById('dashCloseDayClose').onclick = closeDashDayClose;
+document.getElementById('dashCancelDayClose').onclick = closeDashDayClose;
+window.addEventListener('click', e => { if (e.target === document.getElementById('dashDayCloseModal')) closeDashDayClose(); });
+
+updateDashboard();
+setInterval(updateDashboard, 60000);
+
+(async function autoStartDay() {
+  try {
+    const shift = await DB.shifts.getOpen();
+    if (!shift) showDashStartDayModal();
+  } catch (e) {
+    console.warn('[autostart]', e);
+  }
+})();
