@@ -630,6 +630,7 @@ function recalcTotal() {
       taxAmount: customerType === 'free' ? 0 : taxAmount,
       paymentMethod: method,
       status: invStatus,
+      paidAt: customerType === 'free' ? nowISO() : undefined,
       customerType: customerType,
       itemsValue: total,
       createdBy: 'iPad'

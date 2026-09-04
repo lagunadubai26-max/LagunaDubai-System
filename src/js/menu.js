@@ -633,7 +633,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
         }
         // Use selected date for past dates, otherwise current time
         var invDate = isPastDate ? selectedDate + 'T12:00:00' : FB.nowISO();
-        const invData = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: (custType === 'free' || custType === 'workers') ? 'paid' : 'pending', customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
+        var isFreeInvoice = custType === 'free' || custType === 'workers';
+        const invData = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: isFreeInvoice ? 'paid' : 'pending', paidAt: isFreeInvoice ? invDate : undefined, customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);

@@ -226,8 +226,8 @@ async function showDayReport() {
     const existingInvMap = {};
     (allInvoices || []).forEach(i => { if (i && i.id) existingInvMap[i.id] = i; });
 
-    // فواتير العمالة (مجانية تتحسب كمصروف) — فقط المدفوعة هذا اليوم
-    const workerInvoices = paidInvoices.filter(i => i.customerType === 'workers');
+    // فواتير العمالة (مجانية تتحسب كمصروف) — بالتاريخ (مش بالpaidAt) عشان القديمة بدون paidAt
+    const workerInvoices = dayInvoices.filter(i => i.customerType === 'workers');
     const workersCost = workerInvoices.reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : ((i.items || []).reduce((ss, it) => ss + Number(it.qty || 1) * Number(it.price || 0), 0))), 0);
 
     // تحصيلات متأخرة: مدفوعات سُجلت في هذا اليوم لفواتير أُنشئت في أيام أخرى
