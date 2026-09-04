@@ -91,6 +91,8 @@ function syncSheetNotesToOrderBox() {
   });
 }
 
+function recalcTotal() { syncOrderSheet(); }
+
 function syncOrderSheet() {
   const orderList = document.querySelector('.order-box .order-list');
   const sheetList = document.getElementById('sheetOrderList');
@@ -612,6 +614,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
     }
     const invId = 'INV-' + safeId().slice(0, 8).toUpperCase();
     let inv, matchedCust, custReadFailed = false;
+    var invDate = isPastDate ? selectedDate + 'T12:00:00' : FB.nowISO();
+    var isFreeInvoice = custType === 'free' || custType === 'workers';
     if (custType === 'special') {
       try {
         const allCusts = await DB.customers.all() || [];
@@ -631,9 +635,6 @@ document.getElementById('confirmCheckout').onclick = async () => {
             tx.update(tableRef, { status: 'occupied' });
           }
         }
-        // Use selected date for past dates, otherwise current time
-        var invDate = isPastDate ? selectedDate + 'T12:00:00' : FB.nowISO();
-        var isFreeInvoice = custType === 'free' || custType === 'workers';
         const invData = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: isFreeInvoice ? 'paid' : 'pending', customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
         if (isFreeInvoice) invData.paidAt = invDate;
         const uid = FB.getUid();
