@@ -109,7 +109,7 @@
   }
 
   function nowISO() {
-    return new Date().toISOString();
+    return localISO();
   }
 
   // ── DOM refs ──

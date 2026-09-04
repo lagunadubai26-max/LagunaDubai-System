@@ -19,6 +19,18 @@ function localDateKey(d) {
   return y + '-' + m + '-' + day;
 }
 
+function localISO(d) {
+  if (!d) d = new Date();
+  if (typeof d === 'string') d = new Date(d);
+  var y = d.getFullYear();
+  var m = String(d.getMonth()+1).padStart(2,'0');
+  var day = String(d.getDate()).padStart(2,'0');
+  var h = String(d.getHours()).padStart(2,'0');
+  var mi = String(d.getMinutes()).padStart(2,'0');
+  var s = String(d.getSeconds()).padStart(2,'0');
+  return y+'-'+m+'-'+day+'T'+h+':'+mi+':'+s+'.'+String(d.getMilliseconds()).padStart(3,'0');
+}
+
 const DB = {
   mode: DB_MODE,
 
@@ -88,12 +100,12 @@ const DB = {
       status = diff > 30 * 60 * 1000 ? 'late' : 'present';
       return await FB.addDoc('attendance', {
         id: 'att-' + safeId().slice(0, 8), employeeId, name, job,
-        date: time.toISOString(), checkIn: time.toISOString(), status
+        date: localISO(time), checkIn: localISO(time), status
       });
     },
     async checkOut(id, customTime) {
       const time = customTime ? new Date(customTime) : FB.clockNow();
-      await FB.updateDoc('attendance', id, { checkOut: time.toISOString() });
+      await FB.updateDoc('attendance', id, { checkOut: localISO(time) });
     }
   },
 
@@ -220,7 +232,7 @@ const DB = {
       const shift = {
         id: 'sh-' + safeId().slice(0, 8),
         openDate: localDateKey(now),
-        openedAt: now.toISOString(),
+        openedAt: localISO(now),
         openedBy: name || 'الكاشير',
         closedAt: null
       };

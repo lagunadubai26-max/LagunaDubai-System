@@ -301,7 +301,7 @@ document.getElementById('saveAdv').onclick = async () => {
       employeeName: safeStr(emp.name),
       amount: Math.round(amount),
       note,
-      date: dateStr ? new Date(dateStr + 'T12:00:00').toISOString() : FB.nowISO(),
+      date: dateStr ? localISO(new Date(dateStr + 'T12:00:00')) : FB.nowISO(),
       monthKey: monthKeyOf(dateStr ? new Date(dateStr + 'T12:00:00') : FB.clockNow()),
       status: 'pending'
     });

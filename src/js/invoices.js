@@ -518,7 +518,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
     await DB.invoices.add({
       id: newId,
       customer: toMerge[0].customer,
-      date: earliestDate.toISOString(),
+      date: localISO(earliestDate),
       items: mergedItems,
       total: total,
       paid: paid,
@@ -532,7 +532,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
       createdBy: _invUser?.name || ''
     });
     for (const id of ids) await DB.invoices.remove(id);
-    await DB.audit.log('invoice_merged', { id: newId, mergedFrom: ids, total, customer: toMerge[0].customer, date: earliestDate.toISOString(), table: mergedTable });
+    await DB.audit.log('invoice_merged', { id: newId, mergedFrom: ids, total, customer: toMerge[0].customer, date: localISO(earliestDate), table: mergedTable });
     invoices = await DB.invoices.all() || [];
     await resolveShiftRange();
     // استبدال صف أول فاتورة مدموجة في مكانه وحذف الباقي — بدون render كامل

@@ -48,7 +48,7 @@ const FB = (() => {
   }
 
   function clockNow() { return new Date(Date.now() + (_clockOffset || 0)); }
-  function nowISO() { return clockNow().toISOString(); }
+  function nowISO() { var d = clockNow(); var y = d.getFullYear(); var m = String(d.getMonth()+1).padStart(2,'0'); var day = String(d.getDate()).padStart(2,'0'); var h = String(d.getHours()).padStart(2,'0'); var mi = String(d.getMinutes()).padStart(2,'0'); var s = String(d.getSeconds()).padStart(2,'0'); return y+'-'+m+'-'+day+'T'+h+':'+mi+':'+s+'.'+String(d.getMilliseconds()).padStart(3,'0'); }
 
   // ── Read reduction: memo (per page) + static cache (localStorage + versions doc) ──
   const _memo = new Map();

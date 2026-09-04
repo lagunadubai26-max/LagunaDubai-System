@@ -146,7 +146,7 @@ document.getElementById('attTimeConfirm').onclick = async () => {
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري...';
   try {
     if (attTimeMode === 'in') {
-      const rec = await DB.attendance.checkIn(attTimeEmp.id, attTimeEmp.name, attTimeEmp.job || '', d.toISOString(), attTimeEmp.shiftTime);
+      const rec = await DB.attendance.checkIn(attTimeEmp.id, attTimeEmp.name, attTimeEmp.job || '', localISO(d), attTimeEmp.shiftTime);
       cachedRecords = cachedRecords || [];
       cachedRecords = cachedRecords.filter(r => r.employeeId !== attTimeEmp.id);
       cachedRecords.push(rec);
@@ -160,7 +160,7 @@ document.getElementById('attTimeConfirm').onclick = async () => {
         if (selDay.getTime() > cinDay.getTime()) d.setDate(d.getDate() - 1);
         else if (selDay.getTime() < cinDay.getTime()) d.setDate(d.getDate() + 1);
       }
-      await DB.attendance.checkOut(attTimeRecordId, d.toISOString());
+      await DB.attendance.checkOut(attTimeRecordId, localISO(d));
       if (rec) rec.checkOut = d.toISOString();
     }
     closeTimeModal();

@@ -83,7 +83,7 @@ document.getElementById('addIncBtn').onclick = async () => {
     const dateVal = incDate.value;
     if (!description || !amount) return alert('يرجى إدخال الوصف والمبلغ');
     const d = dateVal ? new Date(dateVal + 'T12:00:00') : FB.clockNow();
-    await DB.incomes.add({ description, amount, date: d.toISOString() });
+    await DB.incomes.add({ description, amount, date: localISO(d) });
     document.getElementById('incDesc').value = '';
     document.getElementById('incAmount').value = '';
     render();
