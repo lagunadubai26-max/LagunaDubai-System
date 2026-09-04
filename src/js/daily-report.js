@@ -212,7 +212,7 @@ async function showDayReport() {
         return created >= start && created <= end;
       }
       return false;
-    });
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
     // الفواتير المعلقة = اللي اتنشأت اليوم ولسه متسددتش
     // (لو اتسددت بعدين تتشال من هنا وتتحول للفواتير المدفوعة في يوم التسديد)
@@ -221,7 +221,7 @@ async function showDayReport() {
       if (!i.paidAt) return true;
       const paidDate = new Date(i.paidAt);
       return paidDate > end;
-    });
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
     const totalCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
