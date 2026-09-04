@@ -68,10 +68,11 @@ async function resolveDayRange(dateVal, latestInvTs) {
       if (i + 1 < sorted.length) end = new Date(sorted[i + 1].openedAt);
       else if (sorted[i].closedAt) end = new Date(sorted[i].closedAt);
       else end = new Date(Math.max(FB.clockNow().getTime(), latestInvTs || 0));
-      return { start, end };
+      return { start, end, hasShift: true };
     }
   } catch(e) { console.warn('[dayreport] range:', e); }
-  return { start: new Date(dateVal + 'T00:00:00'), end: new Date(dateVal + 'T23:59:59.999') };
+  // لا يوجد شيفت لهذا اليوم — لا تعرض فواتير
+  return { start: null, end: null, hasShift: false };
 }
 
 function buildItemsMap(invs) {
@@ -181,8 +182,15 @@ async function showDayReport() {
     ]);
 
     const latestInvTs = (allInvoices || []).reduce((m, i) => i.date ? Math.max(m, new Date(i.date).getTime()) : m, 0);
-    const { start, end } = await resolveDayRange(dateVal, latestInvTs);
-    const dayInvoices = (allInvoices || []).filter(i => i.date && (() => { const d = new Date(i.date); return d >= start && d <= end; })());
+    const { start, end, hasShift } = await resolveDayRange(dateVal, latestInvTs);
+
+    if (!hasShift) {
+      dayReportEl.innerHTML = '<div class="dr-empty" style="color:#d97706;font-size:16px;padding:40px">' +
+        '<i class="fa-solid fa-store-slash" style="font-size:32px;display:block;margin-bottom:12px"></i>' +
+        '\u0644\u0627 \u064a\u0648\u062c\u062f \u0634\u064a\u0641\u062a \u0645\u0641\u062a\u0648\u062d \u0644\u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645</div>';
+      return;
+    }
+    const dayInvoices = (allInvoices || []).filter(i => i.date && !i._warning && (() => { const d = new Date(i.date); return d >= start && d <= end; })());
     const dayExpenses = (allExpenses || []).filter(e => { const d = new Date(e.date); return d >= start && d <= end; });
     const dayReturns = (allReturns || []).filter(r => { const d = new Date(r.date); return d >= start && d <= end; });
     const dayIncomes = (allIncomes || []).filter(e => { const d = new Date(e.date); return d >= start && d <= end; });
@@ -191,6 +199,7 @@ async function showDayReport() {
 
     // الفواتير المدفوعة = الليpaidAt بتاعها اليوم ده (بغض النظر عن تاريخ الإنشاء)
     const paidInvoices = (allInvoices || []).filter(i => {
+      if (i._warning) return false;
       if (i.status === 'returned' || i.status === '\u0645\u0631\u062a\u062c\u0639\u0629') return false;
       if (!i.paidAt) return false;
       const paidDate = new Date(i.paidAt);
@@ -217,8 +226,8 @@ async function showDayReport() {
     const existingInvMap = {};
     (allInvoices || []).forEach(i => { if (i && i.id) existingInvMap[i.id] = i; });
 
-    // فواتير العمالة (مجانية تتحسب كمصروف)
-    const workerInvoices = soldInvoices.filter(i => i.customerType === 'workers');
+    // فواتير العمالة (مجانية تتحسب كمصروف) — فقط المدفوعة هذا اليوم
+    const workerInvoices = paidInvoices.filter(i => i.customerType === 'workers');
     const workersCost = workerInvoices.reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : ((i.items || []).reduce((ss, it) => ss + Number(it.qty || 1) * Number(it.price || 0), 0))), 0);
 
     // تحصيلات متأخرة: مدفوعات سُجلت في هذا اليوم لفواتير أُنشئت في أيام أخرى

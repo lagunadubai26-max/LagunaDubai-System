@@ -635,21 +635,27 @@ function recalcTotal() {
       createdBy: 'iPad'
     };
 
-    fbRunTransaction(function (tx) {
-      if (tableNum) {
-        return fbGetAll('tables_').then(function (allTables) {
-          var tbl = null;
-          for (var i = 0; i < allTables.length; i++) {
-            if (allTables[i].name === 'طاولة ' + tableNum) { tbl = allTables[i]; break; }
-          }
-          if (tbl) {
-            tx.update(db.collection('tables_').doc(tbl.id), { status: 'occupied' });
-          }
-          tx.set(db.collection('invoices').doc(invId), invData);
-        });
-      } else {
-        tx.set(db.collection('invoices').doc(invId), invData);
+    // فحص الشيفت — لو مفتوح، نعلّم الفاتورة
+    db.collection('shifts').where('closedAt', '==', null).limit(1).get().then(function (snap) {
+      if (!snap || snap.empty) {
+        invData._warning = 'no_shift';
       }
+      return fbRunTransaction(function (tx) {
+        if (tableNum) {
+          return fbGetAll('tables_').then(function (allTables) {
+            var tbl = null;
+            for (var i = 0; i < allTables.length; i++) {
+              if (allTables[i].name === 'طاولة ' + tableNum) { tbl = allTables[i]; break; }
+            }
+            if (tbl) {
+              tx.update(db.collection('tables_').doc(tbl.id), { status: 'occupied' });
+            }
+            tx.set(db.collection('invoices').doc(invId), invData);
+          });
+        } else {
+          tx.set(db.collection('invoices').doc(invId), invData);
+        }
+      });
     }).then(function () {
       // Update customer stats if VIP
       if (customerType === 'special' && customerName) {

@@ -13,7 +13,10 @@ function localSet(key, val) { localStorage.setItem('laguna_' + key, JSON.stringi
 function localDateKey(d) {
   if (!d) return '';
   if (typeof d === 'string') d = new Date(d);
-  return d.toISOString().slice(0, 10);
+  var y = d.getFullYear();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
 }
 
 const DB = {

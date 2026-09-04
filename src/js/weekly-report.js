@@ -9,7 +9,7 @@ function getSaturdayOffset(weeksAgo) {
   var sat = new Date(now);
   sat.setDate(now.getDate() - diff - (weeksAgo * 7));
   sat.setHours(0, 0, 0, 0);
-  return sat.toISOString().slice(0, 10);
+  return localDateKey(sat);
 }
 
 function setDefaultWeekStart() {
@@ -40,7 +40,7 @@ function getPrevWeekStart(startStr) {
   var parts = startStr.split('-').map(Number);
   var d = new Date(parts[0], parts[1] - 1, parts[2]);
   d.setDate(d.getDate() - 7);
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 }
 
 function fmtMoney(v) { return Number(v || 0).toLocaleString('ar-EG') + ' ج.م'; }
@@ -153,7 +153,7 @@ async function showWeekReport() {
     var weekItemsMap = buildItemsMap(weekPaid);
     var weekProducts = Object.values(weekItemsMap).sort(function(a, b) { return b.revenue - a.revenue; });
 
-    var endStr = weekDays[6].date.toISOString().slice(0, 10);
+    var endStr = localDateKey(weekDays[6].date);
 
     var cards = '<div class="card"><span>إجمالي المبيعات</span><b>' + fmtMoney(totalSales) + '</b>' + pctChange(totalSales, prevSales) + '</div>' +
       '<div class="card"><span>عدد الفواتير</span><b>' + weekPaid.length + '</b>' + pctChange(weekPaid.length, prevPaid.length) + '</div>' +

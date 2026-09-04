@@ -164,7 +164,7 @@ async function updateChart(invoices) {
   Object.keys(closedByDate).forEach(k => { buckets[k] = closedByDate[k]; });
 
   const recent = Object.keys(buckets).sort().slice(-14);
-  if (!recent.length) recent.push(new Date().toISOString().slice(0, 10));
+  if (!recent.length) recent.push(localDateKey(new Date()));
 
   const labels = recent.map(k => {
     try { return new Date(k + 'T12:00:00').toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }); }

@@ -7,7 +7,7 @@ const incDate = document.getElementById('incDate');
 const _incMonthNow = () => { const d = FB.clockNow(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
 
 incMonth.value = _incMonthNow();
-incDate.value = FB.clockNow().toISOString().slice(0, 10);
+incDate.value = localDateKey(FB.clockNow());
 
 function getMonthRange(value) {
   if (!value) { value = _incMonthNow(); }
