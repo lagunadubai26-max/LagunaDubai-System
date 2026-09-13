@@ -267,8 +267,9 @@ async function showDashDayCloseModal(shift) {
   const paidInvoices = soldInvoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
 
   const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-  const cashAmount = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
-  const cardAmount = paidInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+  const collectedAmount = i => Math.min(Number(i.total || 0), Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)));
+  const cashAmount = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === 'كاش').reduce((s, i) => s + collectedAmount(i), 0);
+  const cardAmount = paidInvoices.filter(i => i.paymentMethod === 'Card' || i.paymentMethod === 'شبكة' || i.paymentMethod === 'فيزا').reduce((s, i) => s + collectedAmount(i), 0);
   const otherAmount = totalSales - cashAmount - cardAmount;
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const totalReturns = returns.filter(r => r.status === 'success').reduce((s, r) => s + Number(r.amount || 0), 0);

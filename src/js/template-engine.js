@@ -172,7 +172,7 @@ window.TEMPLATE = (() => {
   }
 
   function renderTemplate(tpl, inv, type) {
-    const paid = inv.paid != null ? Number(inv.paid) : Number(inv.total || 0);
+    const paid = inv.tendered != null ? Number(inv.tendered) : (inv.paid != null ? Number(inv.paid) : Number(inv.total || 0));
     const total = Number(inv.total || 0);
     const remaining = inv.remaining != null ? Number(inv.remaining) : Math.max(0, total - paid);
     const change = inv.change || 0;
@@ -275,7 +275,7 @@ window.TEMPLATE = (() => {
 
   function renderEscpos(inv, templateStr, type) {
     const tpl = templateStr || (type === 'cashier' ? defaultEscposCashier() : defaultEscposKitchen());
-    const paid = inv.paid != null ? Number(inv.paid) : Number(inv.total || 0);
+    const paid = inv.tendered != null ? Number(inv.tendered) : (inv.paid != null ? Number(inv.paid) : Number(inv.total || 0));
     const total = Number(inv.total || 0);
     const remaining = inv.remaining != null ? Number(inv.remaining) : Math.max(0, total - paid);
     const change = inv.change || 0;

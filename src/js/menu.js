@@ -37,12 +37,14 @@ window._seedReady = (async () => {
   enableService = settings.enableService === true;
   serviceRate = settings.serviceTax || 10;
   enableTax = settings.enableTax === true;
-  taxRate = settings.serviceTax || 14;
+  taxRate = settings.taxRate || 14;
   // Migration: reset old enableService that was forced ON
-  if (enableService && settings._svcMigrated !== 2) {
-    enableService = false;
-    enableTax = false;
-    try { await FB.updateDoc('settings', settings.id || 'main', { enableService: false, enableTax: false, _svcMigrated: 2 }); } catch(e) {}
+  if (settings._svcMigrated !== 2) {
+    if (enableService) {
+      enableService = false;
+      enableTax = false;
+    }
+    try { await DB.settings.save({ enableService, enableTax, _svcMigrated: 2 }); } catch(e) {}
   }
   // Auto-shift: open shift at 3 PM (service stays OFF unless manually toggled)
   if (!isCustomer && !enableService) {
@@ -595,8 +597,9 @@ document.getElementById('confirmCheckout').onclick = async () => {
     const serviceAmount = window._checkoutService || 0;
     const taxAmount = window._checkoutTax || 0;
     const table = (tableNum || getTableInput()) ? 'طاولة ' + (tableNum || getTableInput()) : null;
-    const paid = Math.max(0, Number(document.getElementById('checkoutPaid').value) || 0);
-    const change = Math.max(0, paid - totalAmount);
+    const tendered = Math.max(0, Number(document.getElementById('checkoutPaid').value) || 0);
+    const paid = Math.min(tendered, totalAmount);
+    const change = Math.max(0, tendered - totalAmount);
     if (custType === 'regular') {
       const allProds = await DB.products.all() || [];
       const priceMap = {};
@@ -616,6 +619,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     let inv, matchedCust, custReadFailed = false;
     var invDate = isPastDate ? selectedDate + 'T12:00:00' : FB.nowISO();
     var isFreeInvoice = custType === 'free' || custType === 'workers';
+    var fullyPaid = isFreeInvoice || paid >= totalAmount;
     if (custType === 'special') {
       try {
         const allCusts = await DB.customers.all() || [];
@@ -635,8 +639,8 @@ document.getElementById('confirmCheckout').onclick = async () => {
             tx.update(tableRef, { status: 'occupied' });
           }
         }
-        const invData = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: isFreeInvoice ? 'paid' : 'pending', customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
-        if (isFreeInvoice) invData.paidAt = invDate;
+        const invData = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, tendered, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: fullyPaid ? 'paid' : 'pending', customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
+        if (fullyPaid) invData.paidAt = invDate;
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);
@@ -650,7 +654,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
           });
         }
       } catch(e) { console.warn('[checkout] customer stats update failed:', e); }
-      inv = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: (custType === 'free' || custType === 'workers') ? 'paid' : 'pending', customerType: custType };
+      inv = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, tendered, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: fullyPaid ? 'paid' : 'pending', customerType: custType };
     } catch (e) {
       resetCheckout();
       console.error('[checkout] transaction error:', e);
@@ -667,7 +671,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
       const hasPrinter = typeof PRINTER !== 'undefined' && PRINTER.isConnected();
 
       if (isCustomer || !isAdmin) {
-        alert(`تم إنشاء الفاتورة ${inv.id}\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${paid} ج.م`);
+        alert(`تم إنشاء الفاتورة ${inv.id}\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${tendered} ج.م`);
       } else {
         const safeItems = inv.items && inv.items.length
           ? '<div style="margin:8px 0">' + inv.items.map(it => {
@@ -687,7 +691,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
           ${inv.serviceAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#888;font-size:12px"><span>خدمة (${Math.round(inv.serviceAmount / (totalAmount - inv.serviceAmount - (inv.taxAmount || 0)) * 100) || 0}%)</span><span>${inv.serviceAmount} ج.م</span></div>` : ''}
           ${inv.taxAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#888;font-size:12px"><span>ضريبة (${Math.round(inv.taxAmount / (totalAmount - inv.taxAmount) * 100) || 0}%)</span><span>${inv.taxAmount} ج.م</span></div>` : ''}
           <div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:700;font-size:15px;padding-top:4px"><span>الإجمالي</span><span>${totalAmount} ج.م</span></div>
-          <div style="display:flex;justify-content:space-between;margin:2px 0"><span>المدفوع</span><span>${paid} ج.م</span></div>
+          <div style="display:flex;justify-content:space-between;margin:2px 0"><span>المدفوع</span><span>${tendered} ج.م</span></div>
           ${inv.change > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#059669"><span>الباقي للعميل</span><span>${inv.change} ج.م</span></div>` : ''}
           ${inv.remaining > 0 ? `<div style="display:flex;justify-content:space-between;margin:2px 0;color:#dc2626"><span>المتبقي</span><span>${inv.remaining} ج.م</span></div>` : ''}
         `.trim();
@@ -760,7 +764,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
         closeBtn.onclick = hideSuccess;
       }
     } else {
-      alert(`تم إنشاء الفاتورة\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${paid} ج.م`);
+      alert(`تم إنشاء الفاتورة\nالإجمالي: ${totalAmount} ج.م\nالمدفوع: ${tendered} ج.م`);
     }
     clearOrder();
   } catch (e) {
@@ -869,13 +873,7 @@ loadProducts();
     enableService = toggle.checked;
     enableTax = toggle.checked;
     try {
-      const settings = await DB.settings.get();
-      if (settings && settings.id) {
-        await FB.updateDoc('settings', settings.id, {
-          enableService: enableService,
-          enableTax: enableTax
-        });
-      }
+      await DB.settings.save({ enableService: enableService, enableTax: enableTax });
     } catch(e) { console.warn('[service toggle]', e); }
     updateUI();
     recalcTotal();

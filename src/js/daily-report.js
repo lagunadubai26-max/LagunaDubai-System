@@ -64,9 +64,11 @@ async function resolveDayRange(dateVal, latestInvTs) {
     const i = sorted.findIndex(s => s.openDate === dateVal);
     if (i !== -1) {
       const start = new Date(sorted[i].openedAt);
+      let lastSameDay = i;
+      while (lastSameDay + 1 < sorted.length && sorted[lastSameDay + 1].openDate === dateVal) lastSameDay++;
       let end = null;
-      if (i + 1 < sorted.length) end = new Date(sorted[i + 1].openedAt);
-      else if (sorted[i].closedAt) end = new Date(sorted[i].closedAt);
+      if (lastSameDay + 1 < sorted.length) end = new Date(new Date(sorted[lastSameDay + 1].openedAt).getTime() - 1);
+      else if (sorted[lastSameDay].closedAt) end = new Date(sorted[lastSameDay].closedAt);
       else end = new Date(Math.max(FB.clockNow().getTime(), latestInvTs || 0));
       return { start, end, hasShift: true };
     }
@@ -207,7 +209,7 @@ async function showDayReport() {
         return paidDate >= start && paidDate <= end;
       }
       // فواتير العمالة والضيافة المدفوعة (حتى لو بدون paidAt)
-      if (i.status === 'paid' && (i.customerType === 'workers' || i.customerType === 'free')) {
+      if (i.status === 'paid' || i.status === '\u0645\u062f\u0641\u0648\u0639\u0629') {
         const created = new Date(i.date);
         return created >= start && created <= end;
       }
@@ -224,8 +226,14 @@ async function showDayReport() {
     }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const totalSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-    const totalCash = paidInvoices.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
-    const totalCard = paidInvoices.filter(i => i.paymentMethod !== 'Cash' && i.paymentMethod !== '\u0643\u0627\u0634').reduce((s, i) => s + Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)), 0);
+    // الفاتورة القديمة تُحتسب كمبيعات عند اكتمالها، لكن حركة كاش اليوم تأتي من سجل التحصيل فقط.
+    const paidCreatedToday = paidInvoices.filter(i => {
+      const created = new Date(i.date);
+      return created >= start && created <= end;
+    });
+    const collectedAmount = i => Math.min(Number(i.total || 0), Number(i.paid != null && Number(i.paid) > 0 ? i.paid : (i.total || 0)));
+    const totalCash = paidCreatedToday.filter(i => i.paymentMethod === 'Cash' || i.paymentMethod === '\u0643\u0627\u0634').reduce((s, i) => s + collectedAmount(i), 0);
+    const totalCard = paidCreatedToday.filter(i => i.paymentMethod !== 'Cash' && i.paymentMethod !== '\u0643\u0627\u0634').reduce((s, i) => s + collectedAmount(i), 0);
     const totalExpenses = dayExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
     const totalReturns = dayReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
     const totalIncome = dayIncomes.reduce((s, e) => s + Number(e.amount || 0), 0);
@@ -257,7 +265,7 @@ async function showDayReport() {
     const lateCash = latePayments.filter(p => p.method === 'Cash' || p.method === '\u0643\u0627\u0634').reduce((s, p) => s + p.amount, 0);
     const lateCard = lateTotal - lateCash;
 
-    const netProfit = totalSales + totalIncome + lateTotal - totalReturns - totalExpenses - workersCost;
+    const netProfit = totalSales + totalIncome - totalReturns - totalExpenses - workersCost;
     const liveSales = paidInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
     const pendingAmount = pendingInvoices.reduce((s, i) => s + Math.max(0, Number(i.total || 0) - Number(i.paid || 0)), 0);
 

@@ -299,7 +299,7 @@ function attachActions() {
         const existing = (await DB.returns.all() || []).filter(r => r.invoice === inv.id);
         for (const r of existing) await DB.returns.remove(r.id);
         const settleAmt = Math.max(0, Number(inv.remaining ?? ((Number(inv.total || 0) - Number(inv.paid || 0)))));
-        await DB.invoices.update(inv.id, { status: 'paid', paidAt: FB.nowISO() });
+        await DB.invoices.update(inv.id, { status: 'paid', paid: Number(inv.total || 0), remaining: 0, change: 0, paidAt: FB.nowISO() });
         if (settleAmt > 0 || localDateKey(inv.date) !== localDateKey(FB.clockNow())) {
           await DB.audit.log('invoice_payment', { id: inv.id, customer: inv.customer, invDate: inv.date, amount: settleAmt, method: 'Cash', fullySettled: true, viaToggle: true });
         }
@@ -435,7 +435,9 @@ if (settleModal) {
     const fullySettled = newRemaining <= 0;
     btn.disabled = true;
     try {
-      const upd = { paid: newPaid, remaining: newRemaining, status: fullySettled ? 'paid' : 'pending', paidAt: FB.nowISO() };
+      const paymentTime = FB.nowISO();
+      const upd = { paid: newPaid, remaining: newRemaining, status: fullySettled ? 'paid' : 'pending', lastPaymentAt: paymentTime };
+      if (fullySettled) upd.paidAt = paymentTime;
       if (fullySettled && !inv.paymentMethod) upd.paymentMethod = settleMethod.value;
       await DB.invoices.update(inv.id, upd);
       await DB.audit.log('invoice_payment', { id: inv.id, customer: inv.customer, invDate: inv.date, amount: paidNow, method: settleMethod.value, fullySettled });
@@ -485,7 +487,8 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
 
   for (const inv of toMerge) {
     total += Number(inv.total || 0);
-    paid += Number(inv.paid ?? inv.total ?? 0);
+    const invIsPaid = inv.status === 'paid' || inv.status === 'مدفوعة';
+    paid += Number(inv.paid != null ? inv.paid : (invIsPaid ? inv.total : 0));
     if (inv.items) {
       for (const item of inv.items) {
         const key = (item.name || '') + (item.hasMilk ? '|milk' : '') + (item.note ? '|' + item.note : '');
@@ -508,6 +511,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
 
   try {
     const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 4);
+    paid = Math.min(total, paid);
     const remaining = Math.max(0, total - paid);
     // تاريخ أقدم فاتورة مدموجة (عشان الفاتورة الجديدة م تقفزش لأول الجدول)
     const earliestDate = toMerge.reduce((min, i) => (i.date && new Date(i.date) < min ? new Date(i.date) : min), new Date(toMerge[0].date || FB.nowISO()));
@@ -515,7 +519,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
     const mergedTable = (toMerge.map(i => i.table || '').find(t => t.trim()) || '');
     const itemsValue = toMerge.reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : Number(i.total || 0)), 0);
     const customerType = toMerge[0].customerType || '';
-    await DB.invoices.add({
+    const mergedInvoice = {
       id: newId,
       customer: toMerge[0].customer,
       date: localISO(earliestDate),
@@ -530,7 +534,12 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
       customerType,
       itemsValue,
       createdBy: _invUser?.name || ''
-    });
+    };
+    if (remaining <= 0) {
+      const paidDates = toMerge.map(i => i.paidAt).filter(Boolean).map(d => new Date(d));
+      mergedInvoice.paidAt = paidDates.length ? localISO(new Date(Math.max.apply(null, paidDates))) : localISO(earliestDate);
+    }
+    await DB.invoices.add(mergedInvoice);
     for (const id of ids) await DB.invoices.remove(id);
     await DB.audit.log('invoice_merged', { id: newId, mergedFrom: ids, total, customer: toMerge[0].customer, date: localISO(earliestDate), table: mergedTable });
     invoices = await DB.invoices.all() || [];
@@ -897,4 +906,3 @@ FB.onCollection('invoices', async (data) => {
   console.warn('[invoices] onSnapshot error, using fallback:', e);
   setInterval(render, 15000);
 });
-

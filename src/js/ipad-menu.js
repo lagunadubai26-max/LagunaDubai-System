@@ -109,7 +109,14 @@
   }
 
   function nowISO() {
-    return localISO();
+    var d = new Date();
+    function pad(n, size) {
+      var s = String(n);
+      while (s.length < size) s = '0' + s;
+      return s;
+    }
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1, 2) + '-' + pad(d.getDate(), 2) +
+      'T' + pad(d.getHours(), 2) + ':' + pad(d.getMinutes(), 2) + ':' + pad(d.getSeconds(), 2) + '.' + pad(d.getMilliseconds(), 3);
   }
 
   // ── DOM refs ──
@@ -165,8 +172,9 @@
   // ── Load settings + customers ──
   function loadSettings(callback) {
     fbGetAll('settings').then(function (arr) {
-      if (arr.length > 0) {
-        settings = arr[0];
+      settings = {};
+      for (var i = 0; i < arr.length; i++) {
+        if (arr[i].key) settings[arr[i].key] = arr[i].value;
       }
       callback();
     }).catch(function () {
@@ -431,6 +439,7 @@ function recalcTotal() {
   function attachSheetControls() {
     sheetList.addEventListener('click', function (e) {
       var btn = e.target;
+      if (btn && btn.parentElement && btn.tagName === 'I') btn = btn.parentElement;
       var idx;
       if (btn.classList.contains('ipad-oi-minus')) {
         idx = parseInt(btn.getAttribute('data-idx'));
@@ -561,8 +570,8 @@ function recalcTotal() {
 
   function updateChange() {
     var grandTotal = document.getElementById('checkoutModal')._grandTotal || 0;
-    var paid = num(document.getElementById('paidAmount').value, 0);
-    var change = paid - grandTotal;
+    var tendered = Math.max(0, num(document.getElementById('paidAmount').value, 0));
+    var change = tendered - grandTotal;
     var changeRow = document.getElementById('changeRow');
     var changeEl = document.getElementById('changeAmount');
     if (change >= 0) {
@@ -615,16 +624,18 @@ function recalcTotal() {
       custLabel = 'الاستاذ محمد الجوهري';
     }
 
+    var invDate = nowISO();
     var invData = {
       id: invId,
       customer: custLabel,
       table: table,
-      date: nowISO(),
+      date: invDate,
       items: itemsData,
-      total: customerType === 'free' ? 0 : baseTotal,
+      total: grandTotal,
       grandTotal: grandTotal,
       paid: paid,
-      change: Math.max(0, paid - grandTotal),
+      tendered: tendered,
+      change: Math.max(0, tendered - grandTotal),
       remaining: Math.max(0, grandTotal - paid),
       serviceAmount: customerType === 'free' ? 0 : serviceAmount,
       taxAmount: customerType === 'free' ? 0 : taxAmount,
@@ -635,7 +646,7 @@ function recalcTotal() {
       createdBy: 'iPad'
     };
 
-    if (customerType === 'free') invData.paidAt = nowISO();
+    if (invStatus === 'paid') invData.paidAt = invDate;
 
     // فحص الشيفت — لو مفتوح، نعلّم الفاتورة
     db.collection('shifts').where('closedAt', '==', null).limit(1).get().then(function (snap) {
@@ -666,7 +677,7 @@ function recalcTotal() {
             var c = customersCache[k];
             fbUpdate('customers', c.id, {
               visits: (c.visits || 0) + 1,
-              totalSpent: (c.totalSpent || 0) + baseTotal,
+              totalSpent: (c.totalSpent || 0) + grandTotal,
               lastVisit: nowISO()
             }).catch(function () {});
             break;
@@ -684,9 +695,9 @@ function recalcTotal() {
         detHtml += '<div><b>المدفوع:</b> 0 جنيه</div>';
       } else {
         detHtml += '<div><b>الإجمالي:</b> ' + grandTotal + ' جنيه</div>';
-        detHtml += '<div><b>المدفوع:</b> ' + paid + ' جنيه</div>';
-        if (paid > grandTotal) {
-          detHtml += '<div style="color:#059669"><b>الباقي:</b> ' + (paid - grandTotal) + ' جنيه</div>';
+        detHtml += '<div><b>المدفوع:</b> ' + tendered + ' جنيه</div>';
+        if (tendered > grandTotal) {
+          detHtml += '<div style="color:#059669"><b>الباقي:</b> ' + (tendered - grandTotal) + ' جنيه</div>';
         } else if (paid < grandTotal) {
           detHtml += '<div style="color:#dc2626"><b>المتبقي:</b> ' + (grandTotal - paid) + ' جنيه</div>';
         }
@@ -858,6 +869,7 @@ function recalcTotal() {
   if (sidebarList) {
     sidebarList.addEventListener('click', function (e) {
       var btn = e.target;
+      if (btn && btn.parentElement && btn.tagName === 'I') btn = btn.parentElement;
       var idx;
       if (btn.classList.contains('ipad-oi-minus')) {
         idx = parseInt(btn.getAttribute('data-idx'));

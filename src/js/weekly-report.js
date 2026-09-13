@@ -58,9 +58,11 @@ function resolveDayRangeSync(dateKey, shiftsSorted, latestInvTs) {
   var i = shiftsSorted.findIndex(function(s) { return s.openDate === dateKey; });
   if (i !== -1) {
     var start = new Date(shiftsSorted[i].openedAt);
+    var lastSameDay = i;
+    while (lastSameDay + 1 < shiftsSorted.length && shiftsSorted[lastSameDay + 1].openDate === dateKey) lastSameDay++;
     var end = null;
-    if (i + 1 < shiftsSorted.length) end = new Date(shiftsSorted[i + 1].openedAt);
-    else if (shiftsSorted[i].closedAt) end = new Date(shiftsSorted[i].closedAt);
+    if (lastSameDay + 1 < shiftsSorted.length) end = new Date(new Date(shiftsSorted[lastSameDay + 1].openedAt).getTime() - 1);
+    else if (shiftsSorted[lastSameDay].closedAt) end = new Date(shiftsSorted[lastSameDay].closedAt);
     else end = new Date(Math.max(FB.clockNow().getTime(), latestInvTs || 0));
     return { start: start, end: end, hasShift: true };
   }
@@ -76,7 +78,7 @@ function filterPaidInvoices(allInvoices, start, end) {
       var paidDate = new Date(i.paidAt);
       return paidDate >= start && paidDate <= end;
     }
-    if (i.status === 'paid' && (i.customerType === 'workers' || i.customerType === 'free')) {
+    if (i.status === 'paid' || i.status === 'مدفوعة') {
       var created = new Date(i.date);
       return created >= start && created <= end;
     }
@@ -229,13 +231,19 @@ async function showWeekReport() {
     var totalExpenses = weekExpenses.reduce(function(s, e) { return s + Number(e.amount || 0); }, 0);
     var totalReturns = weekReturns.reduce(function(s, r) { return s + Number(r.amount || 0); }, 0);
     var totalIncome = weekIncomes.reduce(function(s, i) { return s + Number(i.amount || 0); }, 0);
-    var netProfit = totalSales + totalIncome - totalReturns - totalExpenses;
+    var workersCost = weekPaidAll.filter(function(i) { return i.customerType === 'workers'; }).reduce(function(s, i) {
+      return s + Number(i.itemsValue != null ? i.itemsValue : (i.items || []).reduce(function(ss, it) { return ss + Number(it.qty || 1) * Number(it.price || 0); }, 0));
+    }, 0);
+    var netProfit = totalSales + totalIncome - totalReturns - totalExpenses - workersCost;
 
     var prevSales = prevPaidAll.reduce(function(s, i) { return s + Number(i.total || 0); }, 0);
     var prevExpenses = prevWeekExpenses.reduce(function(s, e) { return s + Number(e.amount || 0); }, 0);
     var prevReturns = prevWeekReturns.reduce(function(s, r) { return s + Number(r.amount || 0); }, 0);
     var prevIncome = prevWeekIncomes.reduce(function(s, i) { return s + Number(i.amount || 0); }, 0);
-    var prevNetProfit = prevSales + prevIncome - prevReturns - prevExpenses;
+    var prevWorkersCost = prevPaidAll.filter(function(i) { return i.customerType === 'workers'; }).reduce(function(s, i) {
+      return s + Number(i.itemsValue != null ? i.itemsValue : (i.items || []).reduce(function(ss, it) { return ss + Number(it.qty || 1) * Number(it.price || 0); }, 0));
+    }, 0);
+    var prevNetProfit = prevSales + prevIncome - prevReturns - prevExpenses - prevWorkersCost;
 
     var totalItemsQty = 0;
     weekPaidAll.forEach(function(inv) { (inv.items || []).forEach(function(it) { totalItemsQty += Number(it.qty || 1); }); });
@@ -250,6 +258,7 @@ async function showWeekReport() {
       '<div class="card"><span>المنتجات المباعة</span><b>' + totalItemsQty + '</b></div>' +
       '<div class="card"><span>المصروفات</span><b style="color:#dc2626">-' + fmtMoney(totalExpenses) + '</b>' + pctChange(totalExpenses, prevExpenses) + '</div>' +
       '<div class="card"><span>المرتجعات</span><b style="color:#dc2626">-' + fmtMoney(totalReturns) + '</b></div>' +
+      (workersCost > 0 ? '<div class="card"><span>مصاريف العمالة (مجانية)</span><b style="color:#dc2626">-' + fmtMoney(workersCost) + '</b></div>' : '') +
       '<div class="card"><span>أخرى (إيرادات)</span><b style="color:#059669">' + fmtMoney(totalIncome) + '</b></div>' +
       '<div class="card"><span>صافي الربح</span><b style="color:#059669">' + fmtMoney(netProfit) + '</b>' + pctChange(netProfit, prevNetProfit) + '</div>';
 

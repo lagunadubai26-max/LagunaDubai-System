@@ -74,6 +74,23 @@ service cloud.firestore {
       allow write: if isAdminOrOwner();
     }
 
+    match /incomes/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdminOrOwner();
+    }
+
+    match /equipment/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /advances/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /salary_payments/{docId} {
+      allow read, write: if isAdmin();
+    }
+
     // ── Operational collections: any authenticated user ──
     match /invoices/{docId} {
       allow read, write: if isAuth();
@@ -100,6 +117,22 @@ service cloud.firestore {
     }
 
     match /categories/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    match /shifts/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    match /daycloses/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    match /audit_logs/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    match /meta/{docId} {
       allow read, write: if isAuth();
     }
 
