@@ -1,0 +1,471 @@
+/* ===========================
+        PAGE HEADER
+=========================== */
+
+.page-header{
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:35px;
+
+}
+
+.page-header h1{
+
+    display:flex;
+    align-items:center;
+    gap:12px;
+
+    color:var(--primary);
+    font-size:38px;
+
+}
+
+.page-header h1 i{
+
+    color:var(--accent);
+
+}
+
+.page-header p{
+
+    color:#777;
+    margin-top:8px;
+
+}
+
+/* ===========================
+        STATISTICS
+=========================== */
+
+.employee-stats{
+
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:25px;
+
+    margin-bottom:35px;
+
+}
+
+.stat-card{
+
+    background:#fff;
+
+    border-radius:20px;
+
+    padding:25px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    box-shadow:var(--shadow);
+
+}
+
+.stat-card i{
+
+    width:75px;
+    height:75px;
+
+    border-radius:50%;
+
+    background:var(--accent);
+
+    color:#fff;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-size:30px;
+
+}
+
+.stat-card h2{
+
+    color:var(--primary);
+
+    font-size:38px;
+
+    margin-bottom:6px;
+
+}
+
+.stat-card span{
+
+    color:#777;
+
+    font-size:18px;
+
+}
+
+/* ===========================
+        FILTER
+=========================== */
+
+.filter-box{
+
+    display:grid;
+
+    grid-template-columns:2fr 1fr auto auto;
+
+    gap:15px;
+
+    margin-bottom:35px;
+
+}
+
+.filter-box input,
+.filter-box select{
+
+    height:55px;
+
+    border:1px solid #ddd;
+
+    border-radius:14px;
+
+    padding:0 18px;
+
+    font-size:16px;
+
+    outline:none;
+
+    font-family:"Cairo",sans-serif;
+
+}
+
+.search-btn{
+
+    background:var(--accent);
+
+    color:#fff;
+
+    border:none;
+
+    border-radius:14px;
+
+    padding:0 25px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    font-size:17px;
+
+    transition:var(--transition);
+
+}
+
+.search-btn:hover{
+
+    background:#0ea4b6;
+
+}
+
+.add-btn{
+
+    background:#18b86b;
+
+    color:#fff;
+
+    border:none;
+
+    border-radius:14px;
+
+    padding:0 25px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    font-size:17px;
+
+    transition:var(--transition);
+
+}
+
+.add-btn:hover{
+
+    background:#14995a;
+
+}
+/* ===========================
+        EMPLOYEES TABLE
+=========================== */
+
+.employees-table{
+
+    background:#fff;
+
+    border-radius:20px;
+
+    box-shadow:var(--shadow);
+
+    overflow:hidden;
+
+}
+
+.table-header,
+.table-row{
+
+    display:grid;
+
+    grid-template-columns:
+    1.4fr
+    1fr
+    1.2fr
+    1fr
+    1.2fr
+    1fr
+    1.3fr;
+
+    align-items:center;
+
+    text-align:center;
+
+    padding:18px 20px;
+
+}
+
+.table-header{
+
+    background:var(--primary);
+
+    color:#fff;
+
+    font-size:18px;
+
+    font-weight:700;
+
+}
+
+.table-row{
+
+    border-bottom:1px solid #ececec;
+
+    transition:var(--transition);
+
+}
+
+.table-row:last-child{
+
+    border-bottom:none;
+
+}
+
+.table-row:hover{
+
+    background:#f8fbfd;
+
+}
+
+/* ===========================
+        STATUS
+=========================== */
+
+.status{
+
+    display:inline-block;
+
+    padding:8px 18px;
+
+    border-radius:30px;
+
+    color:#fff;
+
+    font-size:15px;
+
+    font-weight:600;
+
+    margin:auto;
+
+}
+
+.status.active{
+
+    background:#15B66D;
+
+}
+
+.status.vacation{
+
+    background:#F4A825;
+
+}
+
+.status.stopped{
+
+    background:#E74C3C;
+
+}
+
+/* ===========================
+        ACTIONS
+=========================== */
+
+.actions{
+
+    display:flex;
+
+    justify-content:center;
+
+    gap:10px;
+
+}
+
+.actions button{
+
+    width:42px;
+
+    height:42px;
+
+    border:none;
+
+    border-radius:12px;
+
+    color:#fff;
+
+    cursor:pointer;
+
+    transition:var(--transition);
+
+}
+
+.actions button:hover{
+
+    transform:translateY(-3px);
+
+}
+
+.view-btn{
+
+    background:var(--accent);
+
+}
+
+.edit-btn{
+
+    background:#F4A825;
+
+}
+
+.delete-btn{
+
+    background:#E74C3C;
+
+}
+
+/* ===========================
+        RESPONSIVE
+=========================== */
+
+@media(max-width:1200px){
+
+    .employees-table{
+
+        overflow-x:auto;
+
+    }
+
+    .table-header,
+    .table-row{
+
+        min-width:1100px;
+
+    }
+
+    .filter-box{
+
+        min-width:950px;
+
+    }
+
+}
+
+@media(max-width:768px){
+
+    .employee-stats{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+/* ═══ السلف والمرتبات ═══ */
+.adv-badge {
+  display: inline-block;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.actions .advance-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #d97706;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.actions .advance-btn:hover { background: #fef3c7; transform: translateY(-2px); }
+
+.pr-row {
+  border: 1px solid #e7e5e4;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: #fafaf9;
+}
+.pr-row.pr-paid { opacity: .75; background: #f0fdf4; border-color: #bbf7d0; }
+.pr-head { display: flex; align-items: center; gap: 12px; }
+.pr-name { flex: 1; font-weight: 800; font-size: 15px; color: var(--primary); }
+.pr-net { font-size: 17px; font-weight: 900; color: #16a34a; white-space: nowrap; }
+.pr-done { color: #16a34a; font-weight: 800; font-size: 13px; white-space: nowrap; }
+.pr-pay {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pr-pay:disabled { opacity: .5; cursor: wait; }
+.pr-calc { font-size: 12.5px; color: #78716c; margin-top: 6px; }
+.pr-advs { margin-top: 8px; border-top: 1px dashed #e7e5e4; padding-top: 6px; }
+.pr-adv-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #57534e;
+  padding: 3px 0;
+}
+.pr-adv-del {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: none;
+  background: #fee2e2;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 11px;
+}
