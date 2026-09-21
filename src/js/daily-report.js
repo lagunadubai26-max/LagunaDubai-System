@@ -68,8 +68,14 @@ async function resolveDayRange(dateVal, latestInvTs) {
       while (lastSameDay + 1 < sorted.length && sorted[lastSameDay + 1].openDate === dateVal) lastSameDay++;
       let end = null;
       if (lastSameDay + 1 < sorted.length) end = new Date(new Date(sorted[lastSameDay + 1].openedAt).getTime() - 1);
-      else if (sorted[lastSameDay].closedAt) end = new Date(sorted[lastSameDay].closedAt);
-      else end = new Date(Math.max(FB.clockNow().getTime(), latestInvTs || 0));
+      else {
+        const sameDayShifts = sorted.slice(i, lastSameDay + 1);
+        const hasOpenShift = sameDayShifts.some(s => s.closedAt == null);
+        const latestClose = sameDayShifts.reduce((max, s) => s.closedAt ? Math.max(max, new Date(s.closedAt).getTime()) : max, 0);
+        end = hasOpenShift
+          ? new Date(Math.max(FB.clockNow().getTime(), latestInvTs || 0))
+          : new Date(latestClose || start.getTime());
+      }
       return { start, end, hasShift: true };
     }
   } catch(e) { console.warn('[dayreport] range:', e); }

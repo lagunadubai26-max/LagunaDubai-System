@@ -62,8 +62,14 @@ function resolveDayRangeSync(dateKey, shiftsSorted, latestInvTs) {
     while (lastSameDay + 1 < shiftsSorted.length && shiftsSorted[lastSameDay + 1].openDate === dateKey) lastSameDay++;
     var end = null;
     if (lastSameDay + 1 < shiftsSorted.length) end = new Date(new Date(shiftsSorted[lastSameDay + 1].openedAt).getTime() - 1);
-    else if (shiftsSorted[lastSameDay].closedAt) end = new Date(shiftsSorted[lastSameDay].closedAt);
-    else end = new Date(Math.max(FB.clockNow().getTime(), latestInvTs || 0));
+    else {
+      var sameDayShifts = shiftsSorted.slice(i, lastSameDay + 1);
+      var hasOpenShift = sameDayShifts.some(function(s) { return s.closedAt == null; });
+      var latestClose = sameDayShifts.reduce(function(max, s) { return s.closedAt ? Math.max(max, new Date(s.closedAt).getTime()) : max; }, 0);
+      end = hasOpenShift
+        ? new Date(Math.max(FB.clockNow().getTime(), latestInvTs || 0))
+        : new Date(latestClose || start.getTime());
+    }
     return { start: start, end: end, hasShift: true };
   }
   return { start: null, end: null, hasShift: false };

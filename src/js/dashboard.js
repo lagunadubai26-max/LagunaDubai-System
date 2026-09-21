@@ -129,39 +129,24 @@ async function updateChart(invoices) {
   const canvas = document.getElementById('salesChart');
   if (!canvas) return;
 
-  // نفس تقسيم التقارير: اليوم = شيفت. الأيام المقفولة من سجل الإغلاق،
-  // والشيفت المفتوح بيظهر يوم واحد مهما عبر منتصف الليل.
-  let daycloses = [];
+  // اليوم التشغيلي = الشيفت، حتى لو امتد الشيفت عبر أكثر من تاريخ ميلادي.
   let shifts = [];
-  try { daycloses = await DB.daycloses.all() || []; } catch (e) {}
   try { shifts = await DB.shifts.all() || []; } catch (e) {}
-
-  const closedByDate = {};
-  daycloses.forEach(dc => {
-    const k = (dc.date || '').slice(0, 10);
-    if (k && Number(dc.totalSales || 0) > 0) closedByDate[k] = Number(dc.totalSales || 0);
-  });
-
-  const openShift = shifts.find(s => !s.closedAt) || null;
-  let openStart = null, openKey = null;
-  if (openShift) {
-    openStart = openShift.openedAt ? new Date(openShift.openedAt) : new Date((openShift.openDate || '') + 'T00:00:00Z');
-    openKey = (openShift.openDate || '').slice(0, 10);
-  }
+  const shiftRanges = shifts.filter(s => s.openDate && s.openedAt).map(s => ({
+    shift: s,
+    start: new Date(s.openedAt).getTime(),
+    end: s.closedAt ? new Date(s.closedAt).getTime() : Infinity
+  })).filter(r => Number.isFinite(r.start) && r.end >= r.start);
 
   const buckets = {};
   invoices.forEach(inv => {
     if (!inv.date) return;
-    const dayKey = String(inv.date).slice(0, 10);
-    if (closedByDate[dayKey]) return;
-    const t = new Date(inv.date).getTime();
-    let assignKey;
-    if (openShift && openStart && t >= openStart.getTime()) assignKey = openKey;
-    else assignKey = dayKey;
-    if (!assignKey) return;
+    const t = new Date(inv.paidAt || inv.date).getTime();
+    const matches = shiftRanges.filter(r => t >= r.start && t <= r.end).sort((a, b) => b.start - a.start);
+    if (!matches.length) return;
+    const assignKey = matches[0].shift.openDate.slice(0, 10);
     buckets[assignKey] = (buckets[assignKey] || 0) + Number(inv.total || 0);
   });
-  Object.keys(closedByDate).forEach(k => { buckets[k] = closedByDate[k]; });
 
   const recent = Object.keys(buckets).sort().slice(-14);
   if (!recent.length) recent.push(localDateKey(new Date()));
