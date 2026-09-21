@@ -198,15 +198,23 @@ function filterDate(items, start, end) {
 }
 
 async function checkDashDayClose() {
-  const shift = await DB.shifts.getOpen();
   const btn = document.getElementById('dashDayCloseBtn');
-  if (shift) {
-    btn.innerHTML = '<i class="fa-solid fa-moon"></i> غلق الشيفت';
+  if (!btn) return;
+  btn.disabled = true;
+  btn.style.opacity = '0.65';
+  btn.style.cursor = 'wait';
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق';
+  try {
+    const shift = await DB.shifts.getOpen();
+    btn.innerHTML = shift
+      ? '<i class="fa-solid fa-moon"></i> غلق الشيفت'
+      : '<i class="fa-solid fa-sun"></i> فتح الشيفت';
     btn.disabled = false;
     btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
-  } else {
-    btn.innerHTML = '<i class="fa-solid fa-sun"></i> فتح الشيفت';
+  } catch (e) {
+    console.error('[shift-status]', e);
+    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> إعادة محاولة تحميل الشيفت';
     btn.disabled = false;
     btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
@@ -214,11 +222,13 @@ async function checkDashDayClose() {
 }
 
 document.getElementById('dashDayCloseBtn').onclick = async () => {
-  const shift = await DB.shifts.getOpen();
-  if (shift) {
-    showDashDayCloseModal(shift);
-  } else {
-    showDashStartDayModal();
+  try {
+    const shift = await DB.shifts.getOpen();
+    if (shift) await showDashDayCloseModal(shift);
+    else showDashStartDayModal();
+  } catch (e) {
+    console.error('[shift-action]', e);
+    alert('❌ تعذر تحميل حالة الشيفت: ' + (e.message || e));
   }
 };
 
@@ -231,16 +241,25 @@ function showDashStartDayModal() {
 }
 
 document.getElementById('dashConfirmStartDay').onclick = async () => {
+  const btn = document.getElementById('dashConfirmStartDay');
+  if (btn.disabled) return;
   const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
+  btn.disabled = true;
+  const oldText = btn.innerHTML;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الفتح...';
   try {
     const shift = await DB.shifts.open(user.name || 'الكاشير');
-    DB.audit.log('shift_open', { openDate: shift.openDate, openedBy: shift.openedBy });
+    await DB.audit.log('shift_open', { id: shift.id, openDate: shift.openDate, openedBy: shift.openedBy });
     closeDashStartDay();
-    checkDashDayClose();
+    await checkDashDayClose();
     alert('✅ تم بدء اليوم ' + new Date(shift.openDate + 'T12:00:00').toLocaleDateString('ar-EG') + '\nاليوم ثابت حتى إغلاق الشيفت يدويًا');
   } catch (e) {
     console.error('[startday]', e);
-    alert('❌ حدث خطأ أثناء بدء اليوم');
+    alert('❌ ' + (e.message || 'حدث خطأ أثناء بدء اليوم'));
+    await checkDashDayClose();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldText;
   }
 };
 
@@ -293,6 +312,7 @@ async function showDashDayCloseModal(shift) {
   const confBtn = document.getElementById('dashConfirmDayClose');
   confBtn.dataset.cashAmount = cashAmount;
   confBtn.dataset.cardAmount = cardAmount;
+  confBtn.dataset.otherAmount = otherAmount;
   confBtn.dataset.totalSales = totalSales;
   confBtn.dataset.paidInvoices = paidInvoices.length;
   confBtn.dataset.itemsSold = itemsSold;
@@ -302,41 +322,55 @@ async function showDashDayCloseModal(shift) {
   confBtn.dataset.workersCost = workersCost;
   confBtn.dataset.netProfit = netProfit;
   confBtn.dataset.openDate = shift.openDate;
+  confBtn.dataset.shiftId = shift.id;
+  confBtn.dataset.invoiceVersion = Number(shift.invoiceVersion || 0);
 
   document.getElementById('dashDayCloseModal').classList.add('show');
 }
 
 document.getElementById('dashConfirmDayClose').onclick = async () => {
   const btn = document.getElementById('dashConfirmDayClose');
+  if (btn.disabled) return;
   const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
-  const shift = await DB.shifts.getOpen();
-  if (!shift) { alert('❌ لا يوجد شيفت مفتوح حاليًا'); return; }
-  const openDate = btn.dataset.openDate || shift.openDate;
-  const data = {
-    date: openDate,
-    totalSales: Number(btn.dataset.totalSales),
-    numInvoices: Number(btn.dataset.paidInvoices),
-    cashAmount: Number(btn.dataset.cashAmount),
-    cardAmount: Number(btn.dataset.cardAmount),
-    totalExpenses: Number(btn.dataset.totalExpenses),
-    totalIncome: Number(btn.dataset.totalIncome),
-    totalReturns: Number(btn.dataset.totalReturns),
-    workersCost: Number(btn.dataset.workersCost || 0),
-    netProfit: Number(btn.dataset.netProfit),
-    itemsSold: Number(btn.dataset.itemsSold),
-    closedBy: user.name || 'الكاشير',
-    closedAt: FB.nowISO()
-  };
+  const shiftId = btn.dataset.shiftId;
+  if (!shiftId) { alert('❌ لم يتم تحديد الشيفت المراد إغلاقه'); return; }
+  btn.disabled = true;
+  const oldText = btn.innerHTML;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإغلاق...';
   try {
-    await DB.daycloses.close(data);
-    await DB.shifts.close(shift.id, { closedAt: FB.nowISO(), closedBy: user.name || 'الكاشير' });
-    DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales });
+    await Promise.all(['invoices', 'expenses', 'returns', 'incomes'].map(name => FB.invalidate(name)));
+    const freshShift = await DB.shifts.get(shiftId);
+    if (!freshShift || freshShift.closedAt != null) throw new Error('تم إغلاق هذا الشيفت بالفعل');
+    await showDashDayCloseModal(freshShift);
+    const closedAt = FB.nowISO();
+    const data = {
+      date: btn.dataset.openDate,
+      totalSales: Number(btn.dataset.totalSales),
+      numInvoices: Number(btn.dataset.paidInvoices),
+      cashAmount: Number(btn.dataset.cashAmount),
+      cardAmount: Number(btn.dataset.cardAmount),
+      otherAmount: Number(btn.dataset.otherAmount),
+      totalExpenses: Number(btn.dataset.totalExpenses),
+      totalIncome: Number(btn.dataset.totalIncome),
+      totalReturns: Number(btn.dataset.totalReturns),
+      workersCost: Number(btn.dataset.workersCost || 0),
+      netProfit: Number(btn.dataset.netProfit),
+      itemsSold: Number(btn.dataset.itemsSold),
+      closedBy: user.name || 'الكاشير',
+      closedAt
+    };
+    await DB.shifts.closeDay(shiftId, data, Number(btn.dataset.invoiceVersion || 0));
+    await DB.audit.log('day_close', { shiftId, date: data.date, totalSales: data.totalSales });
     document.getElementById('dashDayCloseModal').classList.remove('show');
-    checkDashDayClose();
+    try { await updateDashboard(); } catch (refreshError) { console.warn('[dashboard-refresh]', refreshError); }
     alert('✅ تم إغلاق اليوم بنجاح');
   } catch (e) {
     console.error('[dash-dayclose]', e);
-    alert('❌ حدث خطأ أثناء إغلاق اليوم');
+    alert('❌ ' + (e.message || 'حدث خطأ أثناء إغلاق اليوم'));
+    await checkDashDayClose();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldText;
   }
 };
 

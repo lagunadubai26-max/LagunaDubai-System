@@ -510,27 +510,36 @@ const closeDcHistory = document.getElementById('closeDcHistory');
 const closeDcHistoryBtn = document.getElementById('closeDcHistoryBtn');
 
 async function checkDayCloseStatus() {
-  const shift = await DB.shifts.getOpen();
-  if (shift) {
-    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-moon"></i> غلق الشيفت';
-    document.getElementById('dayCloseBtn').disabled = false;
-    document.getElementById('dayCloseBtn').style.opacity = '1';
-    document.getElementById('dayCloseBtn').style.cursor = 'pointer';
-  } else {
-    document.getElementById('dayCloseBtn').innerHTML = '<i class="fa-solid fa-sun"></i> فتح الشيفت';
-    document.getElementById('dayCloseBtn').disabled = false;
-    document.getElementById('dayCloseBtn').style.opacity = '1';
-    document.getElementById('dayCloseBtn').style.cursor = 'pointer';
+  const btn = document.getElementById('dayCloseBtn');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.style.opacity = '0.65';
+  btn.style.cursor = 'wait';
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق';
+  try {
+    const shift = await DB.shifts.getOpen();
+    btn.innerHTML = shift
+      ? '<i class="fa-solid fa-moon"></i> غلق الشيفت'
+      : '<i class="fa-solid fa-sun"></i> فتح الشيفت';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } catch (e) {
+    console.error('[shift-status]', e);
+    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> إعادة محاولة تحميل الشيفت';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
   }
 }
 
-async function showDayCloseModal() {
+async function showDayCloseModal(shift) {
   const allInvoices = await DB.invoices.all() || [];
   const allExpenses = await DB.expenses.all() || [];
   const allReturns = await DB.returns.all() || [];
   const allIncomes = await DB.incomes.all() || [];
 
-  const shift = await DB.shifts.getOpen();
+  if (!shift) shift = await DB.shifts.getOpen();
   const rangeStart = shift && shift.openedAt ? new Date(shift.openedAt) : null;
   const range = { start: rangeStart, end: FB.clockNow() };
   if (!rangeStart) {
@@ -580,17 +589,26 @@ async function showDayCloseModal() {
   confirmDayClose.dataset.totalReturns = totalReturns;
   confirmDayClose.dataset.workersCost = workersCost;
   confirmDayClose.dataset.netProfit = netProfit;
+  confirmDayClose.dataset.shiftId = shift.id;
+  confirmDayClose.dataset.openDate = shift.openDate;
+  confirmDayClose.dataset.openedAt = shift.openedAt || '';
+  confirmDayClose.dataset.invoiceVersion = Number(shift.invoiceVersion || 0);
 
   dayCloseModal.classList.add('show');
 }
 
 document.getElementById('dayCloseBtn').onclick = async () => {
+  try {
     const shift = await DB.shifts.getOpen();
     if (!shift) {
       showStartDayModal();
       return;
     }
-    showDayCloseModal();
+    await showDayCloseModal(shift);
+  } catch (e) {
+    console.error('[shift-action]', e);
+    alert('❌ تعذر تحميل حالة الشيفت: ' + (e.message || e));
+  }
   };
 
 function showStartDayModal() {
@@ -601,16 +619,25 @@ function showStartDayModal() {
 }
 
 document.getElementById('dcConfirmStartDay').onclick = async () => {
+  const btn = document.getElementById('dcConfirmStartDay');
+  if (btn.disabled) return;
   const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
+  btn.disabled = true;
+  const oldText = btn.innerHTML;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الفتح...';
   try {
     const shift = await DB.shifts.open(user.name || 'الكاشير');
-    DB.audit.log('shift_open', { openDate: shift.openDate, openedBy: shift.openedBy });
+    await DB.audit.log('shift_open', { id: shift.id, openDate: shift.openDate, openedBy: shift.openedBy });
     closeStartDayModal();
-    checkDayCloseStatus();
+    await checkDayCloseStatus();
     alert('✅ تم بدء اليوم ' + new Date(shift.openDate + 'T12:00:00Z').toLocaleDateString('ar-EG') + '\nاليوم ثابت حتى إغلاق الشيفت يدويًا');
   } catch (e) {
     console.error('[startday]', e);
-    alert('❌ حدث خطأ أثناء بدء اليوم');
+    alert('❌ ' + (e.message || 'حدث خطأ أثناء بدء اليوم'));
+    await checkDayCloseStatus();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldText;
   }
 };
 
@@ -622,36 +649,54 @@ window.addEventListener('click', e => { if (e.target === document.getElementById
 
 confirmDayClose.onclick = async () => {
   const btn = confirmDayClose;
+  if (btn.disabled) return;
   const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
-  const shift = await DB.shifts.getOpen();
-  if (!shift) { alert('❌ لا يوجد شيفت مفتوح حاليًا'); return; }
-  const todayISO = shift.openDate;
-  const data = {
-    date: todayISO,
-    totalSales: Number(btn.dataset.totalSales),
-    numInvoices: Number(btn.dataset.paidInvoices),
-    cashAmount: Number(btn.dataset.cashAmount),
-    cardAmount: Number(btn.dataset.cardAmount),
-    otherAmount: Number(btn.dataset.otherAmount),
-    itemsSold: Number(btn.dataset.itemsSold),
-    totalExpenses: Number(btn.dataset.totalExpenses),
-    totalIncome: Number(btn.dataset.totalIncome),
-    totalReturns: Number(btn.dataset.totalReturns),
-    workersCost: Number(btn.dataset.workersCost || 0),
-    netProfit: Number(btn.dataset.netProfit),
-    closedBy: user.name || 'الكاشير',
-    closedAt: FB.nowISO()
-  };
+  const shiftId = btn.dataset.shiftId;
+  if (!shiftId) { alert('❌ لم يتم تحديد الشيفت المراد إغلاقه'); return; }
+  btn.disabled = true;
+  const oldText = btn.innerHTML;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإغلاق...';
+  let todayISO = btn.dataset.openDate;
   try {
-    await DB.daycloses.close(data);
-    await DB.shifts.close(shift.id, { closedAt: FB.nowISO(), closedBy: user.name || 'الكاشير' });
-    DB.audit.log('day_close', { date: data.date, totalSales: data.totalSales, totalExpenses: data.totalExpenses });
+    await Promise.all(['invoices', 'expenses', 'returns', 'incomes'].map(name => FB.invalidate(name)));
+    const freshShift = await DB.shifts.get(shiftId);
+    if (!freshShift || freshShift.closedAt != null) throw new Error('تم إغلاق هذا الشيفت بالفعل');
+    await showDayCloseModal(freshShift);
+    todayISO = btn.dataset.openDate;
+    const closedAt = FB.nowISO();
+    const data = {
+      date: todayISO,
+      totalSales: Number(btn.dataset.totalSales),
+      numInvoices: Number(btn.dataset.paidInvoices),
+      cashAmount: Number(btn.dataset.cashAmount),
+      cardAmount: Number(btn.dataset.cardAmount),
+      otherAmount: Number(btn.dataset.otherAmount),
+      itemsSold: Number(btn.dataset.itemsSold),
+      totalExpenses: Number(btn.dataset.totalExpenses),
+      totalIncome: Number(btn.dataset.totalIncome),
+      totalReturns: Number(btn.dataset.totalReturns),
+      workersCost: Number(btn.dataset.workersCost || 0),
+      netProfit: Number(btn.dataset.netProfit),
+      closedBy: user.name || 'الكاشير',
+      closedAt
+    };
+    await DB.shifts.closeDay(shiftId, data, Number(btn.dataset.invoiceVersion || 0));
+    await DB.audit.log('day_close', { shiftId, date: data.date, totalSales: data.totalSales, totalExpenses: data.totalExpenses });
     dayCloseModal.classList.remove('show');
-    checkDayCloseStatus();
+    try { await checkDayCloseStatus(); } catch (refreshError) { console.warn('[shift-refresh]', refreshError); }
+  } catch (e) {
+    console.error('[dayclose]', e);
+    alert('❌ ' + (e.message || 'حدث خطأ أثناء إغلاق اليوم'));
+    await checkDayCloseStatus();
+    btn.disabled = false;
+    btn.innerHTML = oldText;
+    return;
+  }
 
+  try {
     // Export Excel for today's invoices
     const allInvoices = await DB.invoices.all() || [];
-    const todayStart = new Date(shift.openedAt);
+    const todayStart = new Date(btn.dataset.openedAt);
     const todayEnd = FB.clockNow();
     const todayInvoices = allInvoices.filter(inv => {
       if (!inv.date) return false;
@@ -687,8 +732,11 @@ confirmDayClose.onclick = async () => {
     // Clear today's invoices — محذوف عمدًا: الفواتير تبقى محفوظة عشان التقارير اليومية والسابقة
     alert('✅ تم إغلاق اليوم بنجاح\n📄 تم تحميل ملف Excel بالفواتير');
   } catch (e) {
-    console.error('[dayclose]', e);
-    alert('❌ حدث خطأ أثناء إغلاق اليوم');
+    console.error('[dayclose-export]', e);
+    alert('✅ تم إغلاق اليوم بنجاح، لكن تعذر تحميل ملف Excel');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldText;
   }
 };
 

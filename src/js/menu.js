@@ -544,10 +544,11 @@ document.getElementById('confirmCheckout').onclick = async () => {
   var today = new Date();
   var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   var isPastDate = selectedDate && selectedDate < todayStr;
+  var checkoutShift = null;
   if (!isPastDate) {
     try {
-      const openShift = await DB.shifts.getOpen();
-      if (!openShift) {
+      checkoutShift = await DB.shifts.getOpen();
+      if (!checkoutShift) {
         return alert('⚠️ لا يمكن إرسال الطلب قبل فتح الشيفت.\nمن فضلك افتح الشيفت أولًا من لوحة التحكم.');
       }
     } catch(e) {
@@ -630,6 +631,16 @@ document.getElementById('confirmCheckout').onclick = async () => {
     try {
       await FB.runTransaction(async (tx) => {
         const rawDb = FB.getDb();
+        let shiftRef = null;
+        let shiftData = null;
+        if (checkoutShift) {
+          shiftRef = rawDb.collection('shifts').doc(checkoutShift.id);
+          const shiftSnap = await tx.get(shiftRef);
+          if (!shiftSnap.exists || shiftSnap.data().closedAt != null) {
+            throw new Error('تم إغلاق الشيفت. افتح شيفتًا جديدًا قبل إنشاء الفاتورة');
+          }
+          shiftData = shiftSnap.data();
+        }
         const tn = tableNum || getTableInput();
         if (tn) {
           const allTables = await DB.tables.all() || [];
@@ -640,10 +651,14 @@ document.getElementById('confirmCheckout').onclick = async () => {
           }
         }
         const invData = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, tendered, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: fullyPaid ? 'paid' : 'pending', customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
+        if (checkoutShift) invData.shiftId = checkoutShift.id;
         if (fullyPaid) invData.paidAt = invDate;
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);
+        if (shiftRef) {
+          tx.update(shiftRef, { invoiceVersion: Number(shiftData.invoiceVersion || 0) + 1, lastActivityAt: invDate });
+        }
       });
       try {
         if (matchedCust) {

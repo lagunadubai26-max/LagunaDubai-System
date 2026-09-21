@@ -121,11 +121,22 @@ service cloud.firestore {
     }
 
     match /shifts/{docId} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.closedAt == null
+        && getAfter(/databases/$(database)/documents/shift_state/current).data.openShiftId == docId;
+      allow update, delete: if isAuth();
+    }
+
+    match /shift_state/{docId} {
       allow read, write: if isAuth();
     }
 
     match /daycloses/{docId} {
-      allow read, write: if isAuth();
+      allow read, delete: if isAuth();
+      allow create, update: if isAuth()
+        && request.resource.data.shiftId is string
+        && getAfter(/databases/$(database)/documents/shifts/$(request.resource.data.shiftId)).data.closedAt == request.resource.data.closedAt;
     }
 
     match /audit_logs/{docId} {

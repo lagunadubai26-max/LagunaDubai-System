@@ -111,6 +111,13 @@ const FB = (() => {
     return data;
   }
 
+  async function getCollectionFresh(name) {
+    await ensure();
+    const data = await rawCollection(name);
+    _memo.set(name, { t: Date.now(), data });
+    return data;
+  }
+
   async function rawCollection(name) {
     const snap = await db.collection(name).orderBy('__name__', 'asc').get();
     const items = [];
@@ -167,5 +174,5 @@ const FB = (() => {
   function getUid() { return uid; }
   function getDb() { return db; }
 
-  return { getCollection, queryCollection, ensure, addDoc, updateDoc, removeDoc, onCollection, runTransaction, getUid, getDb, syncClock, clockNow, nowISO };
+  return { getCollection, getCollectionFresh, queryCollection, ensure, addDoc, updateDoc, removeDoc, onCollection, runTransaction, invalidate, getUid, getDb, syncClock, clockNow, nowISO };
 })();

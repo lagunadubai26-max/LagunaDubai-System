@@ -224,23 +224,103 @@ const DB = {
   shifts: {
     async all() { return await FB.getCollection('shifts'); },
     async getOpen() {
-      const open = await FB.queryCollection('shifts', 'closedAt', '==', null, 1);
+      await FB.ensure();
+      const db = FB.getDb();
+      const stateSnap = await db.collection('shift_state').doc('current').get();
+      if (stateSnap.exists) {
+        const openShiftId = stateSnap.data().openShiftId;
+        if (!openShiftId) return null;
+        const activeSnap = await db.collection('shifts').doc(openShiftId).get();
+        if (activeSnap.exists && activeSnap.data().closedAt == null) {
+          return { id: activeSnap.id, ...activeSnap.data() };
+        }
+      }
+      const shifts = await FB.getCollectionFresh('shifts');
+      const open = shifts.filter(s => s.closedAt == null)
+        .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0));
       return open[0] || null;
     },
+    async get(id) {
+      await FB.ensure();
+      const snap = await FB.getDb().collection('shifts').doc(id).get();
+      return snap.exists ? { id: snap.id, ...snap.data() } : null;
+    },
     async open(name) {
+      const existing = await DB.shifts.getOpen();
+      if (existing) {
+        const error = new Error('يوجد شيفت مفتوح بالفعل');
+        error.code = 'shift/already-open';
+        throw error;
+      }
       const now = FB.clockNow();
       const shift = {
         id: 'sh-' + safeId().slice(0, 8),
         openDate: localDateKey(now),
         openedAt: localISO(now),
         openedBy: name || 'الكاشير',
-        closedAt: null
+        closedAt: null,
+        invoiceVersion: 0
       };
-      await FB.addDoc('shifts', shift);
+      const db = FB.getDb();
+      const stateRef = db.collection('shift_state').doc('current');
+      const shiftRef = db.collection('shifts').doc(shift.id);
+      await FB.runTransaction(async tx => {
+        const stateSnap = await tx.get(stateRef);
+        const state = stateSnap.exists ? stateSnap.data() : null;
+        if (state && state.openShiftId) {
+          const activeSnap = await tx.get(db.collection('shifts').doc(state.openShiftId));
+          if (activeSnap.exists && activeSnap.data().closedAt == null) {
+            const error = new Error('يوجد شيفت مفتوح بالفعل');
+            error.code = 'shift/already-open';
+            throw error;
+          }
+        }
+        const shiftData = { ...shift };
+        const uid = FB.getUid();
+        if (uid) shiftData._uid = uid;
+        tx.set(shiftRef, shiftData);
+        tx.set(stateRef, { openShiftId: shift.id, openedAt: shift.openedAt, updatedAt: shift.openedAt });
+      });
+      await FB.invalidate('shifts');
       return shift;
     },
     async close(id, data) {
       await FB.updateDoc('shifts', id, data);
+    },
+    async closeDay(id, dayclose, expectedInvoiceVersion) {
+      await FB.ensure();
+      const db = FB.getDb();
+      const shiftRef = db.collection('shifts').doc(id);
+      const stateRef = db.collection('shift_state').doc('current');
+      const daycloseId = 'dc-' + id;
+      const daycloseRef = db.collection('daycloses').doc(daycloseId);
+      await FB.runTransaction(async tx => {
+        const shiftSnap = await tx.get(shiftRef);
+        if (!shiftSnap.exists) throw new Error('لم يتم العثور على الشيفت');
+        const shiftData = shiftSnap.data();
+        if (shiftData.closedAt != null) {
+          const error = new Error('تم إغلاق هذا الشيفت بالفعل');
+          error.code = 'shift/already-closed';
+          throw error;
+        }
+        if (Number(shiftData.invoiceVersion || 0) !== Number(expectedInvoiceVersion || 0)) {
+          const error = new Error('تم تسجيل فاتورة جديدة. راجع ملخص الإغلاق ثم حاول مرة أخرى');
+          error.code = 'shift/data-changed';
+          throw error;
+        }
+        const stateSnap = await tx.get(stateRef);
+        const state = stateSnap.exists ? stateSnap.data() : null;
+        const closeData = { ...dayclose, id: daycloseId, shiftId: id };
+        const uid = FB.getUid();
+        if (uid) closeData._uid = uid;
+        tx.set(daycloseRef, closeData);
+        tx.update(shiftRef, { closedAt: dayclose.closedAt, closedBy: dayclose.closedBy });
+        if (!state || !state.openShiftId || state.openShiftId === id) {
+          tx.set(stateRef, { openShiftId: null, closedAt: dayclose.closedAt, updatedAt: dayclose.closedAt });
+        }
+      });
+      await FB.invalidate('shifts');
+      await FB.invalidate('daycloses');
     }
   },
 

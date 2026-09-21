@@ -650,12 +650,22 @@ function recalcTotal() {
 
     // فحص الشيفت — لو مفتوح، نعلّم الفاتورة
     db.collection('shifts').where('closedAt', '==', null).limit(1).get().then(function (snap) {
+      var shiftRef = null;
       if (!snap || snap.empty) {
         invData._warning = 'no_shift';
+      } else {
+        shiftRef = snap.docs[0].ref;
+        invData.shiftId = shiftRef.id;
       }
       return fbRunTransaction(function (tx) {
-        if (tableNum) {
-          return fbGetAll('tables_').then(function (allTables) {
+        var shiftPromise = shiftRef ? tx.get(shiftRef) : Promise.resolve(null);
+        return shiftPromise.then(function (shiftSnap) {
+          if (shiftSnap && (!shiftSnap.exists || shiftSnap.data().closedAt != null)) {
+            throw new Error('تم إغلاق الشيفت. افتح شيفتًا جديدًا قبل إنشاء الفاتورة');
+          }
+          var shiftData = shiftSnap ? shiftSnap.data() : null;
+          var tablesPromise = tableNum ? fbGetAll('tables_') : Promise.resolve([]);
+          return tablesPromise.then(function (allTables) {
             var tbl = null;
             for (var i = 0; i < allTables.length; i++) {
               if (allTables[i].name === 'طاولة ' + tableNum) { tbl = allTables[i]; break; }
@@ -664,10 +674,11 @@ function recalcTotal() {
               tx.update(db.collection('tables_').doc(tbl.id), { status: 'occupied' });
             }
             tx.set(db.collection('invoices').doc(invId), invData);
+            if (shiftRef) {
+              tx.update(shiftRef, { invoiceVersion: Number(shiftData.invoiceVersion || 0) + 1, lastActivityAt: invDate });
+            }
           });
-        } else {
-          tx.set(db.collection('invoices').doc(invId), invData);
-        }
+        });
       });
     }).then(function () {
       // Update customer stats if VIP
