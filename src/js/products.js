@@ -24,28 +24,31 @@ async function loadCategories() {
 }
 
 function populateCategoryDropdowns() {
+  const oldCategory = document.getElementById('prodCategoryModal').value;
   catFilter.innerHTML = '<option value="all">كل الأقسام</option>';
   const modalSelect = document.getElementById('prodCategoryModal');
   modalSelect.innerHTML = '';
-  categories.filter(c => Catalog.type(c) === productMenuType).forEach(c => {
+  categories.filter(c => Catalog.inMenu(c, productMenuType) || products.some(p => p.category === c.slug && Catalog.inMenu(p, productMenuType))).forEach(c => {
     const opt1 = document.createElement('option');
     opt1.value = c.slug;
     opt1.textContent = c.name;
     catFilter.appendChild(opt1);
   });
-  categories.filter(c => Catalog.type(c) === document.getElementById('prodMenuType').value).forEach(c => {
+  const selectedType = document.getElementById('prodMenuType').value;
+  categories.filter(c => selectedType === 'both' || Catalog.inMenu(c, selectedType)).forEach(c => {
     const opt2 = document.createElement('option');
     opt2.value = c.slug;
     opt2.textContent = c.name;
     modalSelect.appendChild(opt2);
   });
+  if (Array.from(modalSelect.options).some(o => o.value === oldCategory)) modalSelect.value = oldCategory;
 }
 
 function renderCategoryList() {
   const catList = document.getElementById('catList');
   if (!catList) return;
   catList.innerHTML = '';
-  categories.filter(c => Catalog.type(c) === productMenuType).forEach(c => {
+  categories.filter(c => Catalog.inMenu(c, productMenuType)).forEach(c => {
     const tag = document.createElement('span');
     tag.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:6px 12px;font-size:13px';
     tag.textContent = c.name;
@@ -89,7 +92,7 @@ async function render() {
   prodList.innerHTML = '';
   const val = searchInput.value.toLowerCase();
   const cat = catFilter.value;
-  const filtered = products.filter(p => Catalog.type(p) === productMenuType && (p.name || '').toLowerCase().includes(val) && (cat === 'all' || p.category === cat));
+  const filtered = products.filter(p => Catalog.inMenu(p, productMenuType) && (p.name || '').toLowerCase().includes(val) && (cat === 'all' || p.category === cat));
 
   filtered.forEach(p => {
     if (!p.name) return;
@@ -99,7 +102,7 @@ async function render() {
     row.className = 'table-row';
     row.innerHTML = `
       <div><img class="thumb" src="${sanitizeUrl(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽</text></svg>'"></div>
-      <span>${escapeHtml(p.name)}</span><span>${escapeHtml(catMap[p.category] || p.category)}</span>
+      <span>${escapeHtml(p.name)}${Catalog.type(p) === 'both' ? '<small class="shared-product-label">الكافيه والمطعم</small>' : ''}</span><span>${escapeHtml(catMap[p.category] || p.category)}</span>
       <span>${productPriceLabel(p)}</span>
       <span class="status ${stCls}">${escapeHtml(stTxt)}</span>
       <div class="actions">
@@ -128,9 +131,9 @@ async function render() {
       }
     };
   });
-  const scoped = products.filter(p => Catalog.type(p) === productMenuType);
+  const scoped = products.filter(p => Catalog.inMenu(p, productMenuType));
   document.getElementById('prodTotal').textContent = scoped.length;
-  document.getElementById('prodCategories').textContent = categories.filter(c => Catalog.type(c) === productMenuType).length;
+  document.getElementById('prodCategories').textContent = categories.filter(c => Catalog.inMenu(c, productMenuType)).length;
   document.getElementById('prodActive').textContent = scoped.filter(p => p.available).length;
   document.getElementById('prodInactive').textContent = scoped.filter(p => !p.available).length;
   attachEvents();
@@ -138,7 +141,7 @@ async function render() {
 
 function renderFiltered(available) {
   prodList.innerHTML = '';
-  const filtered = products.filter(p => Catalog.type(p) === productMenuType && !!p.available === available);
+  const filtered = products.filter(p => Catalog.inMenu(p, productMenuType) && !!p.available === available);
   filtered.forEach(p => {
     if (!p.name) return;
     const stCls = p.available ? 'active' : 'stopped';
@@ -248,13 +251,15 @@ document.getElementById('saveProd').onclick = async () => {
   const category = document.getElementById('prodCategoryModal').value;
   let price = Number(document.getElementById('prodPrice').value);
   const menuType = document.getElementById('prodMenuType').value;
-  const variants = menuType === 'restaurant' ? Catalog.sizes.map(key => {
+  const pricingMode = document.getElementById('prodPricingMode').value;
+  const sized = pricingMode === 'sizes';
+  const variants = sized ? Catalog.sizes.map(key => {
     const value = document.getElementById('sizePrice-' + key).value.trim();
     return { key, label: Catalog.labels[key], price: value === '' ? null : Number(value), available: document.getElementById('sizeEnabled-' + key).checked };
   }) : [];
-  const defaultVariantKey = menuType === 'restaurant' ? document.getElementById('prodDefaultVariant').value : '';
+  const defaultVariantKey = sized ? document.getElementById('prodDefaultVariant').value : '';
   if (variants.some(v => (v.price !== null && (!Number.isFinite(v.price) || v.price < 0)) || (v.available && v.price === null))) return alert('أدخل سعرًا صحيحًا لكل مقاس مفعل');
-  if (menuType === 'restaurant') {
+  if (sized) {
     const def = variants.find(v => v.key === defaultVariantKey && v.available && v.price !== null);
     if (!def) return alert('اختر مقاسًا افتراضيًا مسعّرًا ومفعلًا');
     price = def.price;
@@ -262,15 +267,15 @@ document.getElementById('saveProd').onclick = async () => {
   const description = document.getElementById('prodDesc').value.trim();
   const image = document.getElementById('prodImage').value.trim();
   const available = document.getElementById('prodAvailable').checked;
-  if (!name || !category || !Number.isFinite(price) || price < 0 || (menuType === 'cafe' && document.getElementById('prodPrice').value === '')) return alert('يرجى إدخال اسم المنتج والقسم والسعر الصحيح');
+  if (!name || !category || !Number.isFinite(price) || price < 0 || (!sized && document.getElementById('prodPrice').value === '')) return alert('يرجى إدخال اسم المنتج والقسم والسعر الصحيح');
   const btn = document.getElementById('saveProd');
   if (btn.disabled) return;
   btn.disabled = true;
   try {
     if (editProdId) {
-      await DB.products.update(editProdId, { name, nameEn, category, price, description, image, available, menuType, variants, defaultVariantKey });
+      await DB.products.update(editProdId, { name, nameEn, category, price, description, image, available, menuType, pricingMode, variants, defaultVariantKey });
     } else {
-      await DB.products.add({ id: safeId(), name, nameEn, category, price, description, image, available, menuType, variants, defaultVariantKey });
+      await DB.products.add({ id: safeId(), name, nameEn, category, price, description, image, available, menuType, pricingMode, variants, defaultVariantKey });
     }
     modal.classList.remove('show');
     await render();
@@ -296,9 +301,8 @@ function productPriceLabel(p) {
   return Catalog.variants(p).map(v => (Catalog.labels[v.key] || '') + ' ' + Number(v.price) + ' ج.م').join('<br>') || 'لا يوجد مقاس مفعل';
 }
 function fillVariants(p) {
-  const restaurant = document.getElementById('prodMenuType').value === 'restaurant';
-  document.getElementById('prodVariants').hidden = !restaurant;
-  document.getElementById('prodPrice').disabled = restaurant;
+  document.getElementById('prodPricingMode').value = Catalog.hasVariants(p) ? 'sizes' : 'single';
+  updatePricingMode();
   document.getElementById('variantRows').innerHTML = Catalog.sizes.map(key => {
     const v = (p.variants || []).find(x => x.key === key) || {};
     return '<div class="variant-row"><input type="checkbox" id="sizeEnabled-' + key + '"' + (v.available ? ' checked' : '') + '><label for="sizeEnabled-' + key + '">' + Catalog.labels[key] + '</label><input type="number" min="0" step="0.01" id="sizePrice-' + key + '" aria-label="سعر ' + Catalog.labels[key] + '" value="' + (v.price == null ? '' : Number(v.price)) + '"></div>';
@@ -307,21 +311,17 @@ function fillVariants(p) {
 }
 document.getElementById('prodMenuType').onchange = () => {
   populateCategoryDropdowns();
-  fillVariants(products.find(p => p.id === editProdId) || {});
 };
+function updatePricingMode() {
+  const sized = document.getElementById('prodPricingMode').value === 'sizes';
+  document.getElementById('prodVariants').hidden = !sized;
+  document.getElementById('prodPrice').disabled = sized;
+}
+document.getElementById('prodPricingMode').onchange = updatePricingMode;
 Catalog.tabs(document.getElementById('productMenuTypes'), type => {
   productMenuType = type;
   populateCategoryDropdowns(); renderCategoryList(); render();
 });
-document.getElementById('importRestaurant').onclick = async function () {
-  this.disabled = true;
-  try {
-    const added = await RestaurantSeed.importMenu();
-    await loadCategories(); await render();
-    alert(added ? 'تم إدخال قائمة المطعم. افتح تبويب منيو المطعم لعرضها.' : 'قائمة المطعم سبق إدخالها؛ تعديلاتك محفوظة.');
-  } catch (e) { alert('تعذر إدخال القائمة: ' + e.message); }
-  finally { this.disabled = false; }
-};
 
 (async () => {
   try {
@@ -329,6 +329,7 @@ document.getElementById('importRestaurant').onclick = async function () {
   } catch (e) {
     console.error('[products] seed error:', e);
   }
+  products = await DB.products.all() || [];
   await loadCategories();
   render();
 })();

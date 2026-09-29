@@ -420,45 +420,14 @@ monthInput.addEventListener('change', () => { destroyAllCharts(); render(); });
 async function exportMonthlyReport(asImage) {
   const el = document.getElementById('monthlyReport');
   if (!el) return;
+  if (rendering || !el.querySelector('.department-report')) return alert('انتظر اكتمال تحميل التقرير أولًا');
   try {
     const labelEl = document.getElementById('monthlyReportLabel');
     if (labelEl) {
       const [y, m] = monthInput.value.split('-').map(Number);
       labelEl.textContent = new Date(y, m - 1, 1).toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
     }
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#f6f8fb',
-      foreignObjectRendering: true,
-      width: el.scrollWidth,
-      height: el.scrollHeight
-    });
-    const imgData = canvas.toDataURL('image/png');
-    const fileName = 'تقرير-شهري-' + monthInput.value;
-    if (asImage) {
-      const link = document.createElement('a');
-      link.href = imgData;
-      link.download = fileName + '.png';
-      link.click();
-    } else {
-const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW;
-      const imgH = canvas.height * (pageW / canvas.width);
-      let remaining = imgH - pageH;
-      let position = 0;
-      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
-      while (remaining > 0) {
-        pdf.addPage();
-        position -= pageH;
-        pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
-        remaining -= pageH;
-      }
-      pdf.save(fileName + '.pdf');
-    }
+    await ReportExport.download({ element: el, asImage, fileName: 'تقرير-شهري-' + monthInput.value, buttons: [monthlyPdfBtn, monthlyImgBtn] });
   } catch (e) {
     console.error('[monthly-export]', e);
     alert('حدث خطأ أثناء تحميل التقرير: ' + (e.message || e));

@@ -9,9 +9,10 @@ const seed = { window: {}, Catalog: require('../src/js/catalog.js') };
 vm.runInNewContext(fs.readFileSync(root + '/js/restaurant-seed.js', 'utf8'), seed);
 const products = JSON.parse(JSON.stringify(seed.window.RestaurantSeed.products()));
 products.push({ id: 'coffee', name: 'قهوة', category: 'coffee', price: 30, available: true });
+products.push({ id: 'water', name: 'مياه', category: 'coffee', price: 20, available: true, menuType: 'both', pricingMode: 'single' });
 const categories = [...new Set(products.map(p => p.category))].map(slug => ({ id: slug, slug, name: slug, menuType: slug === 'coffee' ? 'cafe' : 'restaurant' }));
 
-async function open(browser, name, width = 1440) {
+async function open(browser, name, width = 1440, exportLibraries = false) {
   const context = await browser.newContext({ viewport: { width, height: 1000 } });
   await context.addInitScript(({ products, categories }) => {
     sessionStorage.setItem('laguna_user', JSON.stringify({ name: 'Test', role: 'Administrator' }));
@@ -45,9 +46,14 @@ async function open(browser, name, width = 1440) {
     window.Chart = class { destroy() {} };
     window.PRINTER = { restorePrinters: async () => {}, isConnected: () => true };
   }, { products, categories });
-  const allowed = new Set(['catalog.js', 'restaurant-seed.js', 'menu.js', 'ipad-menu.js', 'products.js', 'invoices.js', 'daily-report.js', 'weekly-report.js', 'reports.js', 'sanitize.js', 'template-engine.js']);
+  const allowed = new Set(['catalog.js', 'restaurant-seed.js', 'menu.js', 'ipad-menu.js', 'products.js', 'invoices.js', 'daily-report.js', 'weekly-report.js', 'reports.js', 'sanitize.js', 'template-engine.js', 'report-export.js']);
+  if (exportLibraries) allowed.add('jspdf.umd.min.js');
   await context.route('**/*', async route => {
     const url = new URL(route.request().url()), rel = decodeURIComponent(url.pathname).replace(/^\//, '');
+    if (exportLibraries && url.hostname !== 'laguna.test') {
+      if (url.pathname.includes('html2canvas-pro')) return route.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('html2canvas-pro')), 'html2canvas-pro.min.js')), contentType: 'text/javascript' });
+      if (url.pathname.includes('chart.js')) return route.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js')), contentType: 'text/javascript' });
+    }
     if (url.hostname !== 'laguna.test' || (rel.startsWith('js/') && !allowed.has(path.basename(rel)))) return route.fulfill({ body: '', contentType: 'text/javascript' });
     const file = path.join(root, rel);
     if (!fs.existsSync(file)) return route.fulfill({ status: 404, body: '' });
@@ -60,7 +66,7 @@ async function open(browser, name, width = 1440) {
   return { page, context, errors };
 }
 
-(async () => {
+async function run() {
   const browser = await chromium.launch({ headless: true });
   try {
     const desktop = await open(browser, 'menu'), p = desktop.page;
@@ -100,12 +106,19 @@ async function open(browser, name, width = 1440) {
 
     const admin = await open(browser, 'products'), a = admin.page;
     await a.locator('[data-menu-type=restaurant]').click();
-    assert.equal(await a.locator('#prodList .table-row').count(), 44);
+    assert.equal(await a.locator('#prodList .table-row').count(), 45);
+    assert.equal(await a.locator('#importRestaurant').count(), 0);
     await a.locator('.edit-btn[data-id=restaurant-pizza-vegetable]').click();
     await a.locator('#sizeEnabled-small').check(); await a.locator('#sizePrice-small').fill('90');
     await a.locator('#prodDefaultVariant').selectOption('small'); await a.locator('#saveProd').click(); await a.waitForTimeout(100);
     const updated = await a.evaluate(() => window.store.products.find(p => p.id === 'restaurant-pizza-vegetable'));
     assert.equal(updated.price, 90); assert.equal(updated.variants[0].available, true); assert.equal(updated.variants[2].price, 165);
+    await a.locator('.edit-btn[data-id=restaurant-pizza-vegetable]').click();
+    await a.locator('#prodMenuType').selectOption('both'); await a.locator('#saveProd').click();
+    await a.locator('[data-menu-type=cafe]').click();
+    await a.locator('.edit-btn[data-id=restaurant-pizza-vegetable]').waitFor();
+    const shared = await a.evaluate(() => window.store.products.find(p => p.id === 'restaurant-pizza-vegetable'));
+    assert.equal(shared.menuType, 'both'); assert.equal(shared.variants[2].price, 165);
     assert.deepEqual(admin.errors, []); console.log('PASS product size activation and editing'); await admin.context.close();
 
     for (const name of ['daily-report', 'weekly-report', 'reports']) {
@@ -140,5 +153,22 @@ async function open(browser, name, width = 1440) {
     assert.deepEqual(mobile.errors, []);
     assert(await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile page overflows');
     console.log('PASS 375px mobile cart and note sync'); await mobile.context.close();
+
+    for (const name of ['menu', 'ipad']) {
+      const shared = await open(browser, name, 1280), s = shared.page;
+      await s.locator('[data-product-id=water] button').click();
+      await s.locator('[data-menu-type=restaurant]').click();
+      await s.locator('[data-product-id=water] button').click();
+      const category = name === 'menu' ? '#menuCategories' : '#ipadCategories';
+      assert.equal(await s.locator(category + ' [data-category=coffee]').count(), 1);
+      await s.locator(name === 'menu' ? '.order-box .checkout' : '#sidebarCheckout').click();
+      await s.locator(name === 'menu' ? '#checkoutPaid' : '#paidAmount').fill('40');
+      await s.locator('#confirmCheckout').click(); await s.waitForTimeout(100);
+      const invoice = await s.evaluate(() => window.saved[0]);
+      assert.equal(invoice.total, 40); assert.deepEqual(invoice.items.map(it => it.menuType), ['cafe', 'restaurant']);
+      assert.deepEqual(shared.errors, []); console.log('PASS shared product department snapshots: ' + name); await shared.context.close();
+    }
   } finally { await browser.close(); }
-})().catch(e => { console.error(e); process.exitCode = 1; });
+}
+module.exports = { open };
+if (require.main === module) run().catch(e => { console.error(e); process.exitCode = 1; });

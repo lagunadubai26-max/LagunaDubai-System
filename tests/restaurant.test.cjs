@@ -52,9 +52,30 @@ test('legacy cafe and missing/ambiguous historical names', () => {
   assert.equal(Catalog.line(cafe, '').price, 30);
   assert.equal(Catalog.line(cafe, '').menuType, 'cafe');
   assert.equal(Catalog.classify({ name: 'قهوة' }, [cafe]), 'cafe');
-  assert.equal(Catalog.classify({ name: 'قهوة' }, [cafe, { ...cafe, id: 'other' }]), 'unknown');
-  assert.equal(Catalog.classify({ name: 'منتج محذوف' }, []), 'unknown');
+  assert.equal(Catalog.classify({ name: 'قهوة' }, [cafe, { ...cafe, id: 'other' }]), 'cafe');
+  assert.equal(Catalog.classify({ name: 'منتج محذوف' }, []), 'cafe');
+  for (const name of ['زيادة ماء', 'اسموزي مانجو', 'اسموزي فراولة', 'اسموزي ميكس بيري']) {
+    assert.equal(Catalog.classify({ name }, []), 'cafe');
+  }
+  assert.equal(Catalog.classify({ productId: 'restaurant-deleted' }, []), 'restaurant');
+  assert.equal(Catalog.classify({ productId: 'unknown-new-id' }, []), 'unknown');
   assert.equal(Catalog.classify(Catalog.line(pizza, 'large'), []), 'restaurant');
+});
+
+test('shared products keep sale department and support both price modes', () => {
+  const shared = { id: 'water', name: 'مياه', menuType: 'both', category: 'cans', price: 20, pricingMode: 'single', variants: [] };
+  assert(Catalog.inMenu(shared, 'cafe') && Catalog.inMenu(shared, 'restaurant'));
+  const cafe = Catalog.line(shared, '', 'cafe'), restaurant = Catalog.line(shared, '', 'restaurant');
+  assert.equal(cafe.price, 20); assert.equal(restaurant.price, 20);
+  assert.equal(Catalog.selector(shared), '');
+  assert.notEqual(Catalog.key(cafe), Catalog.key(restaurant));
+  shared.menuType = 'restaurant';
+  assert.equal(Catalog.classify(cafe, [shared]), 'cafe');
+  assert.throws(() => Catalog.line(shared, '', 'cafe'));
+  const sized = { ...pizza, menuType: 'both' };
+  assert(Catalog.selector(sized).includes('medium'));
+  const s = Catalog.summary([{ total: 40, items: [cafe, restaurant] }], [shared]);
+  assert.equal(s.cafe.cents, 2000); assert.equal(s.restaurant.cents, 2000); assert.equal(s.unknown.cents, 0);
 });
 
 test('mixed invoices reconcile service/tax/discount, free sales and cent rounding', () => {

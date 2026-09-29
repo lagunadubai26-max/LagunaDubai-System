@@ -693,7 +693,7 @@ function renderAddCats(prods) {
   if (!box) return;
   const cats = [];
   const seen = {};
-  (prods || []).filter(p => Catalog.type(p) === _addMenuType).forEach(p => { const c = p.category || ''; if (c && !seen[c]) { seen[c] = 1; cats.push(c); } });
+  (prods || []).filter(p => Catalog.inMenu(p, _addMenuType)).forEach(p => { const c = p.category || ''; if (c && !seen[c]) { seen[c] = 1; cats.push(c); } });
   let html = '<button type="button" class="acc-chip' + (_addCat === 'all' ? ' active' : '') + '" data-cat="all">الكل</button>';
   cats.forEach(c => {
     html += '<button type="button" class="acc-chip' + (_addCat === c ? ' active' : '') + '" data-cat="' + escapeHtml(c) + '">' + escapeHtml(_addCatNames[c] || c) + '</button>';
@@ -717,7 +717,7 @@ function renderAddGrid(q) {
     return;
   }
   const val = (q || '').trim().toLowerCase();
-  const list = prods.filter(p => p.available !== false && p.available !== 0 && Catalog.type(p) === _addMenuType && (!val || (p.name || '').toLowerCase().includes(val)) && (_addCat === 'all' || p.category === _addCat));
+  const list = prods.filter(p => p.available !== false && p.available !== 0 && Catalog.inMenu(p, _addMenuType) && (!val || (p.name || '').toLowerCase().includes(val)) && (_addCat === 'all' || p.category === _addCat));
   // الأكثر طلبًا في النظام أولًا، ثم أبجديًا
   list.sort((a, b) => {
     const pa = _addPopularity[a.name] || 0;
@@ -731,7 +731,7 @@ function renderAddGrid(q) {
     const sold = _addPopularity[p.name] || 0;
     const card = document.createElement('div');
     card.className = 'add-prod-card';
-    card.innerHTML = '<span class="ap-name">' + escapeHtml(p.name) + '</span>' + Catalog.selector(p) + '<button type="button" class="size-select add-size-button">إضافة' + (Catalog.type(p) === 'cafe' ? ' — ' + price + ' ج.م' : '') + '</button>';
+    card.innerHTML = '<span class="ap-name">' + escapeHtml(p.name) + '</span>' + Catalog.selector(p) + '<button type="button" class="size-select add-size-button">إضافة' + (!Catalog.hasVariants(p) ? ' — ' + price + ' ج.م' : '') + '</button>';
     const b = card.querySelector('button');
     const select = card.querySelector('select');
     if (select) {
@@ -739,7 +739,7 @@ function renderAddGrid(q) {
       select.onchange = () => { b.disabled = !Catalog.variant(p, select.value); };
     }
     b.onclick = () => {
-      const item = Catalog.line(p, select ? select.value : '');
+      const item = Catalog.line(p, select ? select.value : '', _addMenuType);
       const key = addSelKey(item);
       const ex = _addSelected.find(it => it._key === key);
       if (ex) ex.qty += 1;
@@ -828,7 +828,7 @@ if (addItemsModal) {
       items.forEach(it => {
         const p = freshProducts.find(p => p.id === it.productId);
         const v = p && Catalog.variant(p, it.variantKey);
-        if (!p || p.available === false || p.available === 0 || !v || Number(v.price) + (it.hasMilk ? 15 : 0) !== it.price) throw new Error('تغير سعر أو إتاحة المنتج: ' + it.name);
+        if (!p || p.available === false || p.available === 0 || !v || !Catalog.inMenu(p, it.menuType) || Number(v.price) + (it.hasMilk ? 15 : 0) !== it.price) throw new Error('تغير سعر أو إتاحة المنتج: ' + it.name);
       });
       // دمج الأصناف الجديدة مع القديمة (تكرار الاسم يزود الكمية)
       const merged = [];

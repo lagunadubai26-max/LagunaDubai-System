@@ -307,46 +307,8 @@ async function showWeekReport() {
 async function exportWeekReport(asImage) {
   var el = weekReportEl;
   if (!el || !el.innerHTML || el.innerHTML.indexOf('dr-header') === -1) return alert('اعرض الأسبوع أولاً قبل التحميل');
-  if (!window.domtoimage) return alert('مكتبة التصدير لم تُحمّل — تأكد من الاتصال بالإنترنت ثم أعد المحاولة');
-
   try {
-    if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    var dataUrl = await domtoimage.toPng(el, { width: el.scrollWidth, height: el.scrollHeight, scale: 1.5, backgroundColor: '#ffffff', style: { margin: '0', boxShadow: 'none' } });
-    var img = new Image();
-    await new Promise(function(resolve, reject) { img.onload = resolve; img.onerror = function() { reject(new Error('فشل تجهيز الصورة')); }; img.src = dataUrl; });
-
-    var pageW = img.width;
-    var pageH = Math.round(img.width * (297 / 210));
-    var numPages = Math.max(1, Math.ceil(img.height / pageH));
-    var fileName = 'تقرير-أسبوعي-' + weekStartDate.value;
-
-    var pages = [];
-    for (var i = 0; i < numPages; i++) {
-      var p = document.createElement('canvas');
-      p.width = pageW; p.height = pageH;
-      var pctx = p.getContext('2d');
-      pctx.fillStyle = '#ffffff';
-      pctx.fillRect(0, 0, pageW, pageH);
-      pctx.drawImage(img, 0, i * pageH, pageW, pageH, 0, 0, pageW, pageH);
-      pages.push(p);
-    }
-
-    if (asImage) {
-      pages.forEach(function(pg, idx) {
-        var link = document.createElement('a');
-        link.href = pg.toDataURL('image/jpeg', 0.9);
-        link.download = fileName + (pages.length > 1 ? '-صفحة-' + (idx + 1) : '') + '.jpg';
-        setTimeout(function() { link.click(); }, idx * 150);
-      });
-    } else {
-      var jsPDF = window.jspdf.jsPDF;
-      var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      pages.forEach(function(pg, idx) {
-        if (idx > 0) pdf.addPage();
-        pdf.addImage(pg.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
-      });
-      pdf.save(fileName + '.pdf');
-    }
+    await ReportExport.download({ element: el, asImage: asImage, fileName: 'تقرير-أسبوعي-' + weekStartDate.value, buttons: [document.getElementById('weekPdfBtn'), document.getElementById('weekImgBtn')] });
   } catch (e) {
     console.error('[weekreport-export]', e);
     alert('حدث خطأ أثناء التحميل: ' + escapeHtml(e.message || e));

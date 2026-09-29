@@ -334,89 +334,14 @@ async function showDayReport() {
     dayReportEl.innerHTML = '<div class="dr-empty" style="color:#dc2626">\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062a\u0642\u0631\u064a\u0631: ' + escapeHtml(e.message || e) + '</div>';
   }
 }
-async function ensureExportFonts() {
-  try {
-    if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    if (document.fonts && document.fonts.load) {
-      try { await document.fonts.load('400 16px Cairo'); } catch (e) {}
-      try { await document.fonts.load('700 16px Cairo'); } catch (e) {}
-    }
-  } catch (e) { console.warn('[dayreport] fonts:', e); }
-}
-
-function buildLogoDataUri() {
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><rect width="70" height="70" rx="14" fill="#d97706"/><text x="35" y="48" font-size="36" text-anchor="middle" fill="#fff" font-family="Arial">L</text></svg>';
-  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-}
-
 async function exportDayReport(asImage) {
   const el = dayReportEl;
   if (!el || !el.innerHTML || el.innerHTML.indexOf('dr-header') === -1) return alert('اعرض اليوم أولاً قبل التحميل');
-  if (!window.domtoimage) return alert('مكتبة التصدير لم تُحمّل — تأكد من الاتصال بالإنترنت ثم أعد المحاولة');
-
-  const imgs = el.querySelectorAll('img');
-  const orig = Array.from(imgs).map(i => i.src);
-  imgs.forEach(img => { img.src = buildLogoDataUri(); img.removeAttribute('crossorigin'); });
-
   try {
-    console.log('EX1 fonts');
-    await ensureExportFonts();
-    console.log('EX2 toPng');
-    const dataUrl = await domtoimage.toPng(el, {
-      width: el.scrollWidth,
-      height: el.scrollHeight,
-      scale: 1.5,
-      backgroundColor: '#ffffff',
-      style: { margin: '0', boxShadow: 'none' }
-    });
-    console.log('EX3 img');
-    const img = new Image();
-    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error('فشل تجهيز الصورة')); img.src = dataUrl; });
-    console.log('EX4 pages');
-
-    // تقسيم المحتوى على صفحات A4 متتالية بحجم طبيعي (بدل ضغط الكل في صفحة واحدة)
-    const pageW = img.width;
-    const pageH = Math.round(img.width * (297 / 210));
-    const numPages = Math.max(1, Math.ceil(img.height / pageH));
-    const fileName = 'تقرير-يومي-' + dayReportDate.value;
-
-    const pages = [];
-    for (let i = 0; i < numPages; i++) {
-      const p = document.createElement('canvas');
-      p.width = pageW;
-      p.height = pageH;
-      const pctx = p.getContext('2d');
-      pctx.fillStyle = '#ffffff';
-      pctx.fillRect(0, 0, pageW, pageH);
-      pctx.drawImage(img, 0, i * pageH, pageW, pageH, 0, 0, pageW, pageH);
-      pages.push(p);
-    }
-    console.log('EX5 jspdf ' + pages.length + ' pages');
-
-    if (asImage) {
-      pages.forEach((p, i) => {
-        const link = document.createElement('a');
-        link.href = p.toDataURL('image/jpeg', 0.9);
-        link.download = fileName + (pages.length > 1 ? '-صفحة-' + (i + 1) : '') + '.jpg';
-        setTimeout(() => link.click(), i * 150);
-      });
-    } else {
-      const { jsPDF } = window.jspdf;
-      console.log('EX6 jsPDF ctor');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      pages.forEach((p, i) => {
-        if (i > 0) pdf.addPage();
-        pdf.addImage(p.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
-      });
-      console.log('EX7 save');
-      pdf.save(fileName + '.pdf');
-      console.log('EX8 done');
-    }
+    await ReportExport.download({ element: el, asImage, fileName: 'تقرير-يومي-' + dayReportDate.value, buttons: [dayReportPdfBtn, dayReportImgBtn] });
   } catch (e) {
     console.error('[dayreport-export]', e);
     alert('حدث خطأ أثناء التحميل: ' + escapeHtml(e.message || e));
-  } finally {
-    imgs.forEach((img, i) => { img.src = orig[i]; });
   }
 }
 
