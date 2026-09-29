@@ -163,6 +163,7 @@ async function render() {
     renderChangeBadge(document.getElementById('reportProfitChange'), stats.netProfit, prevStats.netProfit);
 
     const soldInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
+    document.getElementById('departmentReport').innerHTML = Catalog.reportHTML(soldInvoices, products, returns);
 
     drawAnomalies(soldInvoices, expenses, range);
     drawSalesChart(chartInvoices, range);
@@ -228,7 +229,7 @@ function drawCategoryChart(invoices, products) {
   invoices.forEach(inv => {
     if (!inv.items) return;
     inv.items.forEach(item => {
-      const cat = nameToCat[item.name] || 'أخرى';
+      const cat = item.category || nameToCat[item.baseName || item.name] || 'أخرى';
       catMap[cat] = (catMap[cat] || 0) + Number(item.qty || 0) * Number(item.price || 0);
     });
   });
@@ -471,31 +472,33 @@ if (monthlyImgBtn) monthlyImgBtn.onclick = () => exportMonthlyReport(true);
 
 // ── Export ──
 document.getElementById('exportBtn').onclick = async () => {
-  const invoices = await DB.invoices.all() || [];
+  const invoices = filterByDate(await DB.invoices.all() || [], getMonthRange(monthInput.value));
   const products = await DB.products.all() || [];
   const nameToCat = {};
   products.forEach(p => { nameToCat[p.name] = p.category || 'أخرى'; });
 
   function csvEsc(val) {
-    const s = String(val || '');
+    let s = String(val == null ? '' : val);
+    if (/^[=+@-]/.test(s)) s = "'" + s;
     return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
-  let csv = 'رقم الفاتورة,العميل,الطاولة,التاريخ,طريقة الدفع,الحالة,الإجمالي,المدفوع,المتبقي,خدمة,ضريبة,المنتج,الفئة,الكمية,سعر الوحدة,الإجمالي الفرعي,ملاحظة\n';
+  let csv = 'رقم الفاتورة,العميل,الطاولة,التاريخ,طريقة الدفع,الحالة,الإجمالي,المدفوع,المتبقي,خدمة,ضريبة,المنتج,الفئة,الكمية,سعر الوحدة,الإجمالي الفرعي,ملاحظة,المنيو,المقاس,معرف المنتج,قيمة البند بعد التسويات\n';
   invoices.forEach(i => {
+    const allocated = Catalog.allocate(i);
     if (i.items && i.items.length > 0) {
-      i.items.forEach(item => {
-        const cat = nameToCat[item.name] || '';
+      i.items.forEach((item, index) => {
+        const cat = item.category || nameToCat[item.baseName || item.name] || '';
         const lineTotal = (Number(item.qty || 0) * Number(item.price || 0));
-        csv += [csvEsc(i.id), csvEsc(i.customer), csvEsc(i.table), csvEsc(i.date), csvEsc(i.paymentMethod), csvEsc(i.status), csvEsc(i.total), csvEsc(i.paid), csvEsc(i.remaining), csvEsc(i.serviceAmount), csvEsc(i.taxAmount), csvEsc(item.name), csvEsc(cat), csvEsc(item.qty), csvEsc(item.price), csvEsc(lineTotal), csvEsc(item.note || '')].join(',') + '\n';
+        csv += [i.id, i.customer, i.table, i.date, i.paymentMethod, i.status, i.total, i.paid, i.remaining, i.serviceAmount, i.taxAmount, item.name, cat, item.qty, item.price, lineTotal, item.note || '', Catalog.classify(item, products), item.variantLabel || '', item.productId || '', allocated[index] / 100].map(csvEsc).join(',') + '\n';
       });
     } else {
-      csv += [csvEsc(i.id), csvEsc(i.customer), csvEsc(i.table), csvEsc(i.date), csvEsc(i.paymentMethod), csvEsc(i.status), csvEsc(i.total), csvEsc(i.paid), csvEsc(i.remaining), csvEsc(i.serviceAmount), csvEsc(i.taxAmount), '', '', '', '', '', ''].join(',') + '\n';
+      csv += [i.id, i.customer, i.table, i.date, i.paymentMethod, i.status, i.total, i.paid, i.remaining, i.serviceAmount, i.taxAmount, '', '', '', '', '', '', 'unknown', '', '', i.total].map(csvEsc).join(',') + '\n';
     }
   });
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = 'laguna-report-detailed.csv';
+  link.download = 'laguna-report-' + monthInput.value + '.csv';
   link.click();
 };
 

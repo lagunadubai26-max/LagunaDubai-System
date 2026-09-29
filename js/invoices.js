@@ -287,6 +287,12 @@ function attachActions() {
               id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
               invoice: inv.id,
               product: item.name,
+              productId: item.productId || '',
+              baseName: item.baseName || item.name,
+              menuType: item.menuType || '',
+              category: item.category || '',
+              variantKey: item.variantKey || '',
+              variantLabel: item.variantLabel || '',
               qty: item.qty,
               amount: item.qty * item.price,
               date: FB.nowISO(),
@@ -491,7 +497,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
     paid += Number(inv.paid != null ? inv.paid : (invIsPaid ? inv.total : 0));
     if (inv.items) {
       for (const item of inv.items) {
-        const key = (item.name || '') + (item.hasMilk ? '|milk' : '') + (item.note ? '|' + item.note : '');
+        const key = Catalog.key(item);
         if (itemMap[key]) {
           itemMap[key].qty += item.qty;
           itemMap[key].qty = Number(itemMap[key].qty);
@@ -583,6 +589,7 @@ let _addSelected = [];
 let _addPopularity = {};
 let _addUnsub = null;
 let _addCat = 'all';
+let _addMenuType = 'cafe';
 const _addCatNames = {};
 
 function unsubscribeAddProducts() {
@@ -598,7 +605,7 @@ function buildProductPopularity() {
   return pop;
 }
 
-function addSelKey(name, hasMilk, note) { return (name || '') + '|' + (hasMilk ? '1' : '0') + '|' + (note || ''); }
+function addSelKey(item) { return Catalog.key(item); }
 
 function openAddItemsModal(inv) {
   if (inv.status === 'returned' || inv.status === 'مرتجعة' || inv.status === 'cancelled' || inv.status === 'ملغية') {
@@ -614,6 +621,13 @@ function openAddItemsModal(inv) {
   document.getElementById('addInfoTxt').style.display = 'none';
   document.getElementById('addSearch').value = '';
   _addCat = 'all';
+  _addMenuType = 'cafe';
+  let tabs = document.getElementById('addMenuTypes');
+  if (!tabs) {
+    tabs = document.createElement('div'); tabs.id = 'addMenuTypes';
+    const cats = document.getElementById('addCatChips'); cats.parentNode.insertBefore(tabs, cats);
+  }
+  Catalog.tabs(tabs, type => { _addMenuType = type; _addCat = 'all'; renderAddCats(_addProducts); renderAddGrid(document.getElementById('addSearch').value); });
   _addProducts = null;
   unsubscribeAddProducts();
   renderAddCats([]);
@@ -621,11 +635,16 @@ function openAddItemsModal(inv) {
   renderAddSelected();
   // بث مباشر: أي تغيير في المنتجات يظهر فورًا في المودال
   try {
-    _addUnsub = FB.onCollection('products', list => {
+    const listeningInvId = inv.id;
+    FB.onCollection('products', list => {
+      if (addInvId !== listeningInvId || !addItemsModal.classList.contains('show')) return;
       _addProducts = list || [];
       renderAddCats(_addProducts);
       renderAddGrid(document.getElementById('addSearch').value);
-    });
+    }).then(unsub => {
+      if (addInvId !== listeningInvId || !addItemsModal.classList.contains('show')) unsub();
+      else _addUnsub = unsub;
+    }).catch(e => { console.error('[additems] products:', e); });
   } catch (e) {
     console.warn('[additems] live products:', e);
     DB.products.all().then(l => { _addProducts = l || []; renderAddCats(_addProducts); renderAddGrid(''); });
@@ -674,7 +693,7 @@ function renderAddCats(prods) {
   if (!box) return;
   const cats = [];
   const seen = {};
-  (prods || []).forEach(p => { const c = p.category || ''; if (c && !seen[c]) { seen[c] = 1; cats.push(c); } });
+  (prods || []).filter(p => Catalog.type(p) === _addMenuType).forEach(p => { const c = p.category || ''; if (c && !seen[c]) { seen[c] = 1; cats.push(c); } });
   let html = '<button type="button" class="acc-chip' + (_addCat === 'all' ? ' active' : '') + '" data-cat="all">الكل</button>';
   cats.forEach(c => {
     html += '<button type="button" class="acc-chip' + (_addCat === c ? ' active' : '') + '" data-cat="' + escapeHtml(c) + '">' + escapeHtml(_addCatNames[c] || c) + '</button>';
@@ -698,7 +717,7 @@ function renderAddGrid(q) {
     return;
   }
   const val = (q || '').trim().toLowerCase();
-  const list = prods.filter(p => (!val || (p.name || '').toLowerCase().includes(val)) && (_addCat === 'all' || p.category === _addCat));
+  const list = prods.filter(p => p.available !== false && p.available !== 0 && Catalog.type(p) === _addMenuType && (!val || (p.name || '').toLowerCase().includes(val)) && (_addCat === 'all' || p.category === _addCat));
   // الأكثر طلبًا في النظام أولًا، ثم أبجديًا
   list.sort((a, b) => {
     const pa = _addPopularity[a.name] || 0;
@@ -710,19 +729,24 @@ function renderAddGrid(q) {
   list.forEach(p => {
     const price = Number(p.price || 0);
     const sold = _addPopularity[p.name] || 0;
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'add-prod-card';
-    b.innerHTML = '<span class="ap-name">' + escapeHtml(p.name) + '</span><span class="ap-price">' + price.toLocaleString() + ' ج.م</span>' +
-      (sold > 0 ? '<span class="ap-hot">🔥 ' + sold.toLocaleString('ar-EG') + ' طلب</span>' : '');
+    const card = document.createElement('div');
+    card.className = 'add-prod-card';
+    card.innerHTML = '<span class="ap-name">' + escapeHtml(p.name) + '</span>' + Catalog.selector(p) + '<button type="button" class="size-select add-size-button">إضافة' + (Catalog.type(p) === 'cafe' ? ' — ' + price + ' ج.م' : '') + '</button>';
+    const b = card.querySelector('button');
+    const select = card.querySelector('select');
+    if (select) {
+      b.disabled = true;
+      select.onchange = () => { b.disabled = !Catalog.variant(p, select.value); };
+    }
     b.onclick = () => {
-      const key = addSelKey(p.name, false, '');
+      const item = Catalog.line(p, select ? select.value : '');
+      const key = addSelKey(item);
       const ex = _addSelected.find(it => it._key === key);
       if (ex) ex.qty += 1;
-      else _addSelected.push({ _key: key, name: p.name, qty: 1, price: price, hasMilk: false, note: '' });
+      else _addSelected.push(Object.assign(item, { _key: key }));
       renderAddSelected();
     };
-    grid.appendChild(b);
+    grid.appendChild(card);
   });
 }
 
@@ -741,7 +765,7 @@ function renderAddSelected() {
       '<span class="as-qty"><button type="button" data-act="minus" data-i="' + idx + '">−</button><b>' + it.qty + '</b><button type="button" data-act="plus" data-i="' + idx + '">+</button></span>' +
       '<button type="button" class="as-del" data-act="del" data-i="' + idx + '" title="إزالة"><i class="fa-solid fa-xmark"></i></button>' +
       '<div class="as-opts">' +
-      '<label class="as-milk"><input type="checkbox" data-act="milk" data-i="' + idx + '"' + (it.hasMilk ? ' checked' : '') + '> <span>زيادة لبن +15ج</span></label>' +
+      (it.menuType !== 'restaurant' ? '<label class="as-milk"><input type="checkbox" data-act="milk" data-i="' + idx + '"' + (it.hasMilk ? ' checked' : '') + '> <span>زيادة لبن +15ج</span></label>' : '') +
       '<input type="text" class="as-note" placeholder="ملاحظة على الطلب (بدون سكر، محوج...)" data-act="note" data-i="' + idx + '" value="' + escapeHtml(it.note || '') + '">' +
       '</div>' +
       '</div>';
@@ -773,7 +797,7 @@ function renderAddSelected() {
   calcAddTotals();
 }
 
-function rekeyItem(it) { it._key = addSelKey(it.name, it.hasMilk, it.note); }
+function rekeyItem(it) { it._key = addSelKey(it); }
 
 function mergeDuplicates() {
   const seen = {};
@@ -795,20 +819,27 @@ if (addItemsModal) {
     const btn = document.getElementById('confirmAddItems');
     const inv = invoices.find(i => i.id === addInvId);
     if (!inv) { closeAddItemsModal(); return; }
-    const items = _addSelected.filter(it => it.qty > 0).map(it => ({ name: it.name, qty: it.qty, price: it.price, note: it.note, hasMilk: it.hasMilk }));
+    if (btn.disabled) return;
+    const items = _addSelected.filter(it => it.qty > 0).map(it => { const copy = Object.assign({}, it); delete copy._key; return copy; });
     if (!items.length) { alert('لم تضف أي منتجات'); return; }
     btn.disabled = true;
     try {
+      const freshProducts = await FB.getCollectionFresh('products');
+      items.forEach(it => {
+        const p = freshProducts.find(p => p.id === it.productId);
+        const v = p && Catalog.variant(p, it.variantKey);
+        if (!p || p.available === false || p.available === 0 || !v || Number(v.price) + (it.hasMilk ? 15 : 0) !== it.price) throw new Error('تغير سعر أو إتاحة المنتج: ' + it.name);
+      });
       // دمج الأصناف الجديدة مع القديمة (تكرار الاسم يزود الكمية)
       const merged = [];
       const map = {};
       (inv.items || []).forEach(it => {
-        const k = addSelKey(it.name, it.hasMilk, it.note);
+        const k = addSelKey(it);
         if (map[k]) map[k].qty += Number(it.qty || 1);
         else { const c = Object.assign({}, it); map[k] = c; merged.push(c); }
       });
       items.forEach(it => {
-        const k = addSelKey(it.name, it.hasMilk, it.note);
+        const k = addSelKey(it);
         if (map[k]) map[k].qty += it.qty;
         else { map[k] = Object.assign({}, it); merged.push(map[k]); }
       });
