@@ -233,9 +233,16 @@
   }
 
   // ── Render categories ──
+  var activeMenuType = 'cafe';
+  var checkoutProcessing = false;
+  Catalog.tabs(document.getElementById('ipadMenuTypes'), function (type) {
+    activeMenuType = type;
+    renderCategories(); renderProducts(products); filterCards();
+  });
   function renderCategories() {
     categoriesEl.innerHTML = '<button class="ipad-cat-btn active" data-category="all">الكل</button>';
     for (var i = 0; i < categories.length; i++) {
+      if (Catalog.type(categories[i]) !== activeMenuType) continue;
       var btn = document.createElement('button');
       btn.className = 'ipad-cat-btn';
       btn.setAttribute('data-category', categories[i].slug);
@@ -254,10 +261,12 @@
     var fallbackBg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f5f5f4"/><text x="50" y="55" text-anchor="middle" font-size="40">🍽</text></svg>';
     for (var i = 0; i < list.length; i++) {
       var p = list[i];
+      if (Catalog.type(p) !== activeMenuType) continue;
       if (!p.available && p.available !== undefined) continue;
       var card = document.createElement('div');
       card.className = 'ipad-product-card';
       card.setAttribute('data-category', p.category || '');
+      card.setAttribute('data-product-id', p.id);
       var imgSrc = sanitizeUrl(p.image) || '';
       if (imgSrc && imgSrc.indexOf('.webp') !== -1) {
         imgSrc = imgSrc.replace('.webp', '.jpg');
@@ -267,10 +276,31 @@
       html += '<h3>' + esc(p.name) + '</h3>';
       if (p.nameEn) html += '<div class="ipad-en">' + esc(p.nameEn) + '</div>';
       if (p.description) html += '<div class="ipad-desc">' + esc(p.description) + '</div>';
-      html += '<div class="ipad-price">' + num(p.price, 0) + ' جنيه</div>';
-      html += '<button class="ipad-add-btn" data-price="' + num(p.price, 0) + '"><i class="fa-solid fa-plus"></i> إضافة</button>';
+      html += '<div class="ipad-price">' + (Catalog.type(p) === 'restaurant' ? 'اختر المقاس' : num(p.price, 0) + ' جنيه') + '</div>';
+      html += Catalog.selector(p);
+      html += '<button class="ipad-add-btn"' + (Catalog.type(p) === 'restaurant' ? ' disabled' : '') + '><i class="fa-solid fa-plus"></i> إضافة</button>';
       card.innerHTML = html;
       productsEl.appendChild(card);
+      bindSize(card, p);
+    }
+  }
+
+  function bindSize(card, product) {
+    var select = card.querySelector('.size-select');
+    if (!select) return;
+    select.onchange = function () {
+      var v = Catalog.variant(product, select.value);
+      card.querySelector('.ipad-price').textContent = v ? Number(v.price) + ' جنيه' : 'اختر المقاس';
+      card.querySelector('.ipad-add-btn').disabled = !v;
+    };
+  }
+  function filterCards() {
+    var active = categoriesEl.querySelector('.active');
+    var cat = active ? active.getAttribute('data-category') : 'all';
+    var q = document.getElementById('searchInput').value.toLowerCase();
+    var cards = productsEl.querySelectorAll('.ipad-product-card');
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].style.display = (cat === 'all' || cards[i].getAttribute('data-category') === cat) && cards[i].textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
     }
   }
 
@@ -285,15 +315,7 @@
       var allBtns = categoriesEl.querySelectorAll('.ipad-cat-btn');
       for (var i = 0; i < allBtns.length; i++) allBtns[i].classList.remove('active');
       btn.classList.add('active');
-      var cat = btn.getAttribute('data-category');
-      var cards = productsEl.querySelectorAll('.ipad-product-card');
-      for (var j = 0; j < cards.length; j++) {
-        if (cat === 'all' || cards[j].getAttribute('data-category') === cat) {
-          cards[j].style.display = '';
-        } else {
-          cards[j].style.display = 'none';
-        }
-      }
+      filterCards();
     });
   }
 
@@ -304,14 +326,7 @@
     _searchAttached = true;
     var input = document.getElementById('searchInput');
     if (!input) return;
-    input.addEventListener('keyup', function () {
-      var q = input.value.toLowerCase();
-      var cards = productsEl.querySelectorAll('.ipad-product-card');
-      for (var i = 0; i < cards.length; i++) {
-        var text = cards[i].textContent.toLowerCase();
-        cards[i].style.display = text.indexOf(q) !== -1 ? '' : 'none';
-      }
-    });
+    input.addEventListener('input', filterCards);
   }
 
   // ── Add to cart (delegated, attach once) ──
@@ -329,23 +344,26 @@
       var card = btn;
       while (card && !card.classList.contains('ipad-product-card')) card = card.parentElement;
       if (!card) return;
-      var name = card.querySelector('h3').textContent;
-      var price = num(btn.getAttribute('data-price'), 0);
-      addToCart(name, price);
+      var id = card.getAttribute('data-product-id');
+      var product = null;
+      for (var i = 0; i < products.length; i++) if (products[i].id === id) product = products[i];
+      var select = card.querySelector('.size-select');
+      try { addToCart(Catalog.line(product, select ? select.value : '')); }
+      catch (error) { alert(error.message); }
     });
   }
 
-  function addToCart(name, price) {
+  function addToCart(snapshot) {
     var found = false;
     for (var i = 0; i < orderItems.length; i++) {
-      if (orderItems[i].name === name) {
+      if (Catalog.key(orderItems[i]) === Catalog.key(snapshot)) {
         orderItems[i].qty++;
         found = true;
         break;
       }
     }
     if (!found) {
-      orderItems.push({ name: name, price: price, qty: 1, note: '', hasMilk: false });
+      orderItems.push(snapshot);
     }
     recalcTotal();
     renderSheet();
@@ -424,7 +442,7 @@ function recalcTotal() {
         html += '      <button class="ipad-oi-btn ipad-oi-minus" data-idx="' + i + '"><i class="fa-solid fa-minus"></i></button>';
         html += '      <span class="ipad-oi-qty">' + item.qty + '</span>';
         html += '      <button class="ipad-oi-btn ipad-oi-plus" data-idx="' + i + '"><i class="fa-solid fa-plus"></i></button>';
-        html += '      <button class="ipad-oi-milk ' + (item.hasMilk ? 'active' : '') + '" data-idx="' + i + '"><i class="fa-solid fa-droplet"></i> لبن</button>';
+        if (item.menuType !== 'restaurant') html += '      <button class="ipad-oi-milk ' + (item.hasMilk ? 'active' : '') + '" data-idx="' + i + '"><i class="fa-solid fa-droplet"></i> لبن</button>';
         html += '    </div>';
         html += '    <input class="ipad-oi-note-input" type="text" placeholder="ملاحظة" data-idx="' + i + '" value="' + esc(item.note || '') + '">';
         html += '  </div>';
@@ -584,6 +602,7 @@ function recalcTotal() {
   }
 
   function confirmCheckout() {
+    if (checkoutProcessing || !orderItems.length) return;
     var grandTotal = document.getElementById('checkoutModal')._grandTotal || 0;
     var baseTotal = document.getElementById('checkoutModal')._baseTotal || 0;
     var serviceAmount = document.getElementById('checkoutModal')._serviceAmount || 0;
@@ -593,7 +612,8 @@ function recalcTotal() {
 
     // Determine invoice status
     var invStatus = 'pending';
-    var paid = num(document.getElementById('paidAmount').value, 0);
+    var tendered = Math.max(0, num(document.getElementById('paidAmount').value, 0));
+    var paid = Math.min(tendered, grandTotal);
     if (customerType === 'free') {
       paid = 0;
       grandTotal = 0;
@@ -603,6 +623,7 @@ function recalcTotal() {
     }
 
     // Show loading
+    checkoutProcessing = true;
     document.getElementById('checkoutLoading').style.display = 'flex';
 
     var invId = 'INV-' + safeId().slice(0, 8).toUpperCase();
@@ -611,7 +632,13 @@ function recalcTotal() {
       itemsData.push({
         name: orderItems[i].name,
         qty: orderItems[i].qty,
-        price: orderItems[i].price,
+        price: orderItems[i].price + (orderItems[i].hasMilk ? 15 : 0),
+        productId: orderItems[i].productId,
+        baseName: orderItems[i].baseName,
+        menuType: orderItems[i].menuType,
+        category: orderItems[i].category,
+        variantKey: orderItems[i].variantKey,
+        variantLabel: orderItems[i].variantLabel,
         note: orderItems[i].note || '',
         hasMilk: orderItems[i].hasMilk || false
       });
@@ -649,7 +676,17 @@ function recalcTotal() {
     if (invStatus === 'paid') invData.paidAt = invDate;
 
     // فحص الشيفت — لو مفتوح، نعلّم الفاتورة
-    db.collection('shifts').where('closedAt', '==', null).limit(1).get().then(function (snap) {
+    fbGetAll('products').then(function (fresh) {
+      for (var i = 0; i < itemsData.length; i++) {
+        var item = itemsData[i], product = null;
+        for (var j = 0; j < fresh.length; j++) if (fresh[j].id === item.productId) product = fresh[j];
+        var v = product && Catalog.variant(product, item.variantKey);
+        if (!product || product.available === false || product.available === 0 || !v || Number(v.price) + (item.hasMilk ? 15 : 0) !== item.price) {
+          throw new Error('تغير سعر أو إتاحة المنتج، أعد إضافته: ' + item.name);
+        }
+      }
+      return db.collection('shifts').where('closedAt', '==', null).limit(1).get();
+    }).then(function (snap) {
       var shiftRef = null;
       if (!snap || snap.empty) {
         invData._warning = 'no_shift';
@@ -696,6 +733,7 @@ function recalcTotal() {
         }
       }
       document.getElementById('checkoutLoading').style.display = 'none';
+      checkoutProcessing = false;
       closeCheckout();
       // Show success
       document.getElementById('successTitle').textContent = 'تم إنشاء الفاتورة';
@@ -721,6 +759,7 @@ function recalcTotal() {
       document.getElementById('successModal').classList.add('show');
       clearCart();
     }).catch(function (e) {
+      checkoutProcessing = false;
       document.getElementById('checkoutLoading').style.display = 'none';
       console.error('[checkout] error:', e);
       alert('حدث خطأ أثناء إنشاء الفاتورة: ' + (e.message || e));

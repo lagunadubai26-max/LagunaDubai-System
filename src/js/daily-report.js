@@ -87,8 +87,8 @@ function buildItemsMap(invs) {
   const m = {};
   (invs || []).forEach(inv => {
     (inv.items || []).forEach(it => {
-      const key = (it.name || '') + '|' + (it.hasMilk ? '1' : '0') + '|' + (it.note || '');
-      if (!m[key]) m[key] = { name: it.name || '\u0645\u0646\u062a\u062c', qty: 0, revenue: 0, hasMilk: !!it.hasMilk, note: it.note || '' };
+      const key = Catalog.key(it);
+      if (!m[key]) m[key] = { productId: it.productId || '', baseName: it.baseName || it.name, name: it.name || '\u0645\u0646\u062a\u062c', qty: 0, revenue: 0, hasMilk: !!it.hasMilk, note: it.note || '' };
       m[key].qty += Number(it.qty || 1);
       m[key].revenue += Number(it.qty || 1) * Number(it.price || 0);
     });
@@ -294,7 +294,7 @@ async function showDayReport() {
       const menuMap = (menu || []).reduce((m, p) => { m[p.id] = p; return m; }, {});
       let recipesCost = 0;
       Object.values(itemsMap).forEach(r => {
-        const prod = menuMap[r.name] || menu.find(p => p.name === r.name);
+        const prod = menuMap[r.productId] || menu.find(p => p.name === r.baseName);
         if (prod && prod.cost) recipesCost += Number(prod.cost) * r.qty;
       });
 
@@ -328,6 +328,7 @@ async function showDayReport() {
         buildReturnTable(dayReturns) +
         (latePayments.length ? '<div class="dr-title" style="color:#b45309">\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0633\u0627\u0628\u0642\u0629</div>' + buildLatePaymentsTable(latePayments) : '');
     }
+    dayReportEl.insertAdjacentHTML('beforeend', Catalog.reportHTML(paidInvoices, menu, dayReturns));
   } catch (e) {
     console.error('[dayreport]', e);
     dayReportEl.innerHTML = '<div class="dr-empty" style="color:#dc2626">\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062a\u0642\u0631\u064a\u0631: ' + escapeHtml(e.message || e) + '</div>';

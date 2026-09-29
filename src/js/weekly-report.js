@@ -135,7 +135,7 @@ function buildItemsMap(invs) {
   var m = {};
   invs.forEach(function(inv) {
     (inv.items || []).forEach(function(it) {
-      var key = (it.name || '') + '|' + (it.hasMilk ? '1' : '0');
+      var key = Catalog.key(it);
       if (!m[key]) m[key] = { name: it.name || 'منتج', qty: 0, revenue: 0, hasMilk: !!it.hasMilk };
       m[key].qty += Number(it.qty || 1);
       m[key].revenue += Number(it.qty || 1) * Number(it.price || 0);
@@ -297,7 +297,7 @@ async function showWeekReport() {
     '<div class="dr-title">المنتجات المباعة هذا الأسبوع</div>' +
     productsTable;
 
-    weekReportEl.innerHTML = html;
+    weekReportEl.innerHTML = html + Catalog.reportHTML(weekPaidAll, menu, weekReturns);
   } catch (e) {
     console.error('[weekreport]', e);
     weekReportEl.innerHTML = '<div class="dr-empty" style="color:#dc2626">حدث خطأ أثناء تحميل التقرير: ' + escapeHtml(e.message || e) + '</div>';

@@ -5,6 +5,9 @@ let serviceRate = 0;
 let enableService = false;
 let checkoutProcessing = false;
 let syncingMilkState = false;
+let activeMenuType = 'cafe';
+let menuProductMap = {};
+let menuLoadVersion = 0;
 const COOLDOWN_MS = 5000;
 const urlParams = new URLSearchParams(window.location.search);
 const rawTable = urlParams.get('table');
@@ -76,16 +79,17 @@ function calculateTotals(baseTotal) {
 }
 
 function syncSheetNotesToOrderBox() {
+  if (document.getElementById('cartSheet')?.style.display !== 'flex') return;
   const sheetList = document.getElementById('sheetOrderList');
   if (!sheetList) return;
   sheetList.querySelectorAll('.order-item').forEach(el => {
     const ni = el.querySelector('.note-input');
-    if (!ni || !ni.value) return;
+    if (!ni) return;
     const nm = el.querySelector('.name');
     if (!nm) return;
     document.querySelectorAll('.order-box .order-list .order-item').forEach(oe => {
       const on = oe.querySelector('.name');
-      if (on && on.innerText === nm.innerText) {
+      if (on && oe.dataset.lineKey === el.dataset.lineKey) {
         const oi = oe.querySelector('.note-input');
         if (oi) oi.value = ni.value;
       }
@@ -99,29 +103,17 @@ function syncOrderSheet() {
   const orderList = document.querySelector('.order-box .order-list');
   const sheetList = document.getElementById('sheetOrderList');
   const sheetTotal = document.getElementById('sheetTotal');
-  const sheetNoteSave = [];
   if (orderList && sheetList) {
-    sheetList.querySelectorAll('.order-item').forEach(el => {
-      const ni = el.querySelector('.note-input');
-      if (ni && ni.value) {
-        const nm = el.querySelector('.name');
-        if (nm) sheetNoteSave.push({ name: nm.innerText, note: ni.value });
-      }
-    });
     sheetList.innerHTML = orderList.innerHTML;
     syncingMilkState = true;
     sheetList.querySelectorAll('.order-item').forEach(el => {
       const ck = el.querySelector('.milk-check');
       if (ck) ck.checked = el.dataset.hasMilk === 'true';
+      const source = Array.from(orderList.querySelectorAll('.order-item')).find(row => row.dataset.lineKey === el.dataset.lineKey);
+      const note = el.querySelector('.note-input');
+      if (note && source) note.value = source.querySelector('.note-input').value;
     });
     syncingMilkState = false;
-    sheetNoteSave.forEach(({ name, note }) => {
-      sheetList.querySelectorAll('.order-item .name').forEach(n => {
-        if (n.innerText === name) {
-          n.closest('.order-item').querySelector('.note-input').value = note;
-        }
-      });
-    });
   }
   if (sheetTotal) {
     const { serviceAmount, taxAmount, grandTotal } = calculateTotals(total);
@@ -141,11 +133,13 @@ function syncOrderSheet() {
 }
 
 async function loadProducts() {
+  const version = ++menuLoadVersion;
   if (window._seedReady) await window._seedReady;
   const rawCats = await DB.categories.all() || [];
+  if (version !== menuLoadVersion) return;
   const seen = {};
   const categories = [];
-  rawCats.forEach(c => { if (!seen[c.slug]) { seen[c.slug] = true; categories.push(c); } });
+  rawCats.forEach(c => { if (Catalog.type(c) === activeMenuType && !seen[c.slug]) { seen[c.slug] = true; categories.push(c); } });
   categories.sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const menuCategories = document.getElementById('menuCategories');
@@ -161,6 +155,7 @@ async function loadProducts() {
   }
 
   const products = await DB.products.all() || [];
+  if (version !== menuLoadVersion) return;
   const container = document.querySelector('.products');
   if (!container) return;
   container.innerHTML = '';
@@ -168,10 +163,12 @@ async function loadProducts() {
   const categoryOrder = categories.map(c => c.slug);
   products.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category));
   products.forEach(p => {
-    if (!p.available) return;
+    menuProductMap[p.id] = p;
+    if (!p.available || Catalog.type(p) !== activeMenuType) return;
     const card = document.createElement('div');
     card.className = 'product-card';
     card.dataset.category = p.category;
+    card.dataset.productId = p.id;
     let imgSrc = sanitizeUrl(p.image) || '';
     if (imgSrc && imgSrc.indexOf('.webp') !== -1) {
       imgSrc = imgSrc.replace('.webp', '.jpg');
@@ -187,15 +184,28 @@ async function loadProducts() {
       <h3>${safeName}</h3>
       <p>${safeNameEn}</p>
       ${safeDesc ? `<p class="desc">${safeDesc}</p>` : ''}
-      <h2>${safePrice} جنيه</h2>
-      <button data-price="${safePrice}">إضافة</button>`;
+      <h2>${Catalog.type(p) === 'restaurant' ? 'اختر المقاس لتحديد السعر' : safePrice + ' جنيه'}</h2>
+      ${Catalog.selector(p)}
+      <button class="add-product" data-price="${safePrice}"${Catalog.type(p) === 'restaurant' ? ' disabled' : ''}>إضافة</button>`;
+    const sizeSelect = card.querySelector('.size-select');
+    if (sizeSelect) sizeSelect.onchange = () => {
+      const v = Catalog.variant(p, sizeSelect.value);
+      card.querySelector('h2').textContent = v ? Number(v.price) + ' جنيه' : 'اختر المقاس لتحديد السعر';
+      card.querySelector('.add-product').disabled = !v;
+    };
     container.appendChild(card);
   });
 
   attachAddToCart();
   attachCategoryFilter();
   attachSearch();
+  filterMenuCards();
 }
+
+Catalog.tabs(document.getElementById('menuTypes'), async type => {
+  activeMenuType = type;
+  try { await loadProducts(); } catch (e) { alert('تعذر تحميل المنيو: ' + e.message); }
+});
 
 async function occupyTable() {
   const tn = tableNum || getTableInput();
@@ -222,18 +232,23 @@ function getTableInput() {
 }
 
 function attachAddToCart() {
-  document.querySelectorAll(".product-card button").forEach(button => {
+  document.querySelectorAll(".product-card .add-product").forEach(button => {
     button.addEventListener("click", async function () {
       const card = this.parentElement;
-      const name = card.querySelector("h3").innerText;
-      const price = Number(this.dataset.price);
+      const p = menuProductMap[card.dataset.productId];
+      const select = card.querySelector('.size-select');
+      let snapshot;
+      try { snapshot = Catalog.line(p, select ? select.value : ''); } catch (e) { return alert(e.message); }
+      const name = snapshot.name;
+      const price = snapshot.price;
+      const lineKey = Catalog.key(snapshot);
       const emptyItem = document.querySelector(".order-box .order-list .order-item");
       if (emptyItem && !emptyItem.querySelector(".name")) emptyItem.remove();
       let found = false;
       document.querySelectorAll(".order-box .order-list .order-item").forEach(item => {
         const product = item.querySelector(".name");
         if (!product) return;
-        if (product.innerText === name) {
+        if (!found && item.dataset.mergeKey === lineKey && item.dataset.hasMilk !== 'true' && !item.querySelector('.note-input').value) {
           const qtyEl = item.querySelector(".qty");
           let qty = parseInt(qtyEl.innerText);
           qty++;
@@ -249,11 +264,16 @@ function attachAddToCart() {
         item.className = "order-item";
         item.dataset.price = price;
         item.dataset.hasMilk = 'false';
+        item.dataset.lineKey = lineKey;
+        item.dataset.snapshot = JSON.stringify(snapshot);
         item.innerHTML = `
           <div class="order-top"><span class="name">${escapeHtml(name)}</span><button class="note-btn" title="أضف ملاحظة"><i class="fa-solid fa-pen"></i>ملاحظة</button><button class="delete"><i class="fa-solid fa-trash"></i></button></div>
           <div class="price">${price} جنيه</div>
           <div class="item-note" style="display:none"><input class="note-input" placeholder="إضافة (قهوة محوج، بدون سكر...)" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;background:#fafaf9;margin-bottom:8px"></div>
-          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div><label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +لبن 15 ج.م</label></div>`;
+          <div class="order-bottom"><div class="controls"><button class="minus">-</button><span class="qty">1</span><button class="plus">+</button></div>${snapshot.menuType === 'cafe' ? '<label class="milk-toggle"><input type="checkbox" class="milk-check"><span class="checkmark"></span> +لبن 15 ج.م</label>' : ''}</div>`;
+        // Unique row identity also distinguishes differently noted copies of one size.
+        item.dataset.lineKey = lineKey + ':' + safeId();
+        item.dataset.mergeKey = lineKey;
         document.querySelector(".order-box .order-list").appendChild(item);
         total += price;
       }
@@ -299,7 +319,7 @@ function handleOrderClick(e) {
   let targetItem = null;
   document.querySelectorAll('.order-box .order-list .order-item').forEach(el => {
     const n = el.querySelector('.name');
-    if (n && n.innerText === name) targetItem = el;
+    if (n && el.dataset.lineKey === item.dataset.lineKey) targetItem = el;
   });
   if (!targetItem) return;
   if (btn.classList.contains('plus')) {
@@ -346,7 +366,7 @@ function handleMilkChange(e) {
   if (!name) return;
   const targetItem = isSheet
     ? Array.from(document.querySelectorAll('.order-box .order-list .order-item')).find(el =>
-        el.querySelector('.name')?.innerText === name
+        el.dataset.lineKey === item.dataset.lineKey
       )
     : item;
   if (!targetItem) return;
@@ -363,6 +383,16 @@ const orderList = document.querySelector('.order-box .order-list');
 if (orderList) orderList.addEventListener('change', handleMilkChange);
 const sheetList = document.getElementById('sheetOrderList');
 if (sheetList) sheetList.addEventListener('change', handleMilkChange);
+[orderList, sheetList].forEach(list => list && list.addEventListener('input', e => {
+  if (!e.target.classList.contains('note-input')) return;
+  const row = e.target.closest('.order-item');
+  document.querySelectorAll('.order-item').forEach(other => {
+    if (other.dataset.lineKey === row.dataset.lineKey && other !== row) {
+      const input = other.querySelector('.note-input');
+      if (input) input.value = e.target.value;
+    }
+  });
+}));
 
 function attachCategoryFilter() {
   const catButtons = document.querySelectorAll(".category-btn");
@@ -370,10 +400,7 @@ function attachCategoryFilter() {
     button.addEventListener("click", () => {
       catButtons.forEach(btn => btn.classList.remove("active"));
       button.classList.add("active");
-      const category = button.dataset.category;
-      document.querySelectorAll(".product-card").forEach(product => {
-        product.style.display = category === "all" || product.dataset.category === category ? "block" : "none";
-      });
+      filterMenuCards();
     });
   });
 }
@@ -381,13 +408,15 @@ function attachCategoryFilter() {
 function attachSearch() {
   const searchInput = document.getElementById("searchInput");
   if (!searchInput) return;
-  searchInput.addEventListener("keyup", function () {
-    const value = this.value.toLowerCase();
-    document.querySelectorAll(".product-card").forEach(card => {
-      const name = card.querySelector("h3").innerText.toLowerCase();
-      const english = card.querySelector("p") ? card.querySelector("p").innerText.toLowerCase() : "";
-      card.style.display = name.includes(value) || english.includes(value) ? "" : "none";
-    });
+  searchInput.oninput = filterMenuCards;
+}
+
+function filterMenuCards() {
+  const active = document.querySelector('#menuCategories .active');
+  const cat = active ? active.dataset.category : 'all';
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  document.querySelectorAll('.product-card').forEach(card => {
+    card.style.display = (cat === 'all' || cat === card.dataset.category) && card.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
 
@@ -425,7 +454,7 @@ checkoutBtn.addEventListener("click", () => {
     const note = noteInput ? noteInput.value.trim() : '';
     const hasMilk = itemEl.dataset.hasMilk === 'true';
     const effectivePrice = Number(priceText) + (hasMilk ? 15 : 0);
-    if (priceText) items.push({ name: el.innerText, qty, price: effectivePrice, note, hasMilk });
+    if (priceText) items.push(Object.assign({}, JSON.parse(itemEl.dataset.snapshot), { qty, price: effectivePrice, note, hasMilk }));
   });
   if (items.length === 0) return alert("الطلب فارغ، أضف منتجات أولاً");
   const totalAmount = items.reduce((s, i) => s + i.qty * i.price, 0);
@@ -601,14 +630,14 @@ document.getElementById('confirmCheckout').onclick = async () => {
     const tendered = Math.max(0, Number(document.getElementById('checkoutPaid').value) || 0);
     const paid = Math.min(tendered, totalAmount);
     const change = Math.max(0, tendered - totalAmount);
-    if (custType === 'regular') {
-      const allProds = await DB.products.all() || [];
-      const priceMap = {};
-      allProds.forEach(p => { priceMap[p.name] = Number(p.price); });
+    {
+      const allProds = await FB.getCollectionFresh('products') || [];
       for (const item of items) {
-        const catalogPrice = priceMap[item.name];
-        if (catalogPrice !== undefined) {
-          const expected = catalogPrice + (item.hasMilk ? 15 : 0);
+        const p = allProds.find(p => p.id === item.productId);
+        const v = p && Catalog.variant(p, item.variantKey);
+        if (!p || !p.available || !v) throw new Error('المنتج أو المقاس لم يعد متاحًا: ' + item.name);
+        {
+          const expected = Number(v.price) + (item.hasMilk ? 15 : 0);
           if (item.price !== expected) {
             resetCheckout();
             return alert('خطأ في السعر: "' + item.name + '" - السعر المتوقع ' + expected + ' ج.م ولكن وجد ' + item.price + ' ج.م');

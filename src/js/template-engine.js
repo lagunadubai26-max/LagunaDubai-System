@@ -188,7 +188,7 @@ window.TEMPLATE = (() => {
       date: dateStr,
       customer: escape(inv.customer || ''),
       table: escape(inv.table || ''),
-      items: '',
+      items: buildItemsHtml(inv, type),
       serviceAmount: inv.serviceAmount > 0 ? '<tr><td style="color:#888;">خدمة الضيافة</td><td style="text-align:left;">' + Number(inv.serviceAmount).toLocaleString() + ' ج.م</td></tr>' : '',
       taxAmount: inv.taxAmount > 0 ? '<tr><td style="color:#888;">ضريبة القيمة المضافة</td><td style="text-align:left;">' + Number(inv.taxAmount).toLocaleString() + ' ج.م</td></tr>' : '',
       subtotal: Number(subtotal).toLocaleString() + ' ج.م',
@@ -326,7 +326,9 @@ window.TEMPLATE = (() => {
           const noteTxt = safeNote ? ' (' + safeNote + ')' : '';
           let buf = '';
           if (cols.length === 3) {
-            const name = ('\u2022 ' + safeName + milkTxt).substring(0, maxLen - 8);
+            const sizeLabel = item.variantLabel ? ' ' + escapeEscPos(item.variantLabel) : '';
+            const printName = sizeLabel ? escapeEscPos(item.baseName || item.name) : safeName;
+            const name = ('\u2022 ' + printName + milkTxt).substring(0, maxLen - 8 - sizeLabel.length) + sizeLabel;
             const qty = '' + item.qty + 'x';
             const lastCol = cols[2] === 'price' ? item.price : (item.qty * item.price);
             const lastColStr = '' + lastCol;
