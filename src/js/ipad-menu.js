@@ -686,11 +686,11 @@ function recalcTotal() {
           throw new Error('تغير سعر أو إتاحة المنتج، أعد إضافته: ' + item.name);
         }
       }
-      return db.collection('shifts').where('closedAt', '==', null).limit(1).get();
+      return db.collection('shifts').where('closedAt', '==', null).limit(1).get({ source: 'server' });
     }).then(function (snap) {
       var shiftRef = null;
       if (!snap || snap.empty) {
-        invData._warning = 'no_shift';
+        throw new Error('لا يوجد شيفت مفتوح. افتح الشيفت من لوحة التحكم قبل إنشاء الفاتورة');
       } else {
         shiftRef = snap.docs[0].ref;
         invData.shiftId = shiftRef.id;

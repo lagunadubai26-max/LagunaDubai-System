@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/backup.css?v=1">
   <link rel="stylesheet" href="css/settings.css">
   
 <link rel="stylesheet" href="css/responsive.css"><script src="js/role-head.js?v=2"></script></head>
@@ -114,6 +115,17 @@
         <input type="password" id="printAgentKey" placeholder="اتركه فارغ لو مش عايز حماية" style="width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:inherit;font-size:14px;direction:ltr">
       </div>
     </section>
+    <section class="settings-card" id="backupCard" hidden>
+      <h3><i class="fa-solid fa-database"></i> النسخ الاحتياطية</h3>
+      <p>نسخة JSON لمجموعات النظام، مع تذكير أسبوعي للمدير عند فتح لوحة التحكم. خُذ النسخة بعد إغلاق الشيفت ووقت توقف التعديلات لضمان اتساق القراءات.</p>
+      <p id="backupLast"></p>
+      <button type="button" id="downloadBackup">تنزيل نسخة JSON</button>
+      <div id="backupDownloadLinks"></div>
+      <label for="validateBackup">فحص نسخة محفوظة (لا يغير بيانات النظام)</label>
+      <input type="file" id="validateBackup" accept=".json,application/json">
+      <p id="backupStatus" role="status" aria-live="polite"></p>
+      <details><summary>كيف أختبر الاستعادة؟</summary><p>استخدم أداة <code>tools/restore-backup.cjs</code> مع محاكي Firestore المحلي. الأداة تستعيد المستندات في مشروع اختبار فارغ ثم تقرأها وتتحقق منها. التعليمات في <code>tools/BACKUPS.md</code>. الملف يشمل بيانات المستندات فقط؛ حسابات Firebase Authentication وملفات Storage وإعدادات خدمات Firebase لا تشملها النسخة.</p></details>
+    </section>
     <div class="settings-actions" style="display:flex;justify-content:center;margin-top:20px">
       <button class="save-settings" id="saveSettings"><i class="fa-solid fa-floppy-disk"></i>حفظ الإعدادات</button>
     </div>
@@ -143,14 +155,16 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/firebase-client.js?v=5"></script>
+<script src="js/firebase-client.js?v=6"></script>
 <script src="js/sanitize.js"></script>
 <script src="js/password-utils.js"></script>
-<script src="js/data.js?v=16"></script>
+<script src="js/data.js?v=17"></script>
         <script src="js/notifications.js?v=3"></script>
         <script src="js/printer.js?v=1"></script>
 <script src="js/template-engine.js?v=3"></script>
 <script src="js/settings.js"></script>
+<script src="js/backup-core.js?v=1"></script>
+<script src="js/backup-ui.js?v=1"></script>
 <script src="js/daily-inventory-check.js?v=2"></script>
 <script src="js/role.js?v=6"></script>
 </body>

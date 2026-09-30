@@ -78,7 +78,7 @@ async function resolveDayRange(dateVal, latestInvTs) {
       }
       return { start, end, hasShift: true };
     }
-  } catch(e) { console.warn('[dayreport] range:', e); }
+  } catch(e) { console.warn('[dayreport] range:', e); throw e; }
   // لا يوجد شيفت لهذا اليوم — لا تعرض فواتير
   return { start: null, end: null, hasShift: false };
 }
@@ -185,8 +185,8 @@ async function showDayReport() {
   dayReportEl.innerHTML = '<div class="dr-empty"><i class="fa-solid fa-spinner fa-spin"></i> \u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062a\u0642\u0631\u064a\u0631...</div>';
 
   try {
-    const [allInvoices, allExpenses, allReturns, menu, allDaycloses, allAudit, allIncomes] = await Promise.all([
-      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all(), DB.daycloses.all(), DB.audit.all(), DB.incomes.all()
+    const [allInvoices, allExpenses, allReturns, menu, allAudit, allIncomes] = await Promise.all([
+      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.products.all(), DB.audit.all(), DB.incomes.all()
     ]);
 
     const latestInvTs = (allInvoices || []).reduce((m, i) => i.date ? Math.max(m, new Date(i.date).getTime()) : m, 0);

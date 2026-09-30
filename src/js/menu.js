@@ -49,20 +49,6 @@ window._seedReady = (async () => {
     }
     try { await DB.settings.save({ enableService, enableTax, _svcMigrated: 2 }); } catch(e) {}
   }
-  // Auto-shift: open shift at 3 PM (service stays OFF unless manually toggled)
-  if (!isCustomer && !enableService) {
-    try {
-      const now = FB.clockNow ? FB.clockNow() : new Date();
-      const hour = now.getHours();
-      if (hour >= 15) {
-        setTimeout(function() {
-          alert('تم فتح الشيفت تلقائياً الساعة 3:00 مساءً');
-        }, 500);
-      }
-    } catch (e) {
-      console.warn('[menu] auto-shift error:', e);
-    }
-  }
 })();
 
 function calculateTotals(baseTotal) {

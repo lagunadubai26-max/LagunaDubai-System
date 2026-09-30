@@ -1,0 +1,9 @@
+.backup-reminder { background:#fffbeb; border:1px solid #b45309; color:#78350f; padding:16px; border-radius:12px; margin-bottom:20px; line-height:1.8; }
+.backup-reminder a { display:inline-block; margin:0 12px; color:#78350f; text-decoration:underline; }
+.backup-reminder small { display:block; }
+#backupCard { margin-top:24px; line-height:1.8; }
+#backupCard[hidden] { display:none; }
+#backupCard button,.backup-download { display:inline-block; min-height:44px; padding:10px 16px; border:1px solid #78350f; border-radius:8px; background:#78350f; color:#fff; font:inherit; cursor:pointer; margin:8px 0; }
+#backupCard label { display:block; margin-top:12px; }
+#backupCard input[type=file] { max-width:100%; }
+#backupStatus { overflow-wrap:anywhere; }

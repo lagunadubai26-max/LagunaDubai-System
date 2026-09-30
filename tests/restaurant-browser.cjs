@@ -46,7 +46,7 @@ async function open(browser, name, width = 1440, exportLibraries = false) {
     window.Chart = class { destroy() {} };
     window.PRINTER = { restorePrinters: async () => {}, isConnected: () => true };
   }, { products, categories });
-  const allowed = new Set(['catalog.js', 'restaurant-seed.js', 'menu.js', 'ipad-menu.js', 'products.js', 'invoices.js', 'daily-report.js', 'weekly-report.js', 'reports.js', 'sanitize.js', 'template-engine.js', 'report-export.js']);
+  const allowed = new Set(['catalog.js', 'restaurant-seed.js', 'menu.js', 'ipad-menu.js', 'products.js', 'invoices.js', 'daily-report.js', 'weekly-report.js', 'reports.js', 'sanitize.js', 'template-engine.js', 'report-export.js', 'shift-display.js', 'backup-core.js', 'backup-ui.js', 'dashboard.js']);
   if (exportLibraries) allowed.add('jspdf.umd.min.js');
   await context.route('**/*', async route => {
     const url = new URL(route.request().url()), rel = decodeURIComponent(url.pathname).replace(/^\//, '');
