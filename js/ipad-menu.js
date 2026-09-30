@@ -242,7 +242,8 @@
   function renderCategories() {
     categoriesEl.innerHTML = '<button class="ipad-cat-btn active" data-category="all">الكل</button>';
     for (var i = 0; i < categories.length; i++) {
-      if (Catalog.type(categories[i]) !== activeMenuType) continue;
+      var category = categories[i];
+      if (!Catalog.inMenu(category, activeMenuType) && !products.some(function (p) { return p.category === category.slug && Catalog.inMenu(p, activeMenuType); })) continue;
       var btn = document.createElement('button');
       btn.className = 'ipad-cat-btn';
       btn.setAttribute('data-category', categories[i].slug);
@@ -261,7 +262,7 @@
     var fallbackBg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f5f5f4"/><text x="50" y="55" text-anchor="middle" font-size="40">🍽</text></svg>';
     for (var i = 0; i < list.length; i++) {
       var p = list[i];
-      if (Catalog.type(p) !== activeMenuType) continue;
+      if (!Catalog.inMenu(p, activeMenuType)) continue;
       if (!p.available && p.available !== undefined) continue;
       var card = document.createElement('div');
       card.className = 'ipad-product-card';
@@ -276,9 +277,9 @@
       html += '<h3>' + esc(p.name) + '</h3>';
       if (p.nameEn) html += '<div class="ipad-en">' + esc(p.nameEn) + '</div>';
       if (p.description) html += '<div class="ipad-desc">' + esc(p.description) + '</div>';
-      html += '<div class="ipad-price">' + (Catalog.type(p) === 'restaurant' ? 'اختر المقاس' : num(p.price, 0) + ' جنيه') + '</div>';
+      html += '<div class="ipad-price">' + (Catalog.hasVariants(p) ? 'اختر المقاس' : num(p.price, 0) + ' جنيه') + '</div>';
       html += Catalog.selector(p);
-      html += '<button class="ipad-add-btn"' + (Catalog.type(p) === 'restaurant' ? ' disabled' : '') + '><i class="fa-solid fa-plus"></i> إضافة</button>';
+      html += '<button class="ipad-add-btn"' + (Catalog.hasVariants(p) ? ' disabled' : '') + '><i class="fa-solid fa-plus"></i> إضافة</button>';
       card.innerHTML = html;
       productsEl.appendChild(card);
       bindSize(card, p);
@@ -348,7 +349,7 @@
       var product = null;
       for (var i = 0; i < products.length; i++) if (products[i].id === id) product = products[i];
       var select = card.querySelector('.size-select');
-      try { addToCart(Catalog.line(product, select ? select.value : '')); }
+      try { addToCart(Catalog.line(product, select ? select.value : '', activeMenuType)); }
       catch (error) { alert(error.message); }
     });
   }
@@ -681,7 +682,7 @@ function recalcTotal() {
         var item = itemsData[i], product = null;
         for (var j = 0; j < fresh.length; j++) if (fresh[j].id === item.productId) product = fresh[j];
         var v = product && Catalog.variant(product, item.variantKey);
-        if (!product || product.available === false || product.available === 0 || !v || Number(v.price) + (item.hasMilk ? 15 : 0) !== item.price) {
+        if (!product || product.available === false || product.available === 0 || !v || !Catalog.inMenu(product, item.menuType) || Number(v.price) + (item.hasMilk ? 15 : 0) !== item.price) {
           throw new Error('تغير سعر أو إتاحة المنتج، أعد إضافته: ' + item.name);
         }
       }

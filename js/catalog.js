@@ -6,9 +6,13 @@
   function esc(value) {
     return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
-  function type(product) { return product.menuType === 'restaurant' ? 'restaurant' : 'cafe'; }
+  function type(product) { return product.menuType === 'both' ? 'both' : product.menuType === 'restaurant' ? 'restaurant' : 'cafe'; }
+  function inMenu(product, menu) { return type(product) === 'both' || type(product) === menu; }
+  function hasVariants(product) {
+    return product.pricingMode === 'sizes' || (product.pricingMode !== 'single' && (type(product) === 'restaurant' || !!(product.variants && product.variants.length)));
+  }
   function variants(product) {
-    if (type(product) === 'restaurant' || (product.variants && product.variants.length)) {
+    if (hasVariants(product)) {
       return (product.variants || []).filter(function (v) {
         return sizes.indexOf(v.key) !== -1 && v.available === true && v.price !== null && v.price !== '' && isFinite(Number(v.price)) && Number(v.price) >= 0;
       });
@@ -20,19 +24,21 @@
     for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i];
     return null;
   }
-  function line(product, key) {
+  function line(product, key, menu) {
+    menu = menu || (type(product) === 'both' ? 'cafe' : type(product));
+    if (!inMenu(product, menu)) throw new Error('المنتج غير متاح في هذا المنيو');
     var v = variant(product, key);
     if (!v || product.available === false || product.available === 0) throw new Error('المنتج أو المقاس غير متاح');
     var label = labels[v.key] || '';
     return { productId: product.id, baseName: product.name, name: product.name + (label ? ' — ' + label : ''),
-      menuType: type(product), category: product.category || '', variantKey: v.key, variantLabel: label,
+      menuType: menu, category: product.category || '', variantKey: v.key, variantLabel: label,
       price: Number(v.price), qty: 1, note: '', hasMilk: false };
   }
   function key(item) {
     return JSON.stringify([item.productId || item.name, item.variantKey || '', item.menuType || '', Number(item.price), !!item.hasMilk, item.note || '']);
   }
   function selector(product) {
-    if (type(product) !== 'restaurant') return '';
+    if (!hasVariants(product)) return '';
     var list = variants(product);
     return '<label class="size-label">المقاس<select class="size-select" aria-label="مقاس ' + esc(product.name) + '">' +
       '<option value="">' + (list.length ? 'اختر المقاس' : 'لا توجد مقاسات متاحة') + '</option>' + list.map(function (v) {
@@ -57,8 +63,13 @@
   }
   function classify(item, products) {
     if (item.menuType === 'restaurant' || item.menuType === 'cafe') return item.menuType;
-    var matches = (products || []).filter(function (p) { return item.productId ? p.id === item.productId : p.name === (item.baseName || item.name || item.product); });
-    return matches.length === 1 ? type(matches[0]) : 'unknown';
+    if (/^restaurant-/.test(item.productId || '') || /^restaurant-/.test(item.category || '')) return 'restaurant';
+    // Untagged, name-only invoice lines predate the restaurant menu. Catalog
+    // renames/deletions (e.g. زيادة ماء and smoothie spelling) must not move them.
+    if (!item.productId && !item.menuType) return 'cafe';
+    var matches = (products || []).filter(function (p) { return p.id === item.productId; });
+    if (matches.length === 1 && type(matches[0]) !== 'both') return type(matches[0]);
+    return 'unknown';
   }
   // Allocate integer piastres, distributing rounding remainders deterministically.
   function allocate(invoice) {
@@ -112,7 +123,7 @@
     });
     return html + '</section>';
   }
-  var api = { sizes: sizes, labels: labels, type: type, variants: variants, variant: variant, line: line, key: key, selector: selector, tabs: tabs, classify: classify, allocate: allocate, summary: summary, reportHTML: reportHTML };
+  var api = { sizes: sizes, labels: labels, type: type, inMenu: inMenu, hasVariants: hasVariants, variants: variants, variant: variant, line: line, key: key, selector: selector, tabs: tabs, classify: classify, allocate: allocate, summary: summary, reportHTML: reportHTML };
   root.Catalog = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 }(typeof window !== 'undefined' ? window : this));

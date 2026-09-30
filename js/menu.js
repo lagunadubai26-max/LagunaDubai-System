@@ -136,10 +136,11 @@ async function loadProducts() {
   const version = ++menuLoadVersion;
   if (window._seedReady) await window._seedReady;
   const rawCats = await DB.categories.all() || [];
+  const products = await DB.products.all() || [];
   if (version !== menuLoadVersion) return;
   const seen = {};
   const categories = [];
-  rawCats.forEach(c => { if (Catalog.type(c) === activeMenuType && !seen[c.slug]) { seen[c.slug] = true; categories.push(c); } });
+  rawCats.forEach(c => { if ((Catalog.inMenu(c, activeMenuType) || products.some(p => p.category === c.slug && Catalog.inMenu(p, activeMenuType))) && !seen[c.slug]) { seen[c.slug] = true; categories.push(c); } });
   categories.sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const menuCategories = document.getElementById('menuCategories');
@@ -154,7 +155,6 @@ async function loadProducts() {
     });
   }
 
-  const products = await DB.products.all() || [];
   if (version !== menuLoadVersion) return;
   const container = document.querySelector('.products');
   if (!container) return;
@@ -164,7 +164,7 @@ async function loadProducts() {
   products.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category));
   products.forEach(p => {
     menuProductMap[p.id] = p;
-    if (!p.available || Catalog.type(p) !== activeMenuType) return;
+    if (!p.available || !Catalog.inMenu(p, activeMenuType)) return;
     const card = document.createElement('div');
     card.className = 'product-card';
     card.dataset.category = p.category;
@@ -184,9 +184,9 @@ async function loadProducts() {
       <h3>${safeName}</h3>
       <p>${safeNameEn}</p>
       ${safeDesc ? `<p class="desc">${safeDesc}</p>` : ''}
-      <h2>${Catalog.type(p) === 'restaurant' ? 'اختر المقاس لتحديد السعر' : safePrice + ' جنيه'}</h2>
+      <h2>${Catalog.hasVariants(p) ? 'اختر المقاس لتحديد السعر' : safePrice + ' جنيه'}</h2>
       ${Catalog.selector(p)}
-      <button class="add-product" data-price="${safePrice}"${Catalog.type(p) === 'restaurant' ? ' disabled' : ''}>إضافة</button>`;
+      <button class="add-product" data-price="${safePrice}"${Catalog.hasVariants(p) ? ' disabled' : ''}>إضافة</button>`;
     const sizeSelect = card.querySelector('.size-select');
     if (sizeSelect) sizeSelect.onchange = () => {
       const v = Catalog.variant(p, sizeSelect.value);
@@ -238,7 +238,7 @@ function attachAddToCart() {
       const p = menuProductMap[card.dataset.productId];
       const select = card.querySelector('.size-select');
       let snapshot;
-      try { snapshot = Catalog.line(p, select ? select.value : ''); } catch (e) { return alert(e.message); }
+      try { snapshot = Catalog.line(p, select ? select.value : '', activeMenuType); } catch (e) { return alert(e.message); }
       const name = snapshot.name;
       const price = snapshot.price;
       const lineKey = Catalog.key(snapshot);
@@ -635,7 +635,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
       for (const item of items) {
         const p = allProds.find(p => p.id === item.productId);
         const v = p && Catalog.variant(p, item.variantKey);
-        if (!p || !p.available || !v) throw new Error('المنتج أو المقاس لم يعد متاحًا: ' + item.name);
+        if (!p || !p.available || !v || !Catalog.inMenu(p, item.menuType)) throw new Error('المنتج أو المقاس لم يعد متاحًا: ' + item.name);
         {
           const expected = Number(v.price) + (item.hasMilk ? 15 : 0);
           if (item.price !== expected) {
