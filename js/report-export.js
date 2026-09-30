@@ -19,7 +19,10 @@
       while (changed) {
         changed = false;
         for (const block of blocks) {
-          if (block.top > start && block.top < end && block.bottom > end && block.bottom - block.top <= pageHeight) {
+          // Collapsed table borders and fractional coordinates can overlap by
+          // one pixel. Treating those as real crossings cascades backwards
+          // through every row and reduces each page to a single item.
+          if (block.top > start && block.top < end - 2 && block.bottom > end + 2 && block.bottom - block.top <= pageHeight) {
             end = block.top; changed = true;
           }
         }
