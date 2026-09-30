@@ -91,18 +91,19 @@ function shiftSessionRange(dateVal, shifts) {
 async function render() {
   if (rendering) return;
   rendering = true;
+  let errorBox = document.getElementById('reportLoadError');
+  if (!errorBox) {
+    errorBox = document.createElement('div'); errorBox.id = 'reportLoadError';
+    document.getElementById('monthlyReport').before(errorBox);
+  }
+  errorBox.hidden = true;
   try {
     const range = getMonthRange(monthInput.value);
     const prevRange = getPrevMonthRange(monthInput.value);
 
-    const allInvoices = await DB.invoices.all() || [];
-    const allExpenses = await DB.expenses.all() || [];
-    const allReturns = await DB.returns.all() || [];
-    const allIncomes = await DB.incomes.all() || [];
-    const products = await DB.products.all() || [];
-    const allDaycloses = await DB.daycloses.all() || [];
-    const allShifts = await DB.shifts.all() || [];
-    const allAudit = await DB.audit.all() || [];
+    const [allInvoices, allExpenses, allReturns, allIncomes, products, allAudit] = await Promise.all([
+      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.incomes.all(), DB.products.all(), DB.audit.all()
+    ]);
 
     const invoices = filterByDate(allInvoices, range);
     const prevInvoices = filterByDate(allInvoices, prevRange);
@@ -174,6 +175,9 @@ async function render() {
     drawTopProducts(soldInvoices);
   } catch (e) {
     console.error('[reports]', e);
+    errorBox.hidden = false;
+    errorBox.innerHTML = '<p role="alert">تعذر تحميل التقرير: ' + escapeHtml(e.message || e) + '</p><button type="button" id="retryReport">إعادة تحميل التقرير</button>';
+    document.getElementById('retryReport').onclick = () => render();
   }
   rendering = false;
 }
@@ -490,6 +494,8 @@ async function checkDayCloseStatus() {
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق';
   try {
     const shift = await DB.shifts.getOpen();
+    ShiftDisplay.set(shift, 'reportShiftDetails');
+    btn.dataset.retry = '';
     btn.innerHTML = shift
       ? '<i class="fa-solid fa-moon"></i> غلق الشيفت'
       : '<i class="fa-solid fa-sun"></i> فتح الشيفت';
@@ -498,6 +504,8 @@ async function checkDayCloseStatus() {
     btn.style.cursor = 'pointer';
   } catch (e) {
     console.error('[shift-status]', e);
+    ShiftDisplay.unavailable('reportShiftDetails');
+    btn.dataset.retry = 'true';
     btn.innerHTML = '<i class="fa-solid fa-rotate"></i> إعادة محاولة تحميل الشيفت';
     btn.disabled = false;
     btn.style.opacity = '1';
@@ -506,10 +514,9 @@ async function checkDayCloseStatus() {
 }
 
 async function showDayCloseModal(shift) {
-  const allInvoices = await DB.invoices.all() || [];
-  const allExpenses = await DB.expenses.all() || [];
-  const allReturns = await DB.returns.all() || [];
-  const allIncomes = await DB.incomes.all() || [];
+  const [allInvoices, allExpenses, allReturns, allIncomes] = await Promise.all(
+    ['invoices', 'expenses', 'returns', 'incomes'].map(name => FB.getCollectionFresh(name))
+  );
 
   if (!shift) shift = await DB.shifts.getOpen();
   const rangeStart = shift && shift.openedAt ? new Date(shift.openedAt) : null;
@@ -570,6 +577,9 @@ async function showDayCloseModal(shift) {
 }
 
 document.getElementById('dayCloseBtn').onclick = async () => {
+  if (document.getElementById('dayCloseBtn').dataset.retry === 'true') {
+    await checkDayCloseStatus(); return;
+  }
   try {
     const shift = await DB.shifts.getOpen();
     if (!shift) {
@@ -599,7 +609,7 @@ document.getElementById('dcConfirmStartDay').onclick = async () => {
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الفتح...';
   try {
     const shift = await DB.shifts.open(user.name || 'الكاشير');
-    await DB.audit.log('shift_open', { id: shift.id, openDate: shift.openDate, openedBy: shift.openedBy });
+    await DB.audit.log('shift_open', { id: shift.id, openDate: shift.openDate, openedBy: shift.openedBy }).catch(e => console.warn('[shift-audit]', e));
     closeStartDayModal();
     await checkDayCloseStatus();
     alert('✅ تم بدء اليوم ' + new Date(shift.openDate + 'T12:00:00Z').toLocaleDateString('ar-EG') + '\nاليوم ثابت حتى إغلاق الشيفت يدويًا');
@@ -653,7 +663,7 @@ confirmDayClose.onclick = async () => {
       closedAt
     };
     await DB.shifts.closeDay(shiftId, data, Number(btn.dataset.invoiceVersion || 0));
-    await DB.audit.log('day_close', { shiftId, date: data.date, totalSales: data.totalSales, totalExpenses: data.totalExpenses });
+    await DB.audit.log('day_close', { shiftId, date: data.date, totalSales: data.totalSales, totalExpenses: data.totalExpenses }).catch(e => console.warn('[shift-audit]', e));
     dayCloseModal.classList.remove('show');
     try { await checkDayCloseStatus(); } catch (refreshError) { console.warn('[shift-refresh]', refreshError); }
   } catch (e) {

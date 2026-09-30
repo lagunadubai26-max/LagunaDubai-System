@@ -226,23 +226,25 @@ const DB = {
     async getOpen() {
       await FB.ensure();
       const db = FB.getDb();
-      const stateSnap = await db.collection('shift_state').doc('current').get();
+      const stateSnap = await db.collection('shift_state').doc('current').get({ source: 'server' });
       if (stateSnap.exists) {
         const openShiftId = stateSnap.data().openShiftId;
-        if (!openShiftId) return null;
-        const activeSnap = await db.collection('shifts').doc(openShiftId).get();
-        if (activeSnap.exists && activeSnap.data().closedAt == null) {
-          return { id: activeSnap.id, ...activeSnap.data() };
+        if (openShiftId) {
+          const activeSnap = await db.collection('shifts').doc(openShiftId).get({ source: 'server' });
+          if (activeSnap.exists && activeSnap.data().closedAt == null) {
+            return { id: activeSnap.id, ...activeSnap.data() };
+          }
         }
       }
-      const shifts = await FB.getCollectionFresh('shifts');
+      const snap = await db.collection('shifts').where('closedAt', '==', null).get({ source: 'server' });
+      const shifts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const open = shifts.filter(s => s.closedAt == null)
         .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0));
       return open[0] || null;
     },
     async get(id) {
       await FB.ensure();
-      const snap = await FB.getDb().collection('shifts').doc(id).get();
+      const snap = await FB.getDb().collection('shifts').doc(id).get({ source: 'server' });
       return snap.exists ? { id: snap.id, ...snap.data() } : null;
     },
     async open(name) {

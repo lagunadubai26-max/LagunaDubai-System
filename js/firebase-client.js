@@ -1,20 +1,25 @@
 const FB = (() => {
   let db;
   let uid = null;
+  let authReady = null;
 
   async function init() {
-    if (db) return;
-    const app = firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.firestore(app);
-    try {
-      const cred = await firebase.auth(app).signInAnonymously();
-      uid = cred.user.uid;
-    } catch (e) {
-      console.warn('[firebase] anonymous auth failed:', e.message);
+    if (uid && firebase.auth().currentUser) return;
+    if (!authReady) {
+      authReady = (async () => {
+        if (!db) {
+          const app = firebase.initializeApp(FIREBASE_CONFIG);
+          db = firebase.firestore(app);
+        }
+        const auth = firebase.auth();
+        const user = auth.currentUser || (await auth.signInAnonymously()).user;
+        uid = user.uid;
+      })().finally(() => { authReady = null; });
     }
+    await authReady;
   }
 
-  async function ensure() { if (!db) await init(); startClockSync(); }
+  async function ensure() { await init(); startClockSync(); }
 
   function docId() { 
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -113,13 +118,13 @@ const FB = (() => {
 
   async function getCollectionFresh(name) {
     await ensure();
-    const data = await rawCollection(name);
+    const data = await rawCollection(name, { source: 'server' });
     _memo.set(name, { t: Date.now(), data });
     return data;
   }
 
-  async function rawCollection(name) {
-    const snap = await db.collection(name).orderBy('__name__', 'asc').get();
+  async function rawCollection(name, options) {
+    const snap = await db.collection(name).orderBy('__name__', 'asc').get(options);
     const items = [];
     snap.forEach(d => items.push({ id: d.id, ...d.data() }));
     return items;
