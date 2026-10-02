@@ -83,12 +83,13 @@ service cloud.firestore {
       allow update: if manager() || (staff() && validInvoice()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['items', 'total', 'paid', 'tendered', 'change', 'remaining', 'status', 'paidAt', 'lastPaymentAt', 'lastPaymentId', 'paymentMethod', 'itemsValue', 'serviceAmount', 'taxAmount', 'printed', 'pendingPrint', 'table', 'customer', 'customerType', 'mergedInto', 'updatedByUid', 'updatedAt'])
         && request.resource.data.updatedByUid == request.auth.uid
+        && (request.resource.data.status == resource.data.status || !(request.resource.data.status in ['returned', 'مرتجعة']))
         && (request.resource.data.status != 'merged' || (!exists(/databases/$(database)/documents/invoices/$(request.resource.data.mergedInto))
           && getAfter(/databases/$(database)/documents/invoices/$(request.resource.data.mergedInto)).data.mergedIds.hasAny([id])))
         && (request.resource.data.paid <= resource.data.paid || paymentLogged(id, request.resource.data.paid - resource.data.paid)));
       allow delete: if manager();
     }
-    match /returns/{id} { allow read, create, update, delete: if staff(); }
+    match /returns/{id} { allow read: if staff(); allow create, update, delete: if manager(); }
     match /invoice_payments/{id} {
       allow read: if staff();
       allow create: if staff() && request.resource.data.actorUid == request.auth.uid

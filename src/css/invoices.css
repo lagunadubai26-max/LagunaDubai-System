@@ -460,9 +460,9 @@
 
 .actions button{
 
-    width:40px;
+    width:44px;
 
-    height:40px;
+    height:44px;
 
     border:none;
 
@@ -471,6 +471,11 @@
     cursor:pointer;
 
     color:#fff;
+    background:#334155;
+    min-width:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
 
     transition:var(--transition);
 
@@ -571,6 +576,15 @@
     }
 
 }
+
+.actions .edit-btn{background:#1d4ed8;color:#fff;}
+.actions .add-items-btn{background:#6d28d9;color:#fff;}
+.actions .print-btn{background:#334155;color:#fff;}
+.actions .kitchen-print-btn{background:#c2410c;color:#fff;}
+.actions .pay-btn,.actions .settle-status-btn{background:#047857;color:#fff;}
+.actions .return-btn,.actions .delete-btn{background:#b91c1c;color:#fff;}
+.actions button:focus-visible{outline:3px solid #d97706;outline-offset:3px;}
+.actions button:disabled{opacity:.65;cursor:wait;}
 /* highlight after edit/merge */
 @keyframes flashUpdate { 0% { background:#fef3c7; } 100% { background:transparent; } }
 tr.flash-update { animation: flashUpdate 1.6s ease; }

@@ -1,2 +1,8 @@
 .shift-details { flex-basis:100%; font-size:14px; line-height:1.8; color:#44403c; padding:8px 12px; background:#f5f5f4; border-radius:8px; margin:8px 0; overflow-wrap:anywhere; }
 .shift-overdue { color:#78350f; background:#fffbeb; border:1px solid #b45309; font-weight:600; }
+#menuShiftButton { min-height:48px; padding:12px 24px; margin:12px 8px; border:0; border-radius:10px; background:#047857; color:#fff; font:inherit; font-weight:700; cursor:pointer; box-shadow:0 3px 8px rgba(0,0,0,.14); }
+#menuShiftButton[data-action="close"] { background:#b45309; }
+#menuShiftButton[data-action="retry"] { background:#1d4ed8; }
+#menuShiftButton:hover { filter:brightness(.92); }
+#menuShiftButton:focus-visible { outline:3px solid #1d4ed8; outline-offset:3px; }
+#menuShiftButton:disabled { opacity:.65; cursor:wait; }
