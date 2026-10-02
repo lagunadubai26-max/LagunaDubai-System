@@ -178,7 +178,11 @@ function buildInvoiceRow(inv, shiftDateLabel) {
   const remainingHtml = remaining > 0 ? '<span style="color:#dc2626;font-size:12px">باقي ' + Number(remaining).toLocaleString() + '</span>' : '<span style="color:#059669;font-size:12px">مدفوع كامل</span>';
   const printHtml = inv.pendingPrint ? '<span style="color:#dc2626;font-size:11px">⏳ طباعة معلقة</span>' : inv.printed ? '<span style="color:#059669;font-size:11px">✓ مطبوعة</span>' : '<span style="color:#a8a29e;font-size:11px">—</span>';
   const btns = '<button class="edit-btn" data-id="' + safeId + '" title="تعديل الفاتورة"><i class="fa-solid fa-pen"></i></button><button class="add-items-btn" data-id="' + safeId + '" title="إضافة منتجات لهذه الفاتورة"><i class="fa-solid fa-cart-plus"></i></button><button class="print-btn" data-id="' + safeId + '" title="طباعة الكاشير"><i class="fa-solid fa-receipt"></i></button><button class="kitchen-print-btn" data-id="' + safeId + '" title="طباعة المطبخ"><i class="fa-solid fa-utensils"></i></button>';
-  const adminBtns = (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + '<button class="toggle-status-btn" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (stTxt === 'مدفوعة' ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (stTxt === 'مدفوعة' ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button><button class="delete-btn" data-id="' + safeId + '"><i class="fa-solid fa-trash"></i></button>';
+  const isPaidInvoice = ['paid', 'مدفوعة'].includes(inv.status);
+  const isReturnedInvoice = ['returned', 'مرتجعة'].includes(inv.status);
+  const canToggle = Access.isManager() || (!isPaidInvoice && !isReturnedInvoice);
+  const toggle = canToggle ? '<button class="toggle-status-btn ' + (isPaidInvoice ? 'return-btn' : 'settle-status-btn') + '" data-id="' + safeId + '" data-status="' + inv.status + '" title="' + (isPaidInvoice ? 'تحويل لمرتجع' : 'تحويل لمدفوعة') + '"><i class="fa-solid ' + (isPaidInvoice ? 'fa-arrow-rotate-left' : 'fa-check') + '"></i></button>' : '';
+  const adminBtns = (remaining > 0 ? '<button class="pay-btn" data-id="' + safeId + '" title="تسديد الباقي"><i class="fa-solid fa-coins"></i></button>' : '') + toggle + (Access.isManager() ? '<button class="delete-btn" data-id="' + safeId + '" title="حذف الفاتورة"><i class="fa-solid fa-trash"></i></button>' : '');
   row.innerHTML = '<td><input type="checkbox" class="inv-checkbox" data-id="' + safeId + '"></td><td>' + safeId + '</td><td>' + safeCustomer + '</td><td>' + dateStr + '</td><td>' + safeTable + '</td><td>' + Number(inv.total).toLocaleString() + ' ج.م</td><td>' + remainingHtml + '</td><td><span class="' + stCls + '">' + stTxt + '</span></td><td>' + printHtml + '</td><td><div class="actions">' + btns + adminBtns + '</div></td>';
   frag.appendChild(row);
 
@@ -198,6 +202,9 @@ function buildInvoiceRow(inv, shiftDateLabel) {
 }
 
 function attachActions() {
+  document.querySelectorAll('.actions button').forEach(button => {
+    if (button.title) button.setAttribute('aria-label', button.title);
+  });
   document.querySelectorAll('.print-btn').forEach(btn => {
     btn.onclick = async () => {
       const inv = invoices.find(i => i.id === btn.dataset.id);
@@ -279,6 +286,7 @@ function attachActions() {
       const inv = invoices.find(i => i.id === btn.dataset.id);
       if (!inv) return;
       const isPaid = inv.status === 'paid' || inv.status === 'مدفوعة';
+      if ((isPaid || ['returned', 'مرتجعة'].includes(inv.status)) && !Access.isManager()) return alert('إجراءات المرتجعات للمدير والـOwner فقط');
       if (!confirm(isPaid ? 'تحويل الفاتورة إلى مرتجع؟' : 'تحويل الفاتورة إلى مدفوعة؟')) return;
       if (isPaid) {
         if (inv.items && inv.items.length) {
@@ -304,8 +312,10 @@ function attachActions() {
         }
         await DB.invoices.update(inv.id, { status: 'returned' });
       } else {
-        const existing = (await DB.returns.all() || []).filter(r => r.invoice === inv.id);
-        for (const r of existing) await DB.returns.remove(r.id);
+        if (Access.isManager()) {
+          const existing = (await DB.returns.all() || []).filter(r => r.invoice === inv.id);
+          for (const r of existing) await DB.returns.remove(r.id);
+        }
         const settleAmt = Math.max(0, Number(inv.remaining ?? ((Number(inv.total || 0) - Number(inv.paid || 0)))));
         await DB.invoices.update(inv.id, { status: 'paid', paid: Number(inv.total || 0), remaining: 0, change: 0, paidAt: FB.nowISO() });
         if (settleAmt > 0 || localDateKey(inv.date) !== localDateKey(FB.clockNow())) {

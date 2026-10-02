@@ -12,8 +12,9 @@
       const shift = await DB.shifts.getOpen();
       ShiftDisplay.set(shift, 'menuShiftDetails');
       button.textContent = shift ? 'غلق الشيفت المفتوح' : 'فتح الشيفت';
+      button.dataset.action = shift ? 'close' : 'open';
       button.dataset.retry = '';
-    } catch (e) { ShiftDisplay.unavailable('menuShiftDetails'); button.textContent = 'إعادة المحاولة'; button.dataset.retry = 'true'; }
+    } catch (e) { ShiftDisplay.unavailable('menuShiftDetails'); button.textContent = 'إعادة المحاولة'; button.dataset.retry = 'true'; button.dataset.action = 'retry'; }
     finally { button.disabled = false; }
   }
   button.onclick = async () => {
