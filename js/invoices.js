@@ -293,6 +293,8 @@ function attachActions() {
               category: item.category || '',
               variantKey: item.variantKey || '',
               variantLabel: item.variantLabel || '',
+              shiftId: inv.shiftId || '',
+              shiftType: inv.shiftType || '',
               qty: item.qty,
               amount: item.qty * item.price,
               date: FB.nowISO(),
@@ -326,6 +328,7 @@ function attachActions() {
       const newItems = inv.items.filter((_, i) => i !== idx);
 
       if (!newItems.length) {
+        if (!Access.isManager()) return alert('لا يمكن حذف آخر صنف؛ الكاشير لا يملك حذف الفاتورة');
         if (!confirm('الفاتورة أصبحت فارغة.\nهل تريد حذف الفاتورة بالكامل؟')) return;
         await DB.invoices.remove(inv.id);
         await DB.audit.log('invoice_deleted', { id: inv.id, customer: inv.customer, total: inv.total || 0, date: inv.date, reason: 'empty_after_item_removal' });
@@ -351,6 +354,7 @@ function attachActions() {
     btn.onclick = async () => {
       const inv = invoices.find(i => i.id === btn.dataset.id);
       if (!confirm('هل تريد حذف هذه الفاتورة؟')) return;
+      if (!Access.isManager()) return alert('صلاحية حذف الفاتورة للمدير والـOwner فقط');
       await DB.invoices.remove(btn.dataset.id);
       await DB.audit.log('invoice_deleted', { id: btn.dataset.id, customer: inv ? inv.customer : '', total: inv ? (inv.total || 0) : 0, date: inv ? inv.date : '' });
       refreshSingle(btn.dataset.id);
@@ -442,10 +446,10 @@ if (settleModal) {
     btn.disabled = true;
     try {
       const paymentTime = FB.nowISO();
-      const upd = { paid: newPaid, remaining: newRemaining, status: fullySettled ? 'paid' : 'pending', lastPaymentAt: paymentTime };
+      const upd = { paid: newPaid, remaining: newRemaining, status: fullySettled ? 'paid' : 'pending', lastPaymentAt: paymentTime, paymentMethod: settleMethod.value };
       if (fullySettled) upd.paidAt = paymentTime;
       if (fullySettled && !inv.paymentMethod) upd.paymentMethod = settleMethod.value;
-      await DB.invoices.update(inv.id, upd);
+      await DB.invoices.update(inv.id, upd, Number(inv.paid || 0));
       await DB.audit.log('invoice_payment', { id: inv.id, customer: inv.customer, invDate: inv.date, amount: paidNow, method: settleMethod.value, fullySettled });
       closeSettleModal();
       await refreshSingle(inv.id);
@@ -485,6 +489,9 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
   const ids = Array.from(checked).map(cb => cb.dataset.id);
   const toMerge = ids.map(id => invoices.find(i => i.id === id)).filter(Boolean);
   if (toMerge.length < 2) { alert('لم يتم العثور على الفواتير'); return; }
+  if (toMerge.length > 5) return alert('ادمج حتى 5 فواتير في المرة الواحدة');
+  if (toMerge.some(i => !['paid', 'pending', 'مدفوعة', 'معلقة'].includes(i.status))) return alert('لا يمكن دمج فاتورة مرتجعة أو ملغاة');
+  if (new Set(toMerge.map(i => i.customerType || 'regular')).size !== 1) return alert('ادمج فواتير من نفس نوع العميل لتجنب تغيير الخصم أو الضيافة');
 
   const mergedItems = [];
   const itemMap = {};
@@ -511,6 +518,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
     }
   }
 
+  if (new Set(toMerge.map(inv => inv.shiftId)).size !== 1) return alert('لا يمكن دمج فواتير من شيفتات مختلفة');
   if (!confirm('دمج ' + toMerge.length + ' فاتورة في فاتورة واحدة؟\n' +
     'الإجمالي: ' + total.toLocaleString() + ' ج.م\n' +
     'العميل: ' + toMerge[0].customer)) return;
@@ -536,6 +544,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
       status: remaining <= 0 ? 'paid' : 'pending',
       table: mergedTable,
       mergedFrom: ids.join(', '),
+      mergedIds: ids,
       paymentMethod: toMerge[0].paymentMethod || 'كاش',
       customerType,
       itemsValue,
@@ -545,8 +554,23 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
       const paidDates = toMerge.map(i => i.paidAt).filter(Boolean).map(d => new Date(d));
       mergedInvoice.paidAt = paidDates.length ? localISO(new Date(Math.max.apply(null, paidDates))) : localISO(earliestDate);
     }
-    await DB.invoices.add(mergedInvoice);
-    for (const id of ids) await DB.invoices.remove(id);
+    const actor = await FB.requireStaff(), db = FB.getDb(), active = await DB.shifts.getOpen();
+    if (!active || active.id !== toMerge[0].shiftId) throw new Error('الدمج متاح لفواتير الشيفت المفتوح فقط');
+    DB.shifts.assertCanSell(active, actor);
+    Object.assign(mergedInvoice, { shiftId: active.id, shiftType: active.shiftType, createdByUid: actor.uid, createdBy: actor.name });
+    await FB.runTransaction(async tx => {
+      const refs = ids.map(id => db.collection('invoices').doc(id));
+      const docs = await Promise.all(refs.map(ref => tx.get(ref)));
+      const shiftRef = db.collection('shifts').doc(active.id), shiftSnap = await tx.get(shiftRef);
+      if (!shiftSnap.exists || shiftSnap.data().closedAt != null) throw new Error('تم إغلاق الشيفت');
+      docs.forEach((doc, index) => {
+        if (!doc.exists || doc.data().status === 'merged' || doc.data().total !== toMerge[index].total || doc.data().paid !== toMerge[index].paid || JSON.stringify(doc.data().items) !== JSON.stringify(toMerge[index].items)) throw new Error('تغيرت الفواتير. حدّث القائمة ثم أعد المحاولة');
+      });
+      tx.set(db.collection('invoices').doc(newId), mergedInvoice);
+      refs.forEach(ref => tx.update(ref, { status: 'merged', mergedInto: newId, updatedByUid: actor.uid, updatedAt: FB.nowISO() }));
+      tx.update(shiftRef, { invoiceVersion: Number(shiftSnap.data().invoiceVersion || 0) + 1, lastActivityAt: FB.nowISO() });
+    });
+    await FB.invalidate('invoices');
     await DB.audit.log('invoice_merged', { id: newId, mergedFrom: ids, total, customer: toMerge[0].customer, date: localISO(earliestDate), table: mergedTable });
     invoices = await DB.invoices.all() || [];
     await resolveShiftRange();
@@ -892,6 +916,7 @@ if (addItemsModal) {
 // ── إصلاح تلقائي للفواتير ذوات الحساب الخاطئ ──
 let _autoFixDone = false;
 function autoFixInvoices() {
+  if (!Access.isManager()) return;
   if (_autoFixDone || !invoices || !invoices.length) return;
   _autoFixDone = true;
   let fixed = 0;
@@ -929,7 +954,7 @@ function autoFixInvoices() {
 }
 
 FB.onCollection('invoices', async (data) => {
-  invoices = data;
+  invoices = data.filter(i => i.status !== 'merged');
   await resolveShiftRange();
   draw();
   autoFixInvoices();

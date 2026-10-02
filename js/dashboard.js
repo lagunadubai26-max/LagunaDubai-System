@@ -240,7 +240,7 @@ document.getElementById('dashConfirmStartDay').onclick = async () => {
   const oldText = btn.innerHTML;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الفتح...';
   try {
-    const shift = await DB.shifts.open(user.name || 'الكاشير');
+    const shift = await DB.shifts.open(user.name || 'الكاشير', document.getElementById('dashShiftType').value);
     await DB.audit.log('shift_open', { id: shift.id, openDate: shift.openDate, openedBy: shift.openedBy }).catch(e => console.warn('[shift-audit]', e));
     closeDashStartDay();
     await checkDashDayClose();
@@ -350,7 +350,8 @@ document.getElementById('dashConfirmDayClose').onclick = async () => {
       closedBy: user.name || 'الكاشير',
       closedAt
     };
-    await DB.shifts.closeDay(shiftId, data, Number(btn.dataset.invoiceVersion || 0));
+    const snapshot = await ShiftOps.fresh(shiftId);
+    await DB.shifts.closeDay(shiftId, { ...data, ...snapshot.data }, snapshot.shift.invoiceVersion);
     await DB.audit.log('day_close', { shiftId, date: data.date, totalSales: data.totalSales }).catch(e => console.warn('[shift-audit]', e));
     document.getElementById('dashDayCloseModal').classList.remove('show');
     try { await updateDashboard(); } catch (refreshError) { console.warn('[dashboard-refresh]', refreshError); }

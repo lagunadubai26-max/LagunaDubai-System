@@ -35,12 +35,49 @@ const DB = {
   mode: DB_MODE,
 
   invoices: {
-    async all() { return await FB.getCollection('invoices'); },
+    async all() { return (await FB.getCollection('invoices')).filter(i => i.status !== 'merged'); },
     async add(inv) {
       if (!inv.id) inv.id = 'INV-' + safeId().slice(0, 8).toUpperCase();
-      return await FB.addDoc('invoices', inv);
+      const user = await FB.requireStaff();
+      const shift = await DB.shifts.getOpen();
+      if (!shift) throw new Error('افتح الشيفت أولًا');
+      DB.shifts.assertCanSell(shift, user);
+      return await FB.addDoc('invoices', { ...inv, shiftId: shift.id, shiftType: shift.shiftType, createdByUid: user.uid, createdBy: user.name });
     },
-    async update(id, data) { await FB.updateDoc('invoices', id, data); },
+    async update(id, data, expectedPaid) {
+      const user = await FB.requireStaff(), db = FB.getDb();
+      const ref = db.collection('invoices').doc(id);
+      await FB.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new Error('الفاتورة غير موجودة');
+        const old = snap.data(), shiftRef = old.shiftId ? db.collection('shifts').doc(old.shiftId) : null;
+        if (expectedPaid !== undefined && Number(old.paid || 0) !== Number(expectedPaid || 0)) throw new Error('تم تسجيل دفع من جهاز آخر. حدّث الفاتورة وأعد المحاولة');
+        const shiftSnap = shiftRef ? await tx.get(shiftRef) : null;
+        const delta = Math.max(0, Number(data.paid == null ? old.paid : data.paid) - Number(old.paid || 0));
+        const state = delta > 0 ? await tx.get(db.collection('shift_state').doc('current')) : null;
+        const paymentShiftId = state && state.exists ? state.data().openShiftId : null;
+        const paymentShiftRef = paymentShiftId ? db.collection('shifts').doc(paymentShiftId) : null;
+        const paymentShift = paymentShiftRef ? await tx.get(paymentShiftRef) : null;
+        if (delta > 0) {
+          if (!paymentShift || !paymentShift.exists || paymentShift.data().closedAt != null) throw new Error('افتح الشيفت قبل تسجيل الدفع');
+          DB.shifts.assertCanSell(paymentShift.data(), user);
+        }
+        const paymentId = delta > 0 ? safeId() : null;
+        tx.update(ref, { ...data, ...(paymentId ? { lastPaymentId: paymentId } : {}), updatedByUid: user.uid, updatedAt: FB.nowISO() });
+        const logId = safeId();
+        tx.set(db.collection('audit_logs').doc(logId), { type: 'invoice_update', actorUid: user.uid, username: user.username, role: user.role, timestamp: FB.nowISO(),
+          detail: JSON.stringify({ id, before: { total: old.total, paid: old.paid, status: old.status }, after: { total: data.total ?? old.total, paid: data.paid ?? old.paid, status: data.status || old.status }, changed: Object.keys(data) }) });
+        if (delta > 0) {
+          tx.set(db.collection('invoice_payments').doc(paymentId), { id: paymentId, invoiceId: id, shiftId: paymentShiftId, shiftType: paymentShift.data().shiftType,
+            amount: delta, method: data.paymentMethod || old.paymentMethod || 'Cash', date: FB.nowISO(), actorUid: user.uid });
+          if (!shiftRef || shiftRef.id !== paymentShiftId) tx.update(paymentShiftRef, { invoiceVersion: Number(paymentShift.data().invoiceVersion || 0) + 1, lastActivityAt: FB.nowISO() });
+        }
+        if (shiftSnap && shiftSnap.exists && shiftSnap.data().closedAt == null && (user.role !== 'Cashier' || user.shiftType === shiftSnap.data().shiftType)) {
+          tx.update(shiftRef, { invoiceVersion: Number(shiftSnap.data().invoiceVersion || 0) + 1, lastActivityAt: FB.nowISO() });
+        }
+      });
+      await FB.invalidate('invoices');
+    },
     async remove(id) { await FB.removeDoc('invoices', id); }
   },
 
@@ -111,7 +148,13 @@ const DB = {
 
   returns: {
     async all() { return await FB.getCollection('returns'); },
-    async add(r) { if (!r.id) r.id = safeId().slice(0, 8); return await FB.addDoc('returns', r); },
+    async add(r) {
+      if (!r.id) r.id = safeId().slice(0, 8);
+      const user = await FB.requireStaff(), shift = await DB.shifts.getOpen();
+      if (!shift) throw new Error('افتح الشيفت قبل تسجيل المرتجع');
+      DB.shifts.assertCanSell(shift, user);
+      return await FB.addDoc('returns', { ...r, originalShiftId: r.shiftId || '', shiftId: shift.id, shiftType: shift.shiftType, actorUid: user.uid });
+    },
     async update(id, data) { await FB.updateDoc('returns', id, data); },
     async remove(id) { await FB.removeDoc('returns', id); }
   },
@@ -125,14 +168,38 @@ const DB = {
 
   expenses: {
     async all() { return await FB.getCollection('expenses'); },
-    async add(e) { if (!e.id) e.id = safeId().slice(0, 8); return await FB.addDoc('expenses', e); },
-    async remove(id) { await FB.removeDoc('expenses', id); }
+    async add(e) { return await DB.financial.change('expenses', e); },
+    async remove(id) { await DB.financial.change('expenses', null, id); }
   },
 
   incomes: {
     async all() { return await FB.getCollection('incomes'); },
-    async add(e) { if (!e.id) e.id = safeId().slice(0, 8); return await FB.addDoc('incomes', e); },
-    async remove(id) { await FB.removeDoc('incomes', id); }
+    async add(e) { return await DB.financial.change('incomes', e); },
+    async remove(id) { await DB.financial.change('incomes', null, id); }
+  },
+
+  financial: {
+    async change(collection, data, removeId) {
+      const user = await FB.requireStaff();
+      if (!['Administrator', 'Owner'].includes(user.role)) throw new Error('صلاحية المدير مطلوبة');
+      const db = FB.getDb(), id = removeId || data.id || safeId(), ref = db.collection(collection).doc(id);
+      let saved;
+      await FB.runTransaction(async tx => {
+        const existing = removeId ? await tx.get(ref) : null;
+        if (removeId && !existing.exists) return;
+        const state = await tx.get(db.collection('shift_state').doc('current'));
+        const shiftId = removeId ? existing.data().shiftId : state.exists && state.data().openShiftId;
+        const shiftRef = shiftId ? db.collection('shifts').doc(shiftId) : null;
+        const shift = shiftRef ? await tx.get(shiftRef) : null;
+        saved = removeId ? existing.data() : { ...data, id, shiftId: shiftId || '', createdByUid: user.uid };
+        if (removeId) tx.delete(ref); else tx.set(ref, saved);
+        if (shift && shift.exists) {
+          const field = collection === 'expenses' ? 'expenseTotal' : 'incomeTotal';
+          tx.update(shiftRef, { [field]: Number(shift.data()[field] || 0) + (removeId ? -1 : 1) * Number(saved.amount || 0), invoiceVersion: Number(shift.data().invoiceVersion || 0) + 1 });
+        }
+      });
+      await FB.invalidate(collection); return saved;
+    }
   },
 
   equipment: {
@@ -222,6 +289,9 @@ const DB = {
   },
 
   shifts: {
+    assertCanSell(shift, user) {
+      if (user.role === 'Cashier' && user.shiftType !== shift.shiftType) throw new Error('الشيفت المفتوح تابع للكاشير الآخر. أغلقه أولًا ثم افتح شيفتك');
+    },
     async all() { return await FB.getCollection('shifts'); },
     async getOpen() {
       await FB.ensure();
@@ -247,7 +317,10 @@ const DB = {
       const snap = await FB.getDb().collection('shifts').doc(id).get({ source: 'server' });
       return snap.exists ? { id: snap.id, ...snap.data() } : null;
     },
-    async open(name) {
+    async open(name, requestedType) {
+      const user = await FB.requireStaff();
+      const shiftType = user.role === 'Cashier' ? user.shiftType : requestedType;
+      if (!['morning', 'evening'].includes(shiftType)) throw new Error('حدد نوع الشيفت: صباحي أو مسائي');
       const existing = await DB.shifts.getOpen();
       if (existing) {
         const error = new Error('يوجد شيفت مفتوح بالفعل');
@@ -259,7 +332,11 @@ const DB = {
         id: 'sh-' + safeId().slice(0, 8),
         openDate: localDateKey(now),
         openedAt: localISO(now),
-        openedBy: name || 'الكاشير',
+        openedBy: user.name,
+        openedByUid: user.uid,
+        shiftType,
+        expenseTotal: 0,
+        incomeTotal: 0,
         closedAt: null,
         invoiceVersion: 0
       };
@@ -290,7 +367,7 @@ const DB = {
       await FB.updateDoc('shifts', id, data);
     },
     async closeDay(id, dayclose, expectedInvoiceVersion) {
-      await FB.ensure();
+      const user = await FB.requireStaff();
       const db = FB.getDb();
       const shiftRef = db.collection('shifts').doc(id);
       const stateRef = db.collection('shift_state').doc('current');
@@ -312,11 +389,11 @@ const DB = {
         }
         const stateSnap = await tx.get(stateRef);
         const state = stateSnap.exists ? stateSnap.data() : null;
-        const closeData = { ...dayclose, id: daycloseId, shiftId: id };
+        const closeData = { ...dayclose, id: daycloseId, shiftId: id, shiftType: shiftData.shiftType, openedAt: shiftData.openedAt, openedBy: shiftData.openedBy, closedBy: user.name, closedByUid: user.uid };
         const uid = FB.getUid();
         if (uid) closeData._uid = uid;
         tx.set(daycloseRef, closeData);
-        tx.update(shiftRef, { closedAt: dayclose.closedAt, closedBy: dayclose.closedBy });
+        tx.update(shiftRef, { closedAt: dayclose.closedAt, closedBy: user.name, closedByUid: user.uid });
         if (!state || !state.openShiftId || state.openShiftId === id) {
           tx.set(stateRef, { openShiftId: null, closedAt: dayclose.closedAt, updatedAt: dayclose.closedAt });
         }
@@ -337,6 +414,7 @@ const DB = {
           detail: typeof detail === 'string' ? detail : JSON.stringify(detail),
           username: user ? user.username : 'unknown',
           role: user ? user.role : 'none',
+          actorUid: FB.getUid(),
           timestamp: FB.nowISO()
         });
       } catch(e) { console.warn('[audit]', e); }
@@ -377,31 +455,8 @@ const DB = {
   },
 
   async seed() {
-    const users = await this.users.all();
-    const adminUser = users.find(u => u.username === 'admin');
-    if (adminUser) {
-      if (!PASSWORD_UTILS.isHashed(adminUser.password)) {
-        const adminHashed = await PASSWORD_UTILS.hash('admin123');
-        await this.users.update(adminUser.id, { password: adminHashed }).catch(function() {});
-      }
-    } else {
-      const adminHashed = await PASSWORD_UTILS.hash('admin123');
-      const uid = FB.getUid();
-      if (uid) {
-        try {
-          const snap = await FB.getDb().collection('user_mappings').doc(uid).get();
-          if (!snap.exists) {
-            await FB.getDb().collection('user_mappings').doc(uid).set({
-              userId: 'u1', role: 'Administrator', username: 'admin', name: 'الكاشير',
-              updatedAt: FB.nowISO()
-            });
-          }
-        } catch(e) { console.warn('[seed] mapping error:', e); }
-      }
-      await this.users.add({ id: 'u1', username: 'admin', password: adminHashed, name: 'الكاشير', role: 'Administrator' });
-    }
-    console.warn('%c[seed] 👤 كاشير: admin / admin123', 'font-size:14px;font-weight:bold');
-
+    // Catalog is maintained by managers; never recreate accounts or demo data.
+    return;
     const settings = await this.settings.get();
     if (settings._seeded) return;
 

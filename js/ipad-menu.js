@@ -64,9 +64,9 @@
 
   function initFirebase(callback) {
     try {
-      firebase.initializeApp(FIREBASE_CONFIG);
-      db = firebase.firestore();
-      firebase.auth().signInAnonymously().then(function (cred) {
+      var guestApp = firebase.initializeApp(FIREBASE_CONFIG, 'guest-orders');
+      db = firebase.firestore(guestApp);
+      firebase.auth(guestApp).signInAnonymously().then(function (cred) {
         uid = cred.user.uid;
         callback(null);
       }).catch(function (e) {
@@ -171,24 +171,7 @@
 
   // ── Load settings + customers ──
   function loadSettings(callback) {
-    fbGetAll('settings').then(function (arr) {
-      settings = {};
-      for (var i = 0; i < arr.length; i++) {
-        if (arr[i].key) settings[arr[i].key] = arr[i].value;
-      }
-      callback();
-    }).catch(function () {
-      callback();
-    });
-    // Fetch customers for VIP dropdown
-    fbGetAll('customers').then(function (arr) {
-      customersCache = arr;
-      var html = '';
-      for (var i = 0; i < arr.length; i++) {
-        html += '<option value="' + esc(arr[i].name) + '">';
-      }
-      if (customersListEl) customersListEl.innerHTML = html;
-    }).catch(function () {});
+    settings = {}; hasService = false; customerType = 'regular'; callback();
   }
 
   // ── Apply service/tax based on UI toggle ──
@@ -368,7 +351,7 @@
     }
     recalcTotal();
     renderSheet();
-    occupyTable();
+    // Guest orders never modify table status; cashier approval does that.
   }
 
   function removeFromCart(index) {
@@ -602,7 +585,37 @@ function recalcTotal() {
     }
   }
 
+  var pendingCustomerOrderId = null;
   function confirmCheckout() {
+    if (checkoutProcessing || !orderItems.length) return;
+    if (orderItems.length > 50) return alert('الحد الأقصى 50 صنفًا في الطلب');
+    checkoutProcessing = true;
+    document.getElementById('checkoutLoading').style.display = 'flex';
+    if (!pendingCustomerOrderId) pendingCustomerOrderId = uid + '-' + safeId();
+    var orderRef = db.collection('customer_orders').doc(pendingCustomerOrderId);
+    var limitRef = db.collection('guest_limits').doc(uid);
+    var items = orderItems.map(function (it) {
+      return { productId: it.productId, variantKey: it.variantKey || '', menuType: it.menuType, qty: it.qty, note: (it.note || '').slice(0, 200), hasMilk: !!it.hasMilk };
+    });
+    db.runTransaction(function (tx) {
+      return tx.get(orderRef).then(function (existing) {
+        if (existing.exists) return;
+        return tx.get(limitRef).then(function (limit) {
+          if (limit.exists && limit.data().lastOrderAt && Date.now() - limit.data().lastOrderAt.toMillis() < 30000) throw new Error('انتظر 30 ثانية قبل طلب جديد');
+          tx.set(limitRef, { lastOrderAt: firebase.firestore.FieldValue.serverTimestamp() });
+          tx.set(orderRef, { id: pendingCustomerOrderId, _uid: uid, items: items, table: tableNum ? 'طاولة ' + tableNum : '', status: 'new', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        });
+      });
+    }).then(function () {
+      document.getElementById('successTitle').textContent = 'وصل طلبك للكاشير';
+      document.getElementById('successDetails').textContent = 'رقم الطلب: ' + pendingCustomerOrderId.slice(-8) + ' — السعر النهائي والدفع عند الكاشير.';
+      document.getElementById('successModal').classList.add('show');
+      pendingCustomerOrderId = null; closeCheckout(); clearCart();
+    }).catch(function (e) { alert('تعذر إرسال الطلب: ' + (e.message || e)); })
+      .then(function () { checkoutProcessing = false; document.getElementById('checkoutLoading').style.display = 'none'; });
+  }
+
+  function legacyConfirmCheckout() {
     if (checkoutProcessing || !orderItems.length) return;
     var grandTotal = document.getElementById('checkoutModal')._grandTotal || 0;
     var baseTotal = document.getElementById('checkoutModal')._baseTotal || 0;

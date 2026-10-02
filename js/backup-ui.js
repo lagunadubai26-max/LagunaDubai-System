@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const user = JSON.parse(sessionStorage.getItem('laguna_user') || '{}');
-  if (user.role !== 'Administrator') return;
+  if (!['Administrator', 'Owner'].includes(user.role)) return;
   const key = 'laguna_backup_download_' + FIREBASE_CONFIG.projectId;
   const getLast = () => { try { return localStorage.getItem(key); } catch (_) { return null; } };
   const card = document.getElementById('backupCard');
