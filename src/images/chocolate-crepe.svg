@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Chocolate crepe with strawberries and banana">
+ <defs>
+  <radialGradient id="bg"><stop stop-color="#fffaf1"/><stop offset="1" stop-color="#ebd4b6"/></radialGradient>
+  <linearGradient id="pastry" x2=".8" y2="1"><stop stop-color="#f7d79b"/><stop offset=".55" stop-color="#dda15b"/><stop offset="1" stop-color="#b9672e"/></linearGradient>
+  <linearGradient id="choc" x2="0" y2="1"><stop stop-color="#75442c"/><stop offset="1" stop-color="#3d2118"/></linearGradient>
+  <filter id="shadow"><feGaussianBlur stdDeviation="12"/></filter>
+ </defs>
+ <path fill="url(#bg)" d="M0 0h800v600H0z"/>
+ <ellipse cx="410" cy="377" rx="305" ry="145" fill="#9f7759" opacity=".2" filter="url(#shadow)"/>
+ <ellipse cx="400" cy="335" rx="315" ry="218" fill="#fffdf9" stroke="#e2d7c7" stroke-width="8"/>
+ <ellipse cx="400" cy="335" rx="267" ry="178" fill="#f5f0e8"/>
+ <path d="M205 362Q294 155 516 190Q615 223 616 365L390 455Z" fill="url(#pastry)" stroke="#ba7d3f" stroke-width="4"/>
+ <path d="M208 362L516 193Q532 251 529 299L389 450Z" fill="#f0c17c" opacity=".8"/>
+ <path d="M393 448L614 363Q573 370 532 351Q488 338 440 380Z" fill="url(#choc)"/>
+ <g fill="none" stroke="url(#choc)" stroke-width="13" stroke-linecap="round">
+  <path d="M269 302Q359 241 502 231M246 343Q374 267 547 269M267 382Q401 302 572 310M328 404Q444 336 587 344"/>
+ </g>
+ <g fill="#ffe9b0" stroke="#dec287" stroke-width="3">
+  <ellipse cx="251" cy="409" rx="34" ry="22" transform="rotate(-20 251 409)"/>
+  <ellipse cx="208" cy="385" rx="30" ry="22" transform="rotate(20 208 385)"/>
+  <ellipse cx="575" cy="217" rx="30" ry="22" transform="rotate(30 575 217)"/>
+ </g>
+ <g fill="#ef493b" stroke="#b6282b" stroke-width="3">
+  <path d="M549 419Q531 368 565 362Q599 345 615 383Q612 410 549 419Z"/>
+  <path d="M598 433Q593 394 624 386Q658 385 662 416Q644 442 598 433Z"/>
+  <path d="M188 303Q156 264 186 246Q219 235 236 266Q229 296 188 303Z"/>
+ </g>
+ <g fill="#ffe1a1"><circle cx="566" cy="382" r="3"/><circle cx="581" cy="394" r="3"/><circle cx="552" cy="399" r="3"/><circle cx="626" cy="406" r="3"/><circle cx="643" cy="417" r="3"/><circle cx="193" cy="269" r="3"/><circle cx="211" cy="275" r="3"/></g>
+ <g fill="#4b7d35"><path d="M572 363q-12-27 5-31q12 15 6 29q20-22 26-7q-13 15-26 14Z"/><path d="M189 247q-11-20 3-28q17 15 13 24q14-17 24-6q-10 17-24 16Z"/></g>
+ <g fill="#fff" opacity=".85"><circle cx="341" cy="222" r="3"/><circle cx="386" cy="244" r="2"/><circle cx="313" cy="341" r="3"/><circle cx="464" cy="297" r="3"/><circle cx="423" cy="386" r="2"/><circle cx="493" cy="340" r="3"/></g>
+</svg>

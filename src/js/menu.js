@@ -155,7 +155,7 @@ async function loadProducts() {
     card.className = 'product-card';
     card.dataset.category = p.category;
     card.dataset.productId = p.id;
-    let imgSrc = sanitizeUrl(p.image) || '';
+    let imgSrc = p.id === 'restaurant-sweet-crepes-chocolate' ? 'images/chocolate-crepe.svg' : sanitizeUrl(p.image) || '';
     if (imgSrc && imgSrc.indexOf('.webp') !== -1) {
       imgSrc = imgSrc.replace('.webp', '.jpg');
     }

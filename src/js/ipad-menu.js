@@ -251,7 +251,7 @@
       card.className = 'ipad-product-card';
       card.setAttribute('data-category', p.category || '');
       card.setAttribute('data-product-id', p.id);
-      var imgSrc = sanitizeUrl(p.image) || '';
+      var imgSrc = p.id === 'restaurant-sweet-crepes-chocolate' ? 'images/chocolate-crepe.svg' : sanitizeUrl(p.image) || '';
       if (imgSrc && imgSrc.indexOf('.webp') !== -1) {
         imgSrc = imgSrc.replace('.webp', '.jpg');
       }
