@@ -1,0 +1,76 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@firebase/rules-unit-testing');
+const { doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc, writeBatch, serverTimestamp } = require('firebase/firestore');
+const assert = require('node:assert/strict');
+(async () => {
+  const projectId = 'demo-laguna-staff';
+  const env = await initializeTestEnvironment({ projectId, firestore: { rules: fs.readFileSync(path.join(__dirname, '../firestore.rules'), 'utf8') } });
+  try {
+    await env.withSecurityRulesDisabled(async context => {
+      const db = context.firestore();
+      for (const [uid, role, shiftType] of [['morning', 'Cashier', 'morning'], ['evening', 'Cashier', 'evening'], ['manager', 'Administrator', ''], ['owner', 'Owner', '']]) await setDoc(doc(db, 'user_mappings', uid), { name: uid, role, enabled: true, shiftType });
+      await setDoc(doc(db, 'shift_state/current'), { openShiftId: null });
+      await setDoc(doc(db, 'meta/security'), { maintenance: false });
+      await setDoc(doc(db, 'products/p1'), { id: 'p1', name: 'قهوة', price: 30, available: true });
+      await setDoc(doc(db, 'settings/tax'), { key: 'taxRate', value: 14 });
+      await setDoc(doc(db, 'customers/c1'), { name: 'عميل' });
+    });
+    const account = uid => env.authenticatedContext(uid, { firebase: { sign_in_provider: 'password' } }).firestore();
+    const morning = account('morning'), evening = account('evening'), manager = account('manager'), owner = account('owner');
+    const guest = env.authenticatedContext('guest', { firebase: { sign_in_provider: 'anonymous' } }).firestore();
+    await assertSucceeds(getDoc(doc(guest, 'products/p1')));
+    for (const name of ['users', 'invoices', 'shifts', 'settings', 'customers', 'audit_logs']) await assertFails(getDocs(collection(guest, name)));
+    await assertFails(setDoc(doc(guest, 'user_mappings/guest'), { role: 'Administrator', enabled: true }));
+    for (const name of ['employees', 'inventory', 'expenses', 'users', 'audit_logs']) await assertFails(getDocs(collection(morning, name)));
+    await assertFails(updateDoc(doc(morning, 'user_mappings/morning'), { role: 'Owner' }));
+    await assertSucceeds(getDocs(collection(owner, 'users')));
+    await assertSucceeds(setDoc(doc(owner, 'products/owner-product'), { name: 'منتج', price: 10 }));
+    await assertSucceeds(setDoc(doc(manager, 'expenses/expense'), { amount: 10 }));
+
+    const shift = { id: 's1', shiftType: 'morning', openedByUid: 'morning', openedBy: 'morning', openDate: '2026-10-02', openedAt: '2026-10-02T08:00:00', closedAt: null, invoiceVersion: 0, expenseTotal: 0, incomeTotal: 0 };
+    let batch = writeBatch(morning); batch.set(doc(morning, 'shifts/s1'), shift); batch.set(doc(morning, 'shift_state/current'), { openShiftId: 's1' }); await assertSucceeds(batch.commit());
+    const invoice = { id: 'INV1', items: [{ name: 'قهوة', qty: 1, price: 30 }], total: 30, paid: 0, remaining: 30, status: 'pending', shiftId: 's1', shiftType: 'morning', createdByUid: 'morning', createdBy: 'morning' };
+    batch = writeBatch(morning); batch.set(doc(morning, 'invoices/INV1'), invoice); batch.update(doc(morning, 'shifts/s1'), { invoiceVersion: 1 }); await assertSucceeds(batch.commit());
+    await assertFails(setDoc(doc(evening, 'invoices/evening-in-morning'), { ...invoice, id: 'evening-in-morning', createdByUid: 'evening' }));
+    await assertFails(deleteDoc(doc(morning, 'invoices/INV1')));
+    await assertFails(deleteDoc(doc(evening, 'invoices/INV1')));
+    batch = writeBatch(morning);
+    batch.update(doc(morning, 'invoices/INV1'), { status: 'paid', paid: 30, remaining: 0, lastPaymentId: 'pay1', updatedByUid: 'morning' });
+    batch.set(doc(morning, 'invoice_payments/pay1'), { actorUid: 'morning', amount: 30, shiftId: 's1', invoiceId: 'INV1' });
+    await assertSucceeds(batch.commit());
+    await assertFails(setDoc(doc(morning, 'invoice_payments/fake-duplicate'), { actorUid: 'morning', amount: 30, shiftId: 's1', invoiceId: 'INV1' }));
+    await assertFails(updateDoc(doc(morning, 'invoices/INV1'), { createdByUid: 'owner' }));
+    await assertSucceeds(updateDoc(doc(morning, 'invoices/INV1'), { printed: true, updatedByUid: 'morning' }));
+    await assertFails(updateDoc(doc(morning, 'invoices/INV1'), { status: 'merged', mergedInto: 'fake-parent', updatedByUid: 'morning' }));
+    batch = writeBatch(morning); batch.set(doc(morning, 'invoices/source2'), { ...invoice, id: 'source2', total: 20, remaining: 20 }); batch.update(doc(morning, 'shifts/s1'), { invoiceVersion: 2 }); await assertSucceeds(batch.commit());
+    batch = writeBatch(morning);
+    batch.set(doc(morning, 'invoices/merged-parent'), { ...invoice, id: 'merged-parent', total: 50, paid: 30, remaining: 20, mergedIds: ['INV1', 'source2'] });
+    batch.update(doc(morning, 'invoices/INV1'), { status: 'merged', mergedInto: 'merged-parent', updatedByUid: 'morning' });
+    batch.update(doc(morning, 'invoices/source2'), { status: 'merged', mergedInto: 'merged-parent', updatedByUid: 'morning' });
+    batch.update(doc(morning, 'shifts/s1'), { invoiceVersion: 3 });
+    await assertSucceeds(batch.commit());
+
+    batch = writeBatch(evening);
+    batch.update(doc(evening, 'shifts/s1'), { closedAt: '2026-10-02T16:00:00', closedBy: 'المسائي', closedByUid: 'evening' });
+    batch.set(doc(evening, 'daycloses/dc-s1'), { shiftId: 's1', shiftType: 'morning', closedAt: '2026-10-02T16:00:00', closedByUid: 'evening', totalSales: 30 });
+    batch.set(doc(evening, 'shift_state/current'), { openShiftId: null, closedAt: '2026-10-02T16:00:00' });
+    await assertSucceeds(batch.commit());
+    assert.equal((await getDoc(doc(manager, 'daycloses/dc-s1'))).data().shiftType, 'morning');
+    batch = writeBatch(evening); batch.set(doc(evening, 'shifts/s2'), { ...shift, id: 's2', openedBy: 'evening', openedByUid: 'evening', shiftType: 'evening' }); batch.set(doc(evening, 'shift_state/current'), { openShiftId: 's2' }); await assertSucceeds(batch.commit());
+    batch = writeBatch(evening); batch.set(doc(evening, 'invoices/INV2'), { ...invoice, id: 'INV2', shiftId: 's2', shiftType: 'evening', createdByUid: 'evening', createdBy: 'evening' }); batch.update(doc(evening, 'shifts/s2'), { invoiceVersion: 1 }); await assertSucceeds(batch.commit());
+    await assertSucceeds(deleteDoc(doc(owner, 'invoices/INV2')));
+
+    batch = writeBatch(guest); batch.set(doc(guest, 'guest_limits/guest'), { lastOrderAt: serverTimestamp() });
+    batch.set(doc(guest, 'customer_orders/guest-request'), { id: 'guest-request', _uid: 'guest', items: [{ productId: 'p1', qty: 1 }], table: 'طاولة 1', status: 'new', createdAt: serverTimestamp() });
+    await assertSucceeds(batch.commit());
+    await assertSucceeds(getDoc(doc(guest, 'customer_orders/guest-request')));
+    await assertFails(updateDoc(doc(guest, 'customer_orders/guest-request'), { status: 'accepted' }));
+    await assertSucceeds(updateDoc(doc(evening, 'customer_orders/guest-request'), { status: 'accepted' }));
+    batch = writeBatch(guest); batch.set(doc(guest, 'guest_limits/guest'), { lastOrderAt: serverTimestamp() }); batch.set(doc(guest, 'customer_orders/guest-rapid'), { id: 'guest-rapid', _uid: 'guest', items: [{}], table: '', status: 'new', createdAt: serverTimestamp() }); await assertFails(batch.commit());
+    await assertFails(setDoc(doc(guest, 'invoices/guest-bill'), invoice));
+    await assertSucceeds(setDoc(doc(owner, 'meta/security'), { maintenance: true }));
+    await assertFails(getDocs(collection(morning, 'invoices')));
+    console.log('PASS roles: Owner/manager full access; cashiers cannot delete or elevate role; shift handover; anonymous order only; request throttling; maintenance protection');
+  } finally { await env.cleanup(); }
+})().catch(e => { console.error(e); process.exitCode = 1; });

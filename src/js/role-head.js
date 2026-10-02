@@ -1,55 +1,30 @@
-(function(){
-  try {
-    // ── Page entrance stagger (runs before session checks) ──
-    document.addEventListener('DOMContentLoaded', function () {
-      try {
-        var main = document.querySelector('.main');
-        if (!main) return;
-        var kids = main.children;
-        for (var i = 0; i < kids.length; i++) {
-          if (kids[i].classList) {
-            kids[i].classList.add('anim-in');
-            kids[i].style.animationDelay = Math.min(0.08 * i, 0.45) + 's';
-          }
-        }
-      } catch (e) {}
-    });
-
-    var u = JSON.parse(sessionStorage.getItem('laguna_user'));
-    if (!u) return;
-
-    // ── Session expiry check ──
-    var lastActive = Number(sessionStorage.getItem('laguna_last_active')) || 0;
-    var sessionStart = Number(sessionStorage.getItem('laguna_session_start')) || 0;
-    var now = Date.now();
-    var INACTIVITY_MS = 2 * 60 * 60 * 1000;
-    var MAX_SESSION_MS = 8 * 60 * 60 * 1000;
-    if ((now - lastActive > INACTIVITY_MS) || (sessionStart > 0 && now - sessionStart > MAX_SESSION_MS)) {
-      sessionStorage.removeItem('laguna_user');
-      sessionStorage.removeItem('laguna_token');
-      sessionStorage.removeItem('laguna_session_start');
-      sessionStorage.removeItem('laguna_last_active');
-      if (window.location.pathname.indexOf('auth.html') === -1) {
-        window.location.replace('auth.html');
-      }
-      return;
-    }
-    sessionStorage.setItem('laguna_last_active', String(now));
-    if (!sessionStart) sessionStorage.setItem('laguna_session_start', String(now));
-
-    var role = u.role;
-    if (role === 'Admin') return;
-    if (role === 'Owner') role = 'Admin';
-    var s = document.createElement('style');
-    var rules = [];
-    if (role === 'Employee') {
-      rules.push('.sidebar nav a.admin-only{display:none!important}');
-      rules.push('.sidebar nav a.no-employee{display:none!important}');
-      rules.push('#dashDayCloseBtn{display:none!important}');
-    }
-    s.textContent = rules.join('');
-    document.head.appendChild(s);
-  } catch(e){
-    console.warn('[role-head]', e);
+/* Navigation hints are never the security boundary: Firestore verifies the UID. */
+(function (root) {
+  var page = location.pathname.split('/').pop() || 'index.html';
+  function user() { try { return JSON.parse(sessionStorage.getItem('laguna_user')) || {}; } catch (_) { return {}; } }
+  function isManager(u) { u = u || user(); return u.role === 'Administrator' || u.role === 'Owner'; }
+  function clear() {
+    ['laguna_user', 'laguna_token', 'laguna_session_start', 'laguna_last_active'].forEach(function (k) { sessionStorage.removeItem(k); });
+    Object.keys(localStorage).forEach(function (k) { if (k.indexOf('laguna_cache_') === 0 || k === 'laguna_inv_count') localStorage.removeItem(k); });
   }
-})();
+  function save(u) {
+    clear(); sessionStorage.setItem('laguna_user', JSON.stringify(u));
+    sessionStorage.setItem('laguna_session_start', String(Date.now()));
+    sessionStorage.setItem('laguna_last_active', String(Date.now()));
+  }
+  function allowed(p, u) { return isManager(u) || (u.role === 'Cashier' && ['menu.html', 'invoices.html'].indexOf(p) !== -1); }
+  root.Access = { user: user, isManager: isManager, save: save, clear: clear, allowed: allowed };
+  if (page === 'ipad.html' || page === 'auth.html') return;
+  if (page === 'menu.html' && /[?&]table=\d+/.test(location.search)) { location.replace('ipad.html' + location.search); return; }
+  var current = user(), last = Number(sessionStorage.getItem('laguna_last_active')), start = Number(sessionStorage.getItem('laguna_session_start'));
+  if (!current.id || ['Administrator', 'Owner', 'Cashier'].indexOf(current.role) === -1 || !start || Date.now() - start > 12 * 3600000 || Date.now() - last > 2 * 3600000) {
+    clear(); location.replace('auth.html'); return;
+  }
+  if (!allowed(page, current)) { location.replace(isManager(current) ? 'index.html' : 'menu.html'); return; }
+  sessionStorage.setItem('laguna_last_active', String(Date.now()));
+  if (!isManager(current)) {
+    var style = document.createElement('style');
+    style.textContent = '.sidebar nav a:not([href="menu.html"]):not([href="invoices.html"]){display:none!important}.delete-btn,.del-btn,.delete-invoice-btn{display:none!important}';
+    document.head.appendChild(style);
+  }
+})(window);

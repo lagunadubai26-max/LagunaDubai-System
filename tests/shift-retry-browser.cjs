@@ -45,11 +45,12 @@ const { open } = require('./restaurant-browser.cjs');
     await t.locator('[data-product-id=coffee] button').click();
     await t.locator('#sidebarCheckout').click();
     await t.locator('#confirmCheckout').click();
-    await t.waitForFunction(() => window.alerts.some(text => text.includes('لا يوجد شيفت مفتوح')));
+    await t.waitForSelector('#successModal.show');
     assert.equal(await t.evaluate(() => window.saved.length), 0);
     assert.equal(await t.locator('#checkoutLoading').isVisible(), false);
     assert.deepEqual(tablet.errors, []);
-    console.log('PASS tablet blocks invoices without a shift and restores checkout');
+    assert.equal(await t.evaluate(() => window.store.customer_orders.length), 1);
+    console.log('PASS tablet queues customer requests without a shift; never creates a direct invoice');
     await tablet.context.close();
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });

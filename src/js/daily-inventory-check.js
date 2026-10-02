@@ -3,6 +3,7 @@
     let user;
     try { user = JSON.parse(sessionStorage.getItem('laguna_user')); } catch(e) { return; }
     if (!user) return;
+    if (!['Administrator', 'Owner'].includes(user.role)) return;
 
     var now = FB.clockNow();
     if (now.getHours() < 6) now.setDate(now.getDate() - 1);

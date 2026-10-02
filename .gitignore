@@ -14,3 +14,4 @@ start-server.sh
 Laguna Cafe.desktop
 .env
 .env.local
+.private/

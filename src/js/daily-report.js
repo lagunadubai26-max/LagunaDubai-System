@@ -329,6 +329,8 @@ async function showDayReport() {
         (latePayments.length ? '<div class="dr-title" style="color:#b45309">\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u0641\u0648\u0627\u062a\u064a\u0631 \u0633\u0627\u0628\u0642\u0629</div>' + buildLatePaymentsTable(latePayments) : '');
     }
     dayReportEl.insertAdjacentHTML('beforeend', Catalog.reportHTML(paidInvoices, menu, dayReturns));
+    const [sessions, payments] = await Promise.all([DB.shifts.all(), FB.getCollection('invoice_payments')]);
+    dayReportEl.insertAdjacentHTML('beforeend', ShiftReport.html(sessions.filter(s => s.openDate === dateVal), allInvoices, payments, allReturns, menu));
   } catch (e) {
     console.error('[dayreport]', e);
     dayReportEl.innerHTML = '<div class="dr-empty" style="color:#dc2626">\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062a\u0642\u0631\u064a\u0631: ' + escapeHtml(e.message || e) + '</div>';

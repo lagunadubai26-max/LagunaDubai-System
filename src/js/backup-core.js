@@ -1,7 +1,8 @@
 /* Portable Firestore JSON format; shared with the isolated restore utility. */
 (function (root) {
   'use strict';
-  const COLLECTIONS = ['users', 'user_mappings', 'settings', 'employees', 'customers', 'products', 'categories', 'expenses', 'incomes', 'equipment', 'advances', 'salary_payments', 'invoices', 'attendance', 'tables_', 'inventory', 'inventory_counts', 'returns', 'shifts', 'shift_state', 'daycloses', 'audit_logs', 'meta'];
+  const LEGACY_COLLECTIONS = ['users', 'user_mappings', 'settings', 'employees', 'customers', 'products', 'categories', 'expenses', 'incomes', 'equipment', 'advances', 'salary_payments', 'invoices', 'attendance', 'tables_', 'inventory', 'inventory_counts', 'returns', 'shifts', 'shift_state', 'daycloses', 'audit_logs', 'meta'];
+  const COLLECTIONS = LEGACY_COLLECTIONS.concat(['customer_orders', 'guest_limits', 'invoice_payments', 'clock_probes']);
   function encode(value) {
     if (value === null) return { nullValue: null };
     if (typeof value === 'string') return { stringValue: value };
@@ -47,8 +48,8 @@
       case 'timestampValue': if (typeof data !== 'string' || !Number.isFinite(Date.parse(data))) throw new Error('توقيت غير صالح'); break;
       case 'referenceValue': if (typeof data !== 'string' || !/^projects\/[^/]+\/databases\/[^/]+\/documents\/.+/.test(data)) throw new Error('مرجع غير صالح'); break;
       case 'geoPointValue': if (!data || !Number.isFinite(data.latitude) || !Number.isFinite(data.longitude) || Math.abs(data.latitude) > 90 || Math.abs(data.longitude) > 180) throw new Error('إحداثيات غير صالحة'); break;
-      case 'arrayValue': if (!data || !Array.isArray(data.values)) throw new Error('قائمة غير صالحة'); data.values.forEach(v => validValue(v, depth + 1)); break;
-      case 'mapValue': checkFields(data && data.fields, depth + 1); break;
+      case 'arrayValue': if (!data || (data.values !== undefined && !Array.isArray(data.values))) throw new Error('قائمة غير صالحة'); (data.values || []).forEach(v => validValue(v, depth + 1)); break;
+      case 'mapValue': if (!data || typeof data !== 'object') throw new Error('حقول غير صالحة'); checkFields(data.fields || {}, depth + 1); break;
       default: throw new Error('نوع Firestore غير معروف');
     }
   }
@@ -57,11 +58,12 @@
     Object.values(data).forEach(v => validValue(v, depth));
   }
   async function validate(backup) {
-    if (!backup || backup.format !== 'laguna-firestore-backup' || backup.version !== 1) throw new Error('الملف ليس نسخة Laguna مدعومة');
+    if (!backup || backup.format !== 'laguna-firestore-backup' || ![1, 2].includes(backup.version)) throw new Error('الملف ليس نسخة Laguna مدعومة');
     const p = backup.payload;
     if (!p || !/^[a-z][a-z0-9-]{3,62}$/.test(p.projectId || '') || !Number.isFinite(Date.parse(p.completedAt)) || !p.collections || typeof p.collections !== 'object' || Array.isArray(p.collections)) throw new Error('بيانات النسخة غير مكتملة');
     const names = Object.keys(p.collections);
-    if (names.length !== COLLECTIONS.length || !COLLECTIONS.every(name => names.includes(name))) throw new Error('النسخة لا تحتوي كل المجموعات المطلوبة');
+    const required = backup.version === 1 ? LEGACY_COLLECTIONS : COLLECTIONS;
+    if (!required.every(name => names.includes(name)) || names.some(name => !/^[a-zA-Z0-9_-]+$/.test(name))) throw new Error('النسخة لا تحتوي كل المجموعات المطلوبة');
     let total = 0;
     for (const name of names) {
       const docs = p.collections[name], ids = new Set();
@@ -75,7 +77,7 @@
     return { total, collections: names.length, projectId: p.projectId, completedAt: p.completedAt };
   }
   async function create(payload) {
-    const backup = { format: 'laguna-firestore-backup', version: 1, payload, sha256: await digest(payload) };
+    const backup = { format: 'laguna-firestore-backup', version: 2, payload, sha256: await digest(payload) };
     await validate(backup); return backup;
   }
   function due(lastDownload, now = Date.now(), days = 7) {

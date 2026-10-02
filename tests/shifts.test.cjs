@@ -14,6 +14,7 @@ function fixture(initial = {}) {
     where: () => ({ get: async options => { assert.equal(options.source, 'server'); if (offline) throw new Error('offline'); return { docs: [...store.entries()].filter(([key, data]) => key.startsWith(name + '/') && data.closedAt === null).map(([key]) => snap({ key, id: key.split('/')[1] })) }; } })
   }) };
   const FB = {
+    requireStaff: async () => ({ uid: 'test', name: 'test', username: '12345678', role: 'Cashier', shiftType: 'morning' }),
     ensure: async () => { if (offline) throw new Error('offline'); }, getDb: () => db,
     getUid: () => 'test', clockNow: () => new Date('2026-09-30T18:00:00'), invalidate: async () => {},
     runTransaction: fn => {
@@ -30,7 +31,7 @@ function fixture(initial = {}) {
   vm.runInContext(code + '\nthis.DB = DB;', context);
   return { DB: context.DB, store, offline: v => { offline = v; }, failCommit: v => { failCommit = v; } };
 }
-const oldShift = { id: 'old', openDate: '2026-09-20', openedAt: '2026-09-20T15:00:00', closedAt: null, invoiceVersion: 5 };
+const oldShift = { id: 'old', shiftType: 'morning', openedBy: 'test', openDate: '2026-09-20', openedAt: '2026-09-20T15:00:00', closedAt: null, invoiceVersion: 5 };
 
 test('ten-day-old shift remains open and blocks another shift until closed', async () => {
   const f = fixture({ 'shifts/old': oldShift, 'shift_state/current': { openShiftId: 'old' } });
@@ -83,14 +84,14 @@ test('missing or stale state pointer still finds the existing open shift', async
 
 test('Firebase concurrent reads await authentication and failed auth can retry', async () => {
   let calls = 0, fail = true;
-  const auth = { currentUser: null, signInAnonymously: async () => {
+  const auth = { currentUser: null, onAuthStateChanged: callback => { setTimeout(() => callback(auth.currentUser), 0); return () => {}; }, signInAnonymously: async () => {
     calls++; await new Promise(resolve => setTimeout(resolve, 10));
     if (fail) throw new Error('network unavailable');
     auth.currentUser = { uid: 'test' }; return { user: auth.currentUser };
   } };
   let reads = 0;
   const db = { collection: () => ({ orderBy: () => ({ get: async () => { assert(auth.currentUser); reads++; return { forEach: () => {} }; } }), doc: () => ({ set: async () => { throw new Error('clock skipped'); } }) }) };
-  const context = vm.createContext({ console: { warn: () => {} }, setInterval: () => {}, firebase: { initializeApp: () => ({}), firestore: Object.assign(() => db, { FieldValue: { serverTimestamp: () => null } }), auth: () => auth }, FIREBASE_CONFIG: {} });
+  const context = vm.createContext({ location: { pathname: '/ipad.html' }, localStorage: {}, console: { warn: () => {} }, setInterval: () => {}, firebase: { apps: [], initializeApp: () => ({}), firestore: Object.assign(() => db, { FieldValue: { serverTimestamp: () => null } }), auth: () => auth }, FIREBASE_CONFIG: {} });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/js/firebase-client.js'), 'utf8') + '\nthis.FB = FB;', context);
   const results = await Promise.allSettled([context.FB.getCollection('invoices'), context.FB.getCollection('shifts')]);
   assert(results.every(r => r.status === 'rejected')); assert.equal(calls, 1); assert.equal(reads, 0);

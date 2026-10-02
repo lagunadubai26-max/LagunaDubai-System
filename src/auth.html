@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/style.css?v=3">
   <link rel="stylesheet" href="css/auth.css?v=2">
   <link rel="stylesheet" href="css/responsive.css">
-<script src="js/role-head.js?v=2"></script></head>
+<script src="js/role-head.js?v=3"></script></head>
 <body class="auth-body">
 <div class="auth-card">
   <div class="auth-logo-circle"><img src="images/logo.png" alt="Laguna Dubai" style="width:56px;height:56px;border-radius:50%"></div>
@@ -22,12 +22,12 @@
   <div class="auth-form active" id="adminForm">
     <div class="input-group">
       <label>اسم المستخدم</label>
-      <input type="text" id="username" placeholder="أدخل اسم المستخدم">
+      <input type="text" id="username" inputmode="numeric" autocomplete="username" maxlength="8" placeholder="اسم الدخول — 8 أرقام">
       <i class="fa-solid fa-user"></i>
     </div>
     <div class="input-group">
       <label>كلمة المرور</label>
-      <input type="password" id="password" placeholder="أدخل كلمة المرور">
+      <input type="password" id="password" inputmode="numeric" autocomplete="current-password" maxlength="16" placeholder="كلمة المرور — 16 رقمًا">
       <i class="fa-solid fa-lock"></i>
     </div>
     <button class="auth-submit" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> دخول</button>
@@ -38,10 +38,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/firebase-client.js?v=6"></script>
+<script src="js/firebase-client.js?v=7"></script>
 <script src="js/sanitize.js"></script>
 <script src="js/password-utils.js"></script>
-<script src="js/data.js?v=17"></script>
-<script src="js/auth.js?v=2"></script>
+<script src="js/data.js?v=18"></script>
+<script src="js/auth.js?v=3"></script>
 </body>
 </html>

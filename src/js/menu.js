@@ -564,7 +564,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
     try {
       checkoutShift = await DB.shifts.getOpen();
       if (!checkoutShift) {
-        return alert('⚠️ لا يمكن إرسال الطلب قبل فتح الشيفت.\nمن فضلك افتح الشيفت أولًا من لوحة التحكم.');
+        return alert('افتح الشيفت أولًا من زر الشيفت في المنيو');
       }
     } catch(e) {
       console.warn('[checkout] shift check failed:', e);
@@ -592,6 +592,11 @@ document.getElementById('confirmCheckout').onclick = async () => {
 
   try {
     syncSheetNotesToOrderBox();
+    const staffUser = await FB.requireStaff();
+    if (!checkoutShift) checkoutShift = await DB.shifts.getOpen();
+    if (!checkoutShift) throw new Error('افتح الشيفت أولًا');
+    DB.shifts.assertCanSell(checkoutShift, staffUser);
+    if (staffUser.role === 'Cashier' && isPastDate) throw new Error('الكاشير يسجل على الشيفت الحالي فقط');
     const custType = document.getElementById('checkoutCustomerType').value;
     let customer, totalAmount;
     if (custType === 'special') {
@@ -655,6 +660,7 @@ document.getElementById('confirmCheckout').onclick = async () => {
             throw new Error('تم إغلاق الشيفت. افتح شيفتًا جديدًا قبل إنشاء الفاتورة');
           }
           shiftData = shiftSnap.data();
+          DB.shifts.assertCanSell(shiftData, staffUser);
         }
         const tn = tableNum || getTableInput();
         if (tn) {
@@ -666,11 +672,19 @@ document.getElementById('confirmCheckout').onclick = async () => {
           }
         }
         const invData = { id: invId, customer, table, date: invDate, items, total: totalAmount, paid, tendered, change, remaining: Math.max(0, totalAmount - paid), serviceAmount, taxAmount, paymentMethod: method, status: fullyPaid ? 'paid' : 'pending', customerType: custType, itemsValue: items.reduce((s, i) => s + i.qty * i.price, 0) };
+        invData.createdByUid = staffUser.uid;
+        invData.createdBy = staffUser.name;
+        invData.shiftType = checkoutShift.shiftType;
+        if (paid > 0) invData.lastPaymentId = 'PAY-' + invId;
         if (checkoutShift) invData.shiftId = checkoutShift.id;
         if (fullyPaid) invData.paidAt = invDate;
         const uid = FB.getUid();
         if (uid) invData._uid = uid;
         tx.set(rawDb.collection('invoices').doc(invId), invData);
+        if (paid > 0) tx.set(rawDb.collection('invoice_payments').doc('PAY-' + invId), {
+          id: 'PAY-' + invId, invoiceId: invId, shiftId: checkoutShift.id, shiftType: checkoutShift.shiftType,
+          amount: paid, method, date: invDate, actorUid: staffUser.uid
+        });
         if (shiftRef) {
           tx.update(shiftRef, { invoiceVersion: Number(shiftData.invoiceVersion || 0) + 1, lastActivityAt: invDate });
         }
@@ -903,7 +917,7 @@ loadProducts();
     enableService = toggle.checked;
     enableTax = toggle.checked;
     try {
-      await DB.settings.save({ enableService: enableService, enableTax: enableTax });
+      if (Access.isManager()) await DB.settings.save({ enableService: enableService, enableTax: enableTax });
     } catch(e) { console.warn('[service toggle]', e); }
     updateUI();
     recalcTotal();

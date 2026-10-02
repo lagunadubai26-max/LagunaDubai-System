@@ -96,8 +96,9 @@
   }
 
   let initDone = false;
-  function init() {
+  async function init() {
     if (initDone) return;
+    try { await FB.requireStaff(); } catch (_) { return; }
     initDone = true;
     const stored = localStorage.getItem('laguna_inv_count');
     lastCount = stored ? Number(stored) : 0;
@@ -120,7 +121,7 @@
       }
       lastCount = items.length;
       localStorage.setItem('laguna_inv_count', lastCount);
-    });
+    }).catch(e => console.warn('[notifications]', e.message));
   }
 
   const styleEl = document.createElement('style');

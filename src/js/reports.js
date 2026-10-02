@@ -101,8 +101,8 @@ async function render() {
     const range = getMonthRange(monthInput.value);
     const prevRange = getPrevMonthRange(monthInput.value);
 
-    const [allInvoices, allExpenses, allReturns, allIncomes, products, allAudit] = await Promise.all([
-      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.incomes.all(), DB.products.all(), DB.audit.all()
+    const [allInvoices, allExpenses, allReturns, allIncomes, products, allAudit, allShifts, payments] = await Promise.all([
+      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.incomes.all(), DB.products.all(), DB.audit.all(), DB.shifts.all(), FB.getCollection('invoice_payments')
     ]);
 
     const invoices = filterByDate(allInvoices, range);
@@ -165,6 +165,7 @@ async function render() {
 
     const soldInvoices = invoices.filter(i => i.status === 'paid' || i.status === 'مدفوعة');
     document.getElementById('departmentReport').innerHTML = Catalog.reportHTML(soldInvoices, products, returns);
+    document.getElementById('staffShiftReport').innerHTML = ShiftReport.html(allShifts.filter(s => s.openDate >= localDateKey(range.start) && s.openDate <= localDateKey(range.end)), allInvoices, payments, allReturns, products);
 
     drawAnomalies(soldInvoices, expenses, range);
     drawSalesChart(chartInvoices, range);
@@ -455,17 +456,17 @@ document.getElementById('exportBtn').onclick = async () => {
     if (/^[=+@-]/.test(s)) s = "'" + s;
     return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
-  let csv = 'رقم الفاتورة,العميل,الطاولة,التاريخ,طريقة الدفع,الحالة,الإجمالي,المدفوع,المتبقي,خدمة,ضريبة,المنتج,الفئة,الكمية,سعر الوحدة,الإجمالي الفرعي,ملاحظة,المنيو,المقاس,معرف المنتج,قيمة البند بعد التسويات\n';
+  let csv = 'رقم الفاتورة,العميل,الطاولة,التاريخ,طريقة الدفع,الحالة,الإجمالي,المدفوع,المتبقي,خدمة,ضريبة,المنتج,الفئة,الكمية,سعر الوحدة,الإجمالي الفرعي,ملاحظة,المنيو,المقاس,معرف المنتج,قيمة البند بعد التسويات,معرف الشيفت,نوع الشيفت,الكاشير\n';
   invoices.forEach(i => {
     const allocated = Catalog.allocate(i);
     if (i.items && i.items.length > 0) {
       i.items.forEach((item, index) => {
         const cat = item.category || nameToCat[item.baseName || item.name] || '';
         const lineTotal = (Number(item.qty || 0) * Number(item.price || 0));
-        csv += [i.id, i.customer, i.table, i.date, i.paymentMethod, i.status, i.total, i.paid, i.remaining, i.serviceAmount, i.taxAmount, item.name, cat, item.qty, item.price, lineTotal, item.note || '', Catalog.classify(item, products), item.variantLabel || '', item.productId || '', allocated[index] / 100].map(csvEsc).join(',') + '\n';
+        csv += [i.id, i.customer, i.table, i.date, i.paymentMethod, i.status, i.total, i.paid, i.remaining, i.serviceAmount, i.taxAmount, item.name, cat, item.qty, item.price, lineTotal, item.note || '', Catalog.classify(item, products), item.variantLabel || '', item.productId || '', allocated[index] / 100, i.shiftId, i.shiftType, i.createdBy].map(csvEsc).join(',') + '\n';
       });
     } else {
-      csv += [i.id, i.customer, i.table, i.date, i.paymentMethod, i.status, i.total, i.paid, i.remaining, i.serviceAmount, i.taxAmount, '', '', '', '', '', '', 'unknown', '', '', i.total].map(csvEsc).join(',') + '\n';
+      csv += [i.id, i.customer, i.table, i.date, i.paymentMethod, i.status, i.total, i.paid, i.remaining, i.serviceAmount, i.taxAmount, '', '', '', '', '', '', 'unknown', '', '', i.total, i.shiftId, i.shiftType, i.createdBy].map(csvEsc).join(',') + '\n';
     }
   });
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -608,7 +609,7 @@ document.getElementById('dcConfirmStartDay').onclick = async () => {
   const oldText = btn.innerHTML;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الفتح...';
   try {
-    const shift = await DB.shifts.open(user.name || 'الكاشير');
+    const shift = await DB.shifts.open(user.name || 'الكاشير', document.getElementById('dcShiftType').value);
     await DB.audit.log('shift_open', { id: shift.id, openDate: shift.openDate, openedBy: shift.openedBy }).catch(e => console.warn('[shift-audit]', e));
     closeStartDayModal();
     await checkDayCloseStatus();
@@ -662,7 +663,8 @@ confirmDayClose.onclick = async () => {
       closedBy: user.name || 'الكاشير',
       closedAt
     };
-    await DB.shifts.closeDay(shiftId, data, Number(btn.dataset.invoiceVersion || 0));
+    const snapshot = await ShiftOps.fresh(shiftId);
+    await DB.shifts.closeDay(shiftId, { ...data, ...snapshot.data }, snapshot.shift.invoiceVersion);
     await DB.audit.log('day_close', { shiftId, date: data.date, totalSales: data.totalSales, totalExpenses: data.totalExpenses }).catch(e => console.warn('[shift-audit]', e));
     dayCloseModal.classList.remove('show');
     try { await checkDayCloseStatus(); } catch (refreshError) { console.warn('[shift-refresh]', refreshError); }

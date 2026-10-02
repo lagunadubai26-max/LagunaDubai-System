@@ -15,15 +15,18 @@ const categories = [...new Set(products.map(p => p.category))].map(slug => ({ id
 async function open(browser, name, width = 1440, exportLibraries = false) {
   const context = await browser.newContext({ viewport: { width, height: 1000 } });
   await context.addInitScript(({ products, categories }) => {
-    sessionStorage.setItem('laguna_user', JSON.stringify({ name: 'Test', role: 'Administrator' }));
+    const staffUser = { id: 'test', uid: 'test', username: '12345678', name: 'Test', role: 'Administrator', shiftType: 'morning', enabled: true };
+    sessionStorage.setItem('laguna_user', JSON.stringify(staffUser));
+    sessionStorage.setItem('laguna_session_start', String(Date.now())); sessionStorage.setItem('laguna_last_active', String(Date.now()));
+    window.Access = { isManager: () => true, user: () => staffUser };
     window.localDateKey = value => { const d = new Date(value), pad = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
     window.safeId = () => crypto.randomUUID();
     const date = new Date().toISOString(), day = window.localDateKey(new Date());
-    const inv = { id: 'inv-test', status: 'paid', date, paidAt: date, customer: 'test', total: 155, paid: 155, customerType: 'regular', items: [
+    const inv = { id: 'inv-test', shiftId: 'shift', shiftType: 'morning', createdBy: 'Test', status: 'paid', date, paidAt: date, customer: 'test', total: 155, paid: 155, customerType: 'regular', items: [
       { productId: 'coffee', name: 'قهوة', price: 30, qty: 1, menuType: 'cafe' },
       { productId: 'restaurant-pizza-vegetable', name: 'بيتزا خضروات — Medium', baseName: 'بيتزا خضروات', variantKey: 'medium', variantLabel: 'Medium', menuType: 'restaurant', category: 'restaurant-pizza', price: 125, qty: 1 }
     ] };
-    window.store = { products, categories, invoices: [inv], shifts: [{ id: 'shift', openDate: day, openedAt: day + 'T00:00:00', closedAt: null, invoiceVersion: 0 }], tables_: [], settings: [], customers: [], returns: [], expenses: [], incomes: [], audit: [], daycloses: [] };
+    window.store = { products, categories, invoices: [inv], shifts: [{ id: 'shift', shiftType: 'morning', openedByUid: 'test', openedBy: 'Test', openDate: day, openedAt: day + 'T00:00:00', closedAt: null, invoiceVersion: 0 }], tables_: [], settings: [], customers: [], returns: [], expenses: [], incomes: [], audit: [], daycloses: [] };
     window.saved = []; window.alerts = []; window.alert = t => window.alerts.push(t); window.confirm = () => true; window.FIREBASE_CONFIG = {};
     const snap = (col, row) => ({ id: row.id, exists: true, data: () => structuredClone(row), ref: { col, id: row.id } });
     const db = { collection: col => ({
@@ -35,18 +38,19 @@ async function open(browser, name, width = 1440, exportLibraries = false) {
       update: (ref, data) => Object.assign((window.store[ref.col] || []).find(x => x.id === ref.id), data)
     }) };
     db.batch = () => ({ update: (ref, data) => Object.assign(window.store[ref.col].find(x => x.id === ref.id), data), commit: async () => {} });
-    window.firebase = { initializeApp: () => {}, firestore: () => db, auth: () => ({ signInAnonymously: async () => ({ user: { uid: 'test' } }) }) };
-    window.FB = { ensure: async () => {}, getDb: () => db, getUid: () => 'test', clockNow: () => new Date(), nowISO: () => new Date().toISOString(), getCollectionFresh: async col => structuredClone(window.store[col] || []), invalidate: async () => {}, runTransaction: fn => db.runTransaction(fn), onCollection: async (col, fn) => { setTimeout(() => fn(window.store[col]), 10); return () => {}; } };
+    window.firebase = { initializeApp: () => {}, firestore: Object.assign(() => db, { FieldValue: { serverTimestamp: () => 'timestamp-fixture' } }), auth: () => ({ signInAnonymously: async () => ({ user: { uid: 'test' } }) }) };
+    window.FB = { ensure: async () => {}, requireStaff: async () => staffUser, getDb: () => db, getUid: () => 'test', clockNow: () => new Date(), nowISO: () => new Date().toISOString(), getCollection: async col => structuredClone(window.store[col] || []), getCollectionFresh: async col => structuredClone(window.store[col] || []), invalidate: async () => {}, runTransaction: fn => db.runTransaction(fn), onCollection: async (col, fn) => { setTimeout(() => fn(window.store[col]), 10); return () => {}; } };
     window.DB = { seed: async () => {}, settings: { get: async () => ({ _svcMigrated: 2, enableService: false, enableTax: false }), save: async () => {} }, audit: { all: async () => [], log: async () => {} } };
     for (const col of ['products', 'categories', 'invoices', 'expenses', 'returns', 'incomes', 'customers', 'tables', 'daycloses', 'shifts']) {
       const key = col === 'tables' ? 'tables_' : col;
       window.DB[col] = { all: async () => structuredClone(window.store[key] || []), add: async data => { window.store[key].push(data); return data; }, update: async (id, data) => Object.assign(window.store[key].find(x => x.id === id), data), remove: async id => { window.store[key] = window.store[key].filter(x => x.id !== id); } };
     }
     window.DB.shifts.getOpen = async () => window.store.shifts[0]; window.DB.shifts.get = async () => window.store.shifts[0];
+    window.DB.shifts.assertCanSell = () => {};
     window.Chart = class { destroy() {} };
     window.PRINTER = { restorePrinters: async () => {}, isConnected: () => true };
   }, { products, categories });
-  const allowed = new Set(['catalog.js', 'restaurant-seed.js', 'menu.js', 'ipad-menu.js', 'products.js', 'invoices.js', 'daily-report.js', 'weekly-report.js', 'reports.js', 'sanitize.js', 'template-engine.js', 'report-export.js', 'shift-display.js', 'backup-core.js', 'backup-ui.js', 'dashboard.js']);
+  const allowed = new Set(['catalog.js', 'restaurant-seed.js', 'menu.js', 'ipad-menu.js', 'products.js', 'invoices.js', 'daily-report.js', 'weekly-report.js', 'reports.js', 'sanitize.js', 'template-engine.js', 'report-export.js', 'shift-display.js', 'shift-ops.js', 'shift-report.js', 'backup-core.js', 'backup-ui.js', 'dashboard.js']);
   if (exportLibraries) allowed.add('jspdf.umd.min.js');
   await context.route('**/*', async route => {
     const url = new URL(route.request().url()), rel = decodeURIComponent(url.pathname).replace(/^\//, '');
@@ -98,11 +102,13 @@ async function run() {
     await pizza.locator('select').selectOption('large'); await pizza.locator('button').click();
     await t.locator('[data-menu-type=cafe]').click(); await t.locator('[data-product-id=coffee] button').click();
     await t.locator('#sidebarList .ipad-oi-milk').click(); await t.locator('#sidebarCheckout').click();
-    await t.locator('#paidAmount').fill('500'); await t.locator('#confirmCheckout').click(); await t.waitForTimeout(100);
-    const ti = await t.evaluate(() => window.saved);
+    assert.equal(await t.locator('#paidAmount').isVisible(), false);
+    await t.locator('#confirmCheckout').click(); await t.waitForTimeout(100);
+    const ti = await t.evaluate(() => window.store.customer_orders || []);
     assert.equal(ti.length, 1, await t.evaluate(() => window.alerts.join('\n')));
-    assert.equal(ti[0].items.length, 3); assert.equal(ti[0].total, 335); assert.equal(ti[0].paid, 335); assert.equal(ti[0].change, 165); assert.equal(ti[0].items[2].price, 45);
-    assert.deepEqual(ipad.errors, []); console.log('PASS tablet checkout: mixed sizes, milk, change'); await ipad.context.close();
+    assert.equal(ti[0].items.length, 3); assert.equal(ti[0].items[0].variantKey, 'medium'); assert.equal(ti[0].items[1].variantKey, 'large');
+    assert.equal(ti[0].items[2].hasMilk, true); assert.equal(await t.evaluate(() => window.saved.length), 0);
+    assert.deepEqual(ipad.errors, []); console.log('PASS tablet customer request: sizes and milk; no direct invoice or payment'); await ipad.context.close();
 
     const admin = await open(browser, 'products'), a = admin.page;
     await a.locator('[data-menu-type=restaurant]').click();
@@ -124,7 +130,7 @@ async function run() {
     for (const name of ['daily-report', 'weekly-report', 'reports']) {
       const report = await open(browser, name);
       await report.page.waitForSelector('.department-report');
-      const text = await report.page.locator('.department-report').innerText();
+      const text = await report.page.locator('.department-report').first().innerText();
       assert(text.includes('المطعم') && text.includes('الكافيه') && text.includes('Medium'));
       assert.deepEqual(report.errors, []); console.log('PASS ' + name); await report.context.close();
     }
@@ -162,10 +168,11 @@ async function run() {
       const category = name === 'menu' ? '#menuCategories' : '#ipadCategories';
       assert.equal(await s.locator(category + ' [data-category=coffee]').count(), 1);
       await s.locator(name === 'menu' ? '.order-box .checkout' : '#sidebarCheckout').click();
-      await s.locator(name === 'menu' ? '#checkoutPaid' : '#paidAmount').fill('40');
+      if (name === 'menu') await s.locator('#checkoutPaid').fill('40');
       await s.locator('#confirmCheckout').click(); await s.waitForTimeout(100);
-      const invoice = await s.evaluate(() => window.saved[0]);
-      assert.equal(invoice.total, 40); assert.deepEqual(invoice.items.map(it => it.menuType), ['cafe', 'restaurant']);
+      const invoice = await s.evaluate(name => name === 'menu' ? window.saved[0] : window.store.customer_orders[0], name);
+      if (name === 'menu') assert.equal(invoice.total, 40);
+      assert.deepEqual(invoice.items.map(it => it.menuType), ['cafe', 'restaurant']);
       assert.deepEqual(shared.errors, []); console.log('PASS shared product department snapshots: ' + name); await shared.context.close();
     }
   } finally { await browser.close(); }

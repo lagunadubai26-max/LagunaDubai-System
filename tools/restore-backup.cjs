@@ -36,12 +36,12 @@ async function restore(backup, origin = 'http://127.0.0.1:8080', project = 'demo
     return response.json();
   }
   // No overwrites, even of prior test data. Use a fresh demo project per run.
-  for (const name of COLLECTIONS) {
+  for (const name of Object.keys(backup.payload.collections)) {
     const existing = await request(base + '/' + name + '?pageSize=1');
     if ((existing.documents || []).length) throw new Error('Test database is not empty: ' + name);
   }
   let restored = 0;
-  for (const name of COLLECTIONS) {
+  for (const name of Object.keys(backup.payload.collections)) {
     for (const doc of backup.payload.collections[name]) {
       const fields = rewrite(doc.fields, backup.payload.projectId, project);
       const endpoint = base + '/' + name + '/' + encodeURIComponent(doc.id);

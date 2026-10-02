@@ -16,7 +16,7 @@ const { restore } = require('../tools/restore-backup.cjs');
   if (!host) throw new Error('FIRESTORE_EMULATOR_HOST is required');
   const project = 'demo-laguna-restore-' + Date.now();
   const result = await restore(JSON.parse(JSON.stringify(backup)), 'http://' + host, project);
-  assert.equal(result.restored, 23);
+  assert.equal(result.restored, COLLECTIONS.length);
   await assert.rejects(restore(backup, 'http://' + host, project), /not empty/);
   console.log('PASS real Firestore emulator: 23 collections restored and read-back verified; typed values preserved; overwrite blocked');
 })().catch(e => { console.error(e); process.exitCode = 1; });

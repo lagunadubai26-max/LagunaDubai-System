@@ -2,17 +2,32 @@ const FB = (() => {
   let db;
   let uid = null;
   let authReady = null;
+  let initialAuth = null;
+  function initializeAuth() {
+    if (!db) {
+      const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore(app);
+    }
+    if (!initialAuth) initialAuth = new Promise(resolve => {
+      const unsubscribe = firebase.auth().onAuthStateChanged(user => { unsubscribe(); resolve(user); });
+    });
+    return initialAuth;
+  }
+  function clearCache() {
+    _memo.clear();
+    Object.keys(localStorage).forEach(k => { if (k.startsWith('laguna_cache_')) localStorage.removeItem(k); });
+  }
 
   async function init() {
-    if (uid && firebase.auth().currentUser) return;
+    await initializeAuth();
+    if (uid && firebase.auth().currentUser && uid === firebase.auth().currentUser.uid) return;
     if (!authReady) {
       authReady = (async () => {
-        if (!db) {
-          const app = firebase.initializeApp(FIREBASE_CONFIG);
-          db = firebase.firestore(app);
-        }
         const auth = firebase.auth();
+        const page = location.pathname.split('/').pop();
+        if (!auth.currentUser && page !== 'ipad.html') throw Object.assign(new Error('تسجيل الدخول مطلوب'), { code: 'auth/required' });
         const user = auth.currentUser || (await auth.signInAnonymously()).user;
+        if (uid !== user.uid) clearCache();
         uid = user.uid;
       })().finally(() => { authReady = null; });
     }
@@ -20,6 +35,14 @@ const FB = (() => {
   }
 
   async function ensure() { await init(); startClockSync(); }
+  async function requireStaff() {
+    await ensure();
+    const authUser = firebase.auth().currentUser;
+    if (!authUser || authUser.isAnonymous) throw new Error('حساب موظف مطلوب');
+    const snap = await db.collection('user_mappings').doc(authUser.uid).get({ source: 'server' });
+    if (!snap.exists || snap.data().enabled !== true || !['Administrator', 'Owner', 'Cashier'].includes(snap.data().role)) throw new Error('الحساب غير مفعل');
+    return { ...snap.data(), id: authUser.uid, uid: authUser.uid };
+  }
 
   function docId() { 
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -35,7 +58,7 @@ const FB = (() => {
   async function syncClock() {
     try {
       await ensure();
-      const probeRef = db.collection('audit_logs').doc('clock_probe_' + (uid || 'anon'));
+      const probeRef = db.collection('clock_probes').doc(uid);
       await probeRef.set({ t: firebase.firestore.FieldValue.serverTimestamp() });
       const snap = await probeRef.get();
       try { await probeRef.delete(); } catch(e) { /* البقايا تتستبدل في المزامنة التالية */ }
@@ -179,5 +202,5 @@ const FB = (() => {
   function getUid() { return uid; }
   function getDb() { return db; }
 
-  return { getCollection, getCollectionFresh, queryCollection, ensure, addDoc, updateDoc, removeDoc, onCollection, runTransaction, invalidate, getUid, getDb, syncClock, clockNow, nowISO };
+  return { getCollection, getCollectionFresh, queryCollection, initializeAuth, requireStaff, clearCache, ensure, addDoc, updateDoc, removeDoc, onCollection, runTransaction, invalidate, getUid, getDb, syncClock, clockNow, nowISO };
 })();

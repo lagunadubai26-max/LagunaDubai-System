@@ -21,7 +21,7 @@ const { open } = require('./restaurant-browser.cjs');
         else if (typeof showWeekReport === 'function') await showWeekReport();
         else await render();
       });
-      assert(!(await p.locator('.department-report').innerText()).includes('غير مصنف'));
+      assert(!(await p.locator('.department-report').first().innerText()).includes('غير مصنف'));
       await p.evaluate(selector => {
         const el = document.querySelector(selector);
         const table = document.createElement('table');
@@ -52,7 +52,7 @@ const { open } = require('./restaurant-browser.cjs');
       const pages = await p.evaluate(() => window.renderedPages);
        assert(pdf.getPageCount() > 2); assert.equal(pdf.getPageCount(), pages.length);
        assert(pdf.getPageCount() < 12, 'Pagination regressed to one row per page');
-      assert(pages.every(page => page.ink > 100 && page.height <= 2050), 'Blank or unbounded page');
+       assert(pages.every(page => (page.ink > 100 || page.red > 1000) && page.height <= 2050), 'Blank or unbounded page');
       assert(pages.some(page => page.red > 1000), 'Canvas graph missing from PDF');
       assert.equal(await p.locator('.report-export-copy').count(), 0);
       assert.equal(await p.locator(report + ' img').first().getAttribute('src'), logoBefore);

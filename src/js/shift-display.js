@@ -8,7 +8,8 @@
     const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60), remainder = minutes % 60;
     const duration = (days ? days + ' يوم · ' : '') + hours + ' ساعة · ' + remainder + ' دقيقة';
     const overdue = start.getFullYear() !== now.getFullYear() || start.getMonth() !== now.getMonth() || start.getDate() !== now.getDate();
-    return { text: 'بداية الشيفت: ' + start.toLocaleString('ar-EG') + ' | المدة: ' + duration + (overdue ? ' — ممتد من يوم سابق' : ''), overdue };
+    const type = shift.shiftType === 'morning' ? 'الصباحي' : shift.shiftType === 'evening' ? 'المسائي' : '';
+    return { text: 'الشيفت ' + type + (shift.openedBy ? ' — ' + shift.openedBy : '') + ' | البداية: ' + start.toLocaleString('ar-EG') + ' | المدة: ' + duration + (overdue ? ' — ممتد من يوم سابق' : ''), overdue };
   }
   const timers = new Map();
   function set(shift, id) {

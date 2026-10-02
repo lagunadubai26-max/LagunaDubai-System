@@ -297,7 +297,8 @@ async function showWeekReport() {
     '<div class="dr-title">المنتجات المباعة هذا الأسبوع</div>' +
     productsTable;
 
-    weekReportEl.innerHTML = html + Catalog.reportHTML(weekPaidAll, menu, weekReturns);
+    const payments = await FB.getCollection('invoice_payments');
+    weekReportEl.innerHTML = html + Catalog.reportHTML(weekPaidAll, menu, weekReturns) + ShiftReport.html(shifts.filter(s => weekDays.some(d => d.dateKey === s.openDate)), allInvoices, payments, allReturns, menu);
   } catch (e) {
     console.error('[weekreport]', e);
     weekReportEl.innerHTML = '<div class="dr-empty" style="color:#dc2626">حدث خطأ أثناء تحميل التقرير: ' + escapeHtml(e.message || e) + '</div>';

@@ -1,155 +1,175 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isAuth() {
-      return request.auth != null;
+    function signedIn() { return request.auth != null; }
+    function profile() { return get(/databases/$(database)/documents/user_mappings/$(request.auth.uid)).data; }
+    function staffIdentity() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider == 'password'
+        && exists(/databases/$(database)/documents/user_mappings/$(request.auth.uid))
+        && profile().enabled == true && profile().role in ['Administrator', 'Owner', 'Cashier'];
     }
-
-    function getUserRole() {
-      return get(/databases/$(database)/documents/user_mappings/$(request.auth.uid)).data.role;
+    function running() {
+      return !exists(/databases/$(database)/documents/meta/security)
+        || get(/databases/$(database)/documents/meta/security).data.maintenance != true;
     }
-
-    function isAdmin() {
-      return isAuth() && getUserRole() == 'Administrator';
+    function staff() { return staffIdentity() && running(); }
+    function manager() { return staff() && profile().role in ['Administrator', 'Owner']; }
+    function shiftAllowed(s) {
+      return s.closedAt == null && (manager() || (staff() && s.shiftType == profile().shiftType));
     }
-
-    function isOwner() {
-      return isAuth() && getUserRole() == 'Owner';
+    function validInvoice() {
+      let d = request.resource.data;
+      return d.id is string && d.items is list && d.items.size() > 0 && d.items.size() <= 100
+        && d.total is number && d.total >= 0 && d.paid is number && d.paid >= 0 && d.paid <= d.total
+        && d.remaining is number && d.remaining >= 0 && d.status in ['paid', 'pending', 'returned', 'merged', 'cancelled']
+        && (d.status != 'paid' || (d.paid == d.total && d.remaining == 0));
     }
-
-    function isEmployee() {
-      return isAuth() && getUserRole() == 'Employee';
+    function paymentLogged(id, delta) {
+      let paymentId = request.resource.data.get('lastPaymentId', 'missing');
+      let payment = getAfter(/databases/$(database)/documents/invoice_payments/$(paymentId)).data;
+      return payment.invoiceId == id && payment.actorUid == request.auth.uid && payment.amount == delta;
     }
-
-    function isAdminOrOwner() {
-      return isAdmin() || isOwner();
+    function mergeSource(ids, index, target) {
+      return ids.size() <= index ? {'total': 0, 'paid': 0, 'valid': true} : {
+        'total': get(/databases/$(database)/documents/invoices/$(ids[index])).data.total,
+        'paid': get(/databases/$(database)/documents/invoices/$(ids[index])).data.paid,
+        'valid': getAfter(/databases/$(database)/documents/invoices/$(ids[index])).data.status == 'merged'
+          && getAfter(/databases/$(database)/documents/invoices/$(ids[index])).data.mergedInto == target
+          && get(/databases/$(database)/documents/invoices/$(ids[index])).data.status in ['paid', 'pending']
+          && get(/databases/$(database)/documents/invoices/$(ids[index])).data.shiftId == request.resource.data.shiftId
+      };
     }
-
-    // ── user_mappings: role mapping from anonymous UID → role ──
-    // Bootstrap (first run, no users/u1): any authenticated user can create any mapping
-    // Employee: can only create mapping for themselves with role 'Employee'
-    // Admin: can create mapping for any uid (adds Owners, other Admins)
-    // Owner: cannot create mapping for themselves — Admin adds them
+    function validMerge(id) {
+      let ids = request.resource.data.get('mergedIds', []);
+      let a = mergeSource(ids, 0, id);
+      let b = mergeSource(ids, 1, id);
+      let c = mergeSource(ids, 2, id);
+      let d = mergeSource(ids, 3, id);
+      let e = mergeSource(ids, 4, id);
+      return ids is list && ids.size() >= 2 && ids.size() <= 5 && ids.toSet().size() == ids.size()
+        && a.valid && b.valid && c.valid && d.valid && e.valid
+        && request.resource.data.total == a.total + b.total + c.total + d.total + e.total
+        && request.resource.data.paid == a.paid + b.paid + c.paid + d.paid + e.paid;
+    }
     match /user_mappings/{uid} {
-      allow read: if isAuth();
-      allow create: if isAdmin() || (
-        request.auth.uid == uid && request.resource.data.role == 'Employee'
-      ) || !exists(/databases/$(database)/documents/users/u1);
-      allow update, delete: if isAdmin();
+      allow get: if signedIn() && (request.auth.uid == uid || manager());
+      allow list, create, update, delete: if manager();
     }
-
-    // ── Admin-only collections ──
-    match /users/{docId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-      allow create: if isAuth() && (
-        isAdmin() || !exists(/databases/$(database)/documents/users/u1)
-      );
+    match /users/{id} { allow read, write: if manager(); }
+    match /settings/{id} { allow read: if staff(); allow write: if manager(); }
+    match /products/{id} { allow read: if signedIn(); allow write: if manager(); }
+    match /categories/{id} { allow read: if signedIn(); allow write: if manager(); }
+    match /customers/{id} {
+      allow read: if staff();
+      allow create, delete: if manager();
+      allow update: if manager() || (staff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visits', 'totalSpent', 'lastVisit']));
     }
-
-    match /settings/{docId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
+    match /tables_/{id} {
+      allow read: if signedIn();
+      allow create, delete: if manager();
+      allow update: if manager() || (staff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'currentOrder']));
     }
-
-    match /employees/{docId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /customers/{docId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // ── Products: anyone can read, only Admin can write ──
-    match /products/{docId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // ── Expenses: Admin and Owner can write ──
-    match /expenses/{docId} {
-      allow read: if isAuth();
-      allow write: if isAdminOrOwner();
-    }
-
-    match /incomes/{docId} {
-      allow read: if isAuth();
-      allow write: if isAdminOrOwner();
-    }
-
-    match /equipment/{docId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /advances/{docId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /salary_payments/{docId} {
-      allow read, write: if isAdmin();
-    }
-
-    // ── Operational collections: any authenticated user ──
-    match /invoices/{docId} {
-      allow read, write: if isAuth();
-    }
-
-    match /attendance/{docId} {
-      allow read, write: if isAuth();
-    }
-
-    match /tables_/{docId} {
-      allow read, write: if isAuth();
-    }
-
-    match /inventory/{docId} {
-      allow read, write: if isAuth();
-    }
-
-    match /inventory_counts/{docId} {
-      allow read, write: if isAuth();
-    }
-
-    match /returns/{docId} {
-      allow read, write: if isAuth();
-    }
-
-    match /categories/{docId} {
-      allow read, write: if isAuth();
-    }
-
-    match /shifts/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth()
-        && request.resource.data.closedAt == null
-        && getAfter(/databases/$(database)/documents/shift_state/current).data.openShiftId == docId;
-      allow update, delete: if isAuth();
-    }
-
-    match /shift_state/{docId} {
-      allow read, write: if isAuth();
-    }
-
-    match /daycloses/{docId} {
-      allow read, delete: if isAuth();
-      allow create, update: if isAuth()
+    match /invoices/{id} {
+      allow read: if staff();
+      allow create: if staff() && validInvoice() && request.resource.data.id == id
+        && request.resource.data.status in ['paid', 'pending']
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.createdBy == profile().name
         && request.resource.data.shiftId is string
+        && shiftAllowed(get(/databases/$(database)/documents/shifts/$(request.resource.data.shiftId)).data)
+        && request.resource.data.shiftType == get(/databases/$(database)/documents/shifts/$(request.resource.data.shiftId)).data.shiftType
+        && (manager() || getAfter(/databases/$(database)/documents/shifts/$(request.resource.data.shiftId)).data.invoiceVersion == get(/databases/$(database)/documents/shifts/$(request.resource.data.shiftId)).data.invoiceVersion + 1)
+        && (request.resource.data.get('mergedIds', []).size() > 0 ? validMerge(id) : (request.resource.data.paid == 0 || paymentLogged(id, request.resource.data.paid)));
+      allow update: if manager() || (staff() && validInvoice()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['items', 'total', 'paid', 'tendered', 'change', 'remaining', 'status', 'paidAt', 'lastPaymentAt', 'lastPaymentId', 'paymentMethod', 'itemsValue', 'serviceAmount', 'taxAmount', 'printed', 'pendingPrint', 'table', 'customer', 'customerType', 'mergedInto', 'updatedByUid', 'updatedAt'])
+        && request.resource.data.updatedByUid == request.auth.uid
+        && (request.resource.data.status != 'merged' || (!exists(/databases/$(database)/documents/invoices/$(request.resource.data.mergedInto))
+          && getAfter(/databases/$(database)/documents/invoices/$(request.resource.data.mergedInto)).data.mergedIds.hasAny([id])))
+        && (request.resource.data.paid <= resource.data.paid || paymentLogged(id, request.resource.data.paid - resource.data.paid)));
+      allow delete: if manager();
+    }
+    match /returns/{id} { allow read, create, update, delete: if staff(); }
+    match /invoice_payments/{id} {
+      allow read: if staff();
+      allow create: if staff() && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.amount is number && request.resource.data.amount > 0
+        && shiftAllowed(get(/databases/$(database)/documents/shifts/$(request.resource.data.shiftId)).data)
+        && getAfter(/databases/$(database)/documents/invoices/$(request.resource.data.invoiceId)).data.lastPaymentId == id
+        && request.resource.data.amount == getAfter(/databases/$(database)/documents/invoices/$(request.resource.data.invoiceId)).data.paid - (exists(/databases/$(database)/documents/invoices/$(request.resource.data.invoiceId)) ? get(/databases/$(database)/documents/invoices/$(request.resource.data.invoiceId)).data.paid : 0);
+      allow update, delete: if manager();
+    }
+    match /shifts/{id} {
+      allow read: if staff();
+      allow create: if staff() && request.resource.data.closedAt == null
+        && request.resource.data.shiftType in ['morning', 'evening']
+        && (manager() || request.resource.data.shiftType == profile().shiftType)
+        && request.resource.data.openedByUid == request.auth.uid
+        && request.resource.data.openedBy == profile().name
+        && request.resource.data.invoiceVersion == 0
+        && request.resource.data.expenseTotal == 0 && request.resource.data.incomeTotal == 0
+        && getAfter(/databases/$(database)/documents/shift_state/current).data.openShiftId == id;
+      allow update: if manager() || (staff() && (
+        (resource.data.closedAt == null && request.resource.data.closedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['invoiceVersion', 'lastActivityAt'])
+          && shiftAllowed(resource.data) && request.resource.data.invoiceVersion == resource.data.invoiceVersion + 1)
+        || (resource.data.closedAt == null && request.resource.data.closedAt is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['closedAt', 'closedBy', 'closedByUid'])
+          && request.resource.data.closedByUid == request.auth.uid
+          && getAfter(/databases/$(database)/documents/daycloses/$('dc-' + id)).data.closedAt == request.resource.data.closedAt)));
+      allow delete: if manager();
+    }
+    match /shift_state/{id} {
+      allow read: if staff();
+      allow create, update: if staff() && id == 'current' && (
+        (request.resource.data.openShiftId is string
+          && (!exists(/databases/$(database)/documents/shift_state/current) || resource.data.openShiftId == null)
+          && getAfter(/databases/$(database)/documents/shifts/$(request.resource.data.openShiftId)).data.openedByUid == request.auth.uid)
+        || (request.resource.data.openShiftId == null && resource.data.openShiftId is string
+          && getAfter(/databases/$(database)/documents/shifts/$(resource.data.openShiftId)).data.closedAt == request.resource.data.closedAt));
+      allow delete: if manager();
+    }
+    match /daycloses/{id} {
+      allow read: if staff();
+      allow create: if staff() && request.resource.data.shiftId is string
+        && request.resource.data.closedByUid == request.auth.uid
         && getAfter(/databases/$(database)/documents/shifts/$(request.resource.data.shiftId)).data.closedAt == request.resource.data.closedAt;
+      allow update, delete: if manager();
     }
-
-    match /audit_logs/{docId} {
-      allow read, write: if isAuth();
+    match /customer_orders/{id} {
+      allow get: if staff() || (signedIn() && id.matches(request.auth.uid + '-.*'));
+      allow list, update, delete: if staff();
+      allow create: if signedIn() && running()
+        && request.resource.data.keys().hasOnly(['id', '_uid', 'items', 'table', 'status', 'createdAt'])
+        && request.resource.data.id == id && request.resource.data._uid == request.auth.uid
+        && id.matches(request.auth.uid + '-.*')
+        && request.resource.data.items is list && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 50
+        && request.resource.data.table is string && request.resource.data.table.size() <= 80
+        && request.resource.data.status == 'new' && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/guest_limits/$(request.auth.uid)).data.lastOrderAt == request.time;
     }
-
-    match /meta/{docId} {
-      allow read, write: if isAuth();
+    match /guest_limits/{uid} {
+      allow get: if signedIn() && uid == request.auth.uid;
+      allow list, delete: if manager();
+      allow create, update: if signedIn() && running() && uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['lastOrderAt']) && request.resource.data.lastOrderAt == request.time
+        && (!exists(/databases/$(database)/documents/guest_limits/$(uid)) || resource.data.lastOrderAt < request.time - duration.value(30, 's'));
     }
-
-    // ── Catch-all: deny anything not explicitly listed ──
-    match /{document=**} {
-      allow read, write: if false;
+    match /audit_logs/{id} {
+      allow read: if manager();
+      allow create: if staff() && request.resource.data.actorUid == request.auth.uid;
+      allow update, delete: if manager();
     }
+    match /clock_probes/{uid} {
+      allow read, delete: if staff() && uid == request.auth.uid;
+      allow create, update: if staff() && uid == request.auth.uid && request.resource.data.keys().hasOnly(['t']) && request.resource.data.t == request.time;
+    }
+    match /meta/{id} {
+      allow read: if staff();
+      allow write: if manager() || (staff() && id == 'versions' && request.resource.data.keys().hasOnly(['versions']));
+    }
+    match /{collection}/{id} {
+      allow read, write: if collection in ['employees', 'attendance', 'inventory', 'inventory_counts', 'equipment', 'advances', 'salary_payments', 'expenses', 'incomes'] && manager();
+    }
+    match /{document=**} { allow read, write: if false; }
   }
 }
