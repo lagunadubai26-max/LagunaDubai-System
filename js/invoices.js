@@ -494,6 +494,7 @@ function updateMergeBtn() {
 }
 
 document.getElementById('mergeInvoicesBtn').onclick = async function () {
+  if (this.disabled) return;
   const checked = document.querySelectorAll('.inv-checkbox:checked');
   if (checked.length < 2) return;
   const ids = Array.from(checked).map(cb => cb.dataset.id);
@@ -516,8 +517,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
       for (const item of inv.items) {
         const key = Catalog.key(item);
         if (itemMap[key]) {
-          itemMap[key].qty += item.qty;
-          itemMap[key].qty = Number(itemMap[key].qty);
+          itemMap[key].qty = Number(itemMap[key].qty || 0) + Number(item.qty || 0);
         } else {
           const clone = {};
           for (const k in item) clone[k] = item[k];
@@ -534,18 +534,19 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
     'العميل: ' + toMerge[0].customer)) return;
 
   try {
+    this.disabled = true;
     const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 4);
     paid = Math.min(total, paid);
     const remaining = Math.max(0, total - paid);
     // تاريخ أقدم فاتورة مدموجة (عشان الفاتورة الجديدة م تقفزش لأول الجدول)
     const earliestDate = toMerge.reduce((min, i) => (i.date && new Date(i.date) < min ? new Date(i.date) : min), new Date(toMerge[0].date || FB.nowISO()));
     // أول ترابيزة موجودة من كل المدموجين
-    const mergedTable = (toMerge.map(i => i.table || '').find(t => t.trim()) || '');
+    const mergedTable = (toMerge.map(i => String(i.table || '')).find(t => t.trim()) || '');
     const itemsValue = toMerge.reduce((s, i) => s + Number(i.itemsValue != null ? i.itemsValue : Number(i.total || 0)), 0);
     const customerType = toMerge[0].customerType || '';
     const mergedInvoice = {
       id: newId,
-      customer: toMerge[0].customer,
+      customer: toMerge[0].customer || 'عميل عادي',
       date: localISO(earliestDate),
       items: mergedItems,
       total: total,
@@ -574,7 +575,7 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
       const shiftRef = db.collection('shifts').doc(active.id), shiftSnap = await tx.get(shiftRef);
       if (!shiftSnap.exists || shiftSnap.data().closedAt != null) throw new Error('تم إغلاق الشيفت');
       docs.forEach((doc, index) => {
-        if (!doc.exists || doc.data().status === 'merged' || doc.data().total !== toMerge[index].total || doc.data().paid !== toMerge[index].paid || JSON.stringify(doc.data().items) !== JSON.stringify(toMerge[index].items)) throw new Error('تغيرت الفواتير. حدّث القائمة ثم أعد المحاولة');
+        if (!doc.exists || doc.data().status !== toMerge[index].status || doc.data().shiftId !== active.id || doc.data().total !== toMerge[index].total || doc.data().paid !== toMerge[index].paid || JSON.stringify(doc.data().items) !== JSON.stringify(toMerge[index].items)) throw new Error('تغيرت الفواتير. حدّث القائمة ثم أعد المحاولة');
       });
       tx.set(db.collection('invoices').doc(newId), mergedInvoice);
       refs.forEach(ref => tx.update(ref, { status: 'merged', mergedInto: newId, updatedByUid: actor.uid, updatedAt: FB.nowISO() }));
@@ -611,7 +612,9 @@ document.getElementById('mergeInvoicesBtn').onclick = async function () {
     }
   } catch (e) {
     console.error('[merge] error:', e);
-    alert('حدث خطأ أثناء دمج الفواتير');
+    alert('تعذر دمج الفواتير: ' + (e.code === 'permission-denied' ? 'لا توجد صلاحية للدمج أو قواعد Firebase تحتاج تحديثًا' : (e.message || e)));
+  } finally {
+    this.disabled = false;
   }
 };
 

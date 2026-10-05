@@ -553,6 +553,11 @@ document.getElementById('checkoutPaid').addEventListener('input', window.calcRem
 
 document.getElementById('confirmCheckout').onclick = async () => {
   if (checkoutProcessing) return;
+  const tableField = document.getElementById('tableInput');
+  if (tableField && !tableField.disabled && !tableField.checkValidity()) {
+    tableField.reportValidity();
+    return;
+  }
   // Check if a past date is selected
   var dateEl = document.getElementById('checkoutDate');
   var selectedDate = dateEl ? dateEl.value : '';
@@ -841,27 +846,6 @@ if (cartFloat && cartSheet) {
 async function autoConnectPrinter() {
   try {
     await PRINTER.restorePrinters();
-    if (PRINTER.isConnected()) return;
-    const btn = document.createElement('button');
-    btn.id = 'connectPrinterBtn';
-    btn.innerHTML = '🖨️ توصيل الطابعة';
-    btn.style.cssText = 'position:fixed;bottom:80px;right:15px;z-index:999;background:#e94560;color:#fff;border:none;border-radius:50px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(233,69,96,0.4);transition:0.2s';
-    btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
-    btn.onmouseout = () => btn.style.transform = 'scale(1)';
-    btn.onclick = async () => {
-      btn.innerHTML = '⏳ جاري...';
-      btn.disabled = true;
-      try {
-        await PRINTER.addPrinter('usb', { name: 'XP-80', forKitchen: false });
-        btn.innerHTML = '✅ متصلة';
-        btn.style.background = '#059669';
-        setTimeout(() => btn.remove(), 2000);
-      } catch(e) {
-        btn.innerHTML = '❌ فشل';
-        setTimeout(() => { btn.innerHTML = '🖨️ توصيل الطابعة'; btn.disabled = false; }, 2000);
-      }
-    };
-    document.body.appendChild(btn);
   } catch(e) { console.warn('[printer]', e); }
 }
 if (!isCustomer && window.innerWidth > 768) autoConnectPrinter();

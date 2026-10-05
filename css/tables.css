@@ -63,26 +63,32 @@
   flex-wrap: wrap;
 }
 .table-actions .edit-btn,
+.table-actions .qr-btn,
 .table-actions .delete-btn {
-  width: 38px; height: 38px;
+  width: 44px; height: 44px;
   border: none; border-radius: 10px;
   color: #fff; cursor: pointer;
   transition: .3s;
 }
-.table-actions .edit-btn { background: #F4A825; }
+.table-actions .edit-btn { background: #1d4ed8; }
+.table-actions .qr-btn { background: #047857; }
 .table-actions .delete-btn { background: #E74C3C; }
-.table-actions .edit-btn:hover { background: #d99216; }
+.table-actions .edit-btn:hover { background: #1e40af; }
 .table-actions .delete-btn:hover { background: #c0392b; }
 .table-actions select {
-  height: 38px;
+  height: 44px;
   border: 1px solid #ddd;
   border-radius: 10px;
   padding: 0 8px;
   font-family: 'Cairo', sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   outline: none;
 }
 @keyframes popup {
   from { transform: scale(.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+.table-actions button:focus-visible,.table-actions select:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.table-actions :disabled { opacity:.65; cursor:wait; }
+@media(max-width:480px) { .tables-grid { grid-template-columns:1fr; } .table-card { padding:20px; } }
+@media(prefers-reduced-motion:reduce) { .table-card,.table-actions button { transition:none; } .table-card:hover { transform:none; } }
