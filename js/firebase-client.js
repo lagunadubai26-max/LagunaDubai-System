@@ -13,9 +13,13 @@ const FB = (() => {
     });
     return initialAuth;
   }
-  function clearCache() {
+  function clearCache(preserveMenu = false) {
     _memo.clear();
-    Object.keys(localStorage).forEach(k => { if (k.startsWith('laguna_cache_')) localStorage.removeItem(k); });
+    _inFlight.clear();
+    _readEpoch++;
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('laguna_cache_') && !(preserveMenu && ['laguna_cache_products', 'laguna_cache_categories'].includes(k))) localStorage.removeItem(k);
+    });
   }
 
   async function init() {
@@ -27,7 +31,7 @@ const FB = (() => {
         const page = location.pathname.split('/').pop();
         if (!auth.currentUser && page !== 'ipad.html') throw Object.assign(new Error('تسجيل الدخول مطلوب'), { code: 'auth/required' });
         const user = auth.currentUser || (await auth.signInAnonymously()).user;
-        if (uid !== user.uid) clearCache();
+        if (uid !== user.uid) clearCache(uid === null);
         uid = user.uid;
       })().finally(() => { authReady = null; });
     }
@@ -80,6 +84,14 @@ const FB = (() => {
 
   // ── Read reduction: memo (per page) + static cache (localStorage + versions doc) ──
   const _memo = new Map();
+  const _inFlight = new Map();
+  let _readEpoch = 0;
+  function readOnce(key, load) {
+    if (_inFlight.has(key)) return _inFlight.get(key);
+    const job = Promise.resolve().then(load);
+    _inFlight.set(key, job);
+    return job.finally(() => { if (_inFlight.get(key) === job) _inFlight.delete(key); });
+  }
   const MEMO_TTL = 5000;
   const META_TTL = 10000;
   const STATIC_COLLECTIONS = { products: 1, customers: 1, categories: 1, employees: 1, users: 1, settings: 1 };
@@ -90,15 +102,18 @@ const FB = (() => {
   function _cLocalSet(key, val) { localStorage.setItem('laguna_' + key, JSON.stringify(val)); }
 
   async function metaVersions() {
-    const m = _memo.get('__meta');
-    if (m && Date.now() - m.t < META_TTL) return m.data;
-    let v = {};
-    try {
-      const snap = await db.collection('meta').doc(VERSIONS_DOC).get();
-      if (snap.exists) v = snap.data().versions || {};
-    } catch(e) {}
-    _memo.set('__meta', { t: Date.now(), data: v });
-    return v;
+    return readOnce('__meta', async () => {
+      const epoch = _readEpoch;
+      const m = _memo.get('__meta');
+      if (m && Date.now() - m.t < META_TTL) return m.data;
+      let v = {};
+      try {
+        const snap = await db.collection('meta').doc(VERSIONS_DOC).get();
+        if (snap.exists) v = snap.data().versions || {};
+      } catch(e) {}
+      if (epoch === _readEpoch) _memo.set('__meta', { t: Date.now(), data: v });
+      return v;
+    });
   }
 
   async function bumpVersion(name) {
@@ -115,29 +130,37 @@ const FB = (() => {
     try { sessionStorage.removeItem('laguna_report_snapshot_v1'); } catch (_) {}
     _memo.delete(name);
     _memo.delete('__meta');
+    _readEpoch++;
+    _inFlight.delete(name);
+    _inFlight.delete('__meta');
     if (STATIC_COLLECTIONS[name]) await bumpVersion(name);
   }
 
   async function getCollection(name) {
     await ensure();
-    const memo = _memo.get(name);
-    if (memo && Date.now() - memo.t < MEMO_TTL) return memo.data;
-    let data;
-    if (STATIC_COLLECTIONS[name]) {
-      const v = await metaVersions();
-      const vKey = v[name] || null;
-      const cached = _cLocalGet('cache_' + name, null);
-      if (cached && cached.v === vKey) {
-        data = cached.data;
+    return readOnce(name, async () => {
+      const epoch = _readEpoch;
+      const memo = _memo.get(name);
+      if (memo && Date.now() - memo.t < MEMO_TTL) return memo.data;
+      let data;
+      if (STATIC_COLLECTIONS[name]) {
+        const v = await metaVersions();
+        const vKey = v[name] || null;
+        const cached = _cLocalGet('cache_' + name, null);
+        if (cached && cached.project === FIREBASE_CONFIG.projectId && cached.v === vKey) {
+          data = cached.data;
+        } else {
+          data = await rawCollection(name);
+          if (epoch === _readEpoch) {
+            try { _cLocalSet('cache_' + name, { project: FIREBASE_CONFIG.projectId, v: vKey, data }); } catch (_) {}
+          }
+        }
       } else {
         data = await rawCollection(name);
-        _cLocalSet('cache_' + name, { v: vKey, data });
       }
-    } else {
-      data = await rawCollection(name);
-    }
-    _memo.set(name, { t: Date.now(), data });
-    return data;
+      if (epoch === _readEpoch) _memo.set(name, { t: Date.now(), data });
+      return data;
+    });
   }
 
   async function getCollectionFresh(name) {

@@ -78,7 +78,7 @@ const reportCache = ReportCache.create({
   storage: sessionStorage,
   now: () => Date.now(),
   authorize: () => FB.requireStaff(),
-  load: () => Promise.all(['invoices', 'expenses', 'returns', 'incomes', 'products', 'audit', 'shifts', 'invoice_payments'].map(name => FB.getCollectionFresh(name)))
+  load: () => Promise.all(['invoices', 'expenses', 'returns', 'incomes', 'products', 'audit', 'shifts', 'invoice_payments'].map(name => name === 'products' ? FB.getCollection(name) : FB.getCollectionFresh(name)))
 });
 const reportRefresh = document.createElement('button');
 reportRefresh.type = 'button';
