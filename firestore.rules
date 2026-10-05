@@ -5,7 +5,6 @@ service cloud.firestore {
     function profile() { return get(/databases/$(database)/documents/user_mappings/$(request.auth.uid)).data; }
     function staffIdentity() {
       return signedIn() && request.auth.token.firebase.sign_in_provider == 'password'
-        && exists(/databases/$(database)/documents/user_mappings/$(request.auth.uid))
         && profile().enabled == true && profile().role in ['Administrator', 'Owner', 'Cashier'];
     }
     function running() {
@@ -15,7 +14,7 @@ service cloud.firestore {
     function staff() { return staffIdentity() && running(); }
     function manager() { return staff() && profile().role in ['Administrator', 'Owner']; }
     function shiftAllowed(s) {
-      return s.closedAt == null && (manager() || (staff() && s.shiftType == profile().shiftType));
+      return s.closedAt == null && (profile().role in ['Administrator', 'Owner'] || s.shiftType == profile().shiftType);
     }
     function validInvoice() {
       let d = request.resource.data;
@@ -31,12 +30,11 @@ service cloud.firestore {
     }
     function mergeSource(ids, index, target) {
       return ids.size() <= index ? {'total': 0, 'paid': 0, 'valid': true} : {
-        'total': get(/databases/$(database)/documents/invoices/$(ids[index])).data.total,
-        'paid': get(/databases/$(database)/documents/invoices/$(ids[index])).data.paid,
+        'total': getAfter(/databases/$(database)/documents/invoices/$(ids[index])).data.total,
+        'paid': getAfter(/databases/$(database)/documents/invoices/$(ids[index])).data.paid,
         'valid': getAfter(/databases/$(database)/documents/invoices/$(ids[index])).data.status == 'merged'
           && getAfter(/databases/$(database)/documents/invoices/$(ids[index])).data.mergedInto == target
-          && get(/databases/$(database)/documents/invoices/$(ids[index])).data.status in ['paid', 'pending']
-          && get(/databases/$(database)/documents/invoices/$(ids[index])).data.shiftId == request.resource.data.shiftId
+          && getAfter(/databases/$(database)/documents/invoices/$(ids[index])).data.shiftId == request.resource.data.shiftId
       };
     }
     function validMerge(id) {
@@ -84,7 +82,9 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['items', 'total', 'paid', 'tendered', 'change', 'remaining', 'status', 'paidAt', 'lastPaymentAt', 'lastPaymentId', 'paymentMethod', 'itemsValue', 'serviceAmount', 'taxAmount', 'printed', 'pendingPrint', 'table', 'customer', 'customerType', 'mergedInto', 'updatedByUid', 'updatedAt'])
         && request.resource.data.updatedByUid == request.auth.uid
         && (request.resource.data.status == resource.data.status || !(request.resource.data.status in ['returned', 'مرتجعة']))
-        && (request.resource.data.status != 'merged' || (!exists(/databases/$(database)/documents/invoices/$(request.resource.data.mergedInto))
+        && (request.resource.data.status != 'merged' || (resource.data.status in ['paid', 'pending']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'mergedInto', 'updatedByUid', 'updatedAt'])
+          && !exists(/databases/$(database)/documents/invoices/$(request.resource.data.mergedInto))
           && getAfter(/databases/$(database)/documents/invoices/$(request.resource.data.mergedInto)).data.mergedIds.hasAny([id])))
         && (request.resource.data.paid <= resource.data.paid || paymentLogged(id, request.resource.data.paid - resource.data.paid)));
       allow delete: if manager();

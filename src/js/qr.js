@@ -19,7 +19,8 @@ function renderCard(t, section) {
 
 async function render() {
   container.innerHTML = '<div class="qr-loading"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</div>';
-  const tables = await DB.tables.all() || [];
+  const tableId = new URLSearchParams(window.location.search).get('tableId');
+  const tables = (await DB.tables.all() || []).filter(t => !tableId || t.id === tableId);
   tables.sort((a, b) => {
     const na = parseInt(a.name.replace(/\D/g, '')) || 0;
     const nb = parseInt(b.name.replace(/\D/g, '')) || 0;

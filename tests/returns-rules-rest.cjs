@@ -36,4 +36,23 @@ const { fields } = require('../src/js/backup-core.js');
   assert.equal((await call(base + '/returns/manager', 'DELETE', null, token('cashier'))).status, 403);
   assert.equal((await call(base + '/returns/manager', 'DELETE', null, token('owner-staff'))).status, 200);
   console.log('PASS actual rules: cashier cannot return invoice or create/change/delete refund; printing preserved; manager/Owner returns allowed');
+  const documentName = suffix => 'projects/' + project + '/databases/(default)/documents/' + suffix;
+  const write = (suffix, data, mask) => ({ update: { name: documentName(suffix), fields: fields(data) }, ...(mask ? { updateMask: { fieldPaths: Object.keys(data) } } : {}) });
+  const commit = (writes, uid) => call(base + ':commit', 'POST', { writes }, token(uid));
+  await call(base + '/user_mappings/evening', 'PATCH', { fields: fields({ name: 'evening', enabled: true, role: 'Cashier', shiftType: 'evening' }) });
+  const shift = { id: 'evening-first', openedBy: 'evening', openedByUid: 'evening', shiftType: 'evening', closedAt: null, invoiceVersion: 0, expenseTotal: 0, incomeTotal: 0 };
+  const firstEvening = await commit([write('shifts/evening-first', shift), write('shift_state/current', { openShiftId: 'evening-first' })], 'evening');
+  assert.equal(firstEvening.status, 200, firstEvening.text);
+  console.log('PASS evening cashier opens evening first without a morning shift');
+  await call(base + '/shifts/test-shift', 'PATCH', { fields: fields({ ...shift, id: 'test-shift', shiftType: 'morning', openedBy: 'cashier', openedByUid: 'cashier' }) });
+  const ids = ['source1', 'source2', 'source3', 'source4', 'source5'];
+  for (const id of ids) await call(base + '/invoices/' + id, 'PATCH', { fields: fields({ ...invoice, id, shiftType: 'morning' }) });
+  const merged = { ...invoice, id: 'merged', total: 150, paid: 150, items: [{ name: 'قهوة', qty: 5, price: 30 }], mergedIds: ids, shiftType: 'morning', createdBy: 'cashier' };
+  function mergeWrites(corrupt) {
+    return [write('invoices/merged', merged), ...ids.map((id, index) => write('invoices/' + id, { status: 'merged', mergedInto: 'merged', updatedByUid: 'cashier', ...(corrupt && index === 0 ? { total: 31 } : {}) }, true)), write('shifts/test-shift', { invoiceVersion: 1 }, true)];
+  }
+  assert.equal((await commit(mergeWrites(true), 'cashier')).status, 403);
+  const result = await commit(mergeWrites(false), 'cashier');
+  assert.equal(result.status, 200, result.text);
+  console.log('PASS five-invoice cashier merge succeeds; changing source totals during merge is denied');
 })().catch(e => { console.error(e); process.exitCode = 1; });

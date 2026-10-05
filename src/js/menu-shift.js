@@ -6,12 +6,13 @@
   container.innerHTML = '<div id="menuShiftDetails" class="shift-details"></div><label for="menuShiftType">الشيفت</label><select id="menuShiftType"><option value="morning">الصباحي</option><option value="evening">المسائي</option></select> <button type="button" id="menuShiftButton" class="confirm-btn">جاري التحقق…</button>';
   const button = document.getElementById('menuShiftButton'), select = document.getElementById('menuShiftType');
   if (user.role === 'Cashier') { select.value = user.shiftType; select.disabled = true; }
+  select.setAttribute('aria-label', 'نوع الشيفت');
   async function refresh() {
     button.disabled = true;
     try {
       const shift = await DB.shifts.getOpen();
       ShiftDisplay.set(shift, 'menuShiftDetails');
-      button.textContent = shift ? 'غلق الشيفت المفتوح' : 'فتح الشيفت';
+      button.textContent = shift ? 'غلق الشيفت المفتوح' : 'فتح الشيفت ' + (select.value === 'evening' ? 'المسائي' : 'الصباحي');
       button.dataset.action = shift ? 'close' : 'open';
       button.dataset.retry = '';
     } catch (e) { ShiftDisplay.unavailable('menuShiftDetails'); button.textContent = 'إعادة المحاولة'; button.dataset.retry = 'true'; button.dataset.action = 'retry'; }
@@ -36,6 +37,9 @@
       }
     } catch (e) { alert(e.message || e); }
     finally { await refresh(); }
+  };
+  select.onchange = () => {
+    if (button.dataset.action === 'open') button.textContent = 'فتح الشيفت ' + (select.value === 'evening' ? 'المسائي' : 'الصباحي');
   };
   await refresh();
 })();
