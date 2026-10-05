@@ -112,6 +112,7 @@ const FB = (() => {
   }
 
   async function invalidate(name) {
+    try { sessionStorage.removeItem('laguna_report_snapshot_v1'); } catch (_) {}
     _memo.delete(name);
     _memo.delete('__meta');
     if (STATIC_COLLECTIONS[name]) await bumpVersion(name);

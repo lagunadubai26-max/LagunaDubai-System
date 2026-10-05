@@ -73,6 +73,24 @@ function destroyAllCharts() {
 }
 
 let rendering = false;
+let reportRenderQueued = false;
+const reportCache = ReportCache.create({
+  storage: sessionStorage,
+  now: () => Date.now(),
+  authorize: () => FB.requireStaff(),
+  load: () => Promise.all(['invoices', 'expenses', 'returns', 'incomes', 'products', 'audit', 'shifts', 'invoice_payments'].map(name => FB.getCollectionFresh(name)))
+});
+const reportRefresh = document.createElement('button');
+reportRefresh.type = 'button';
+reportRefresh.id = 'reportRefresh';
+reportRefresh.className = 'add-btn';
+reportRefresh.textContent = 'تحديث بيانات التقارير';
+const reportCacheStatus = document.createElement('p');
+reportCacheStatus.id = 'reportCacheStatus';
+reportCacheStatus.setAttribute('aria-live', 'polite');
+document.getElementById('monthlyReport').before(reportRefresh, reportCacheStatus);
+reportRefresh.onclick = () => render(true);
+let displayedReport = null;
 
 function shiftSessionRange(dateVal, shifts) {
   const sorted = shifts.filter(s => s.openDate && s.openedAt).sort((a, b) => new Date(a.openedAt) - new Date(b.openedAt));
@@ -88,9 +106,11 @@ function shiftSessionRange(dateVal, shifts) {
   return { start: new Date(dateVal + 'T00:00:00Z'), end: new Date(dateVal + 'T23:59:59.999Z') };
 }
 
-async function render() {
-  if (rendering) return;
+async function render(forceRefresh = false) {
+  if (rendering) { reportRenderQueued = true; return; }
   rendering = true;
+  displayedReport = null;
+  reportRefresh.disabled = true;
   let errorBox = document.getElementById('reportLoadError');
   if (!errorBox) {
     errorBox = document.createElement('div'); errorBox.id = 'reportLoadError';
@@ -101,9 +121,9 @@ async function render() {
     const range = getMonthRange(monthInput.value);
     const prevRange = getPrevMonthRange(monthInput.value);
 
-    const [allInvoices, allExpenses, allReturns, allIncomes, products, allAudit, allShifts, payments] = await Promise.all([
-      DB.invoices.all(), DB.expenses.all(), DB.returns.all(), DB.incomes.all(), DB.products.all(), DB.audit.all(), DB.shifts.all(), FB.getCollection('invoice_payments')
-    ]);
+    const snapshot = await reportCache.get(forceRefresh);
+    reportCacheStatus.textContent = 'البيانات حتى ' + new Date(snapshot.time).toLocaleTimeString('ar-EG') + ' — يُعاد استخدامها لمدة 5 دقائق لتقليل القراءات. اضغط تحديث لجلب أحدث البيانات.';
+    const [allInvoices, allExpenses, allReturns, allIncomes, products, allAudit, allShifts, payments] = snapshot.data;
 
     const invoices = filterByDate(allInvoices, range);
     const prevInvoices = filterByDate(allInvoices, prevRange);
@@ -174,6 +194,7 @@ async function render() {
     drawHourlyChart(soldInvoices);
     drawDayChart(chartInvoices);
     drawTopProducts(soldInvoices);
+    displayedReport = snapshot;
   } catch (e) {
     console.error('[reports]', e);
     errorBox.hidden = false;
@@ -181,6 +202,8 @@ async function render() {
     document.getElementById('retryReport').onclick = () => render();
   }
   rendering = false;
+  reportRefresh.disabled = false;
+  if (reportRenderQueued) { reportRenderQueued = false; await render(); }
 }
 
 function drawSalesChart(invoices, range) {
@@ -425,7 +448,7 @@ monthInput.addEventListener('change', () => { destroyAllCharts(); render(); });
 async function exportMonthlyReport(asImage) {
   const el = document.getElementById('monthlyReport');
   if (!el) return;
-  if (rendering || !el.querySelector('.department-report')) return alert('انتظر اكتمال تحميل التقرير أولًا');
+  if (rendering || !displayedReport || !el.querySelector('.department-report')) return alert('انتظر اكتمال تحميل التقرير أولًا');
   try {
     const labelEl = document.getElementById('monthlyReportLabel');
     if (labelEl) {
@@ -446,8 +469,9 @@ if (monthlyImgBtn) monthlyImgBtn.onclick = () => exportMonthlyReport(true);
 
 // ── Export ──
 document.getElementById('exportBtn').onclick = async () => {
-  const invoices = filterByDate(await DB.invoices.all() || [], getMonthRange(monthInput.value));
-  const products = await DB.products.all() || [];
+  if (rendering || !displayedReport) return alert('انتظر اكتمال تحميل التقرير أولًا');
+  const invoices = filterByDate(displayedReport.data[0], getMonthRange(monthInput.value));
+  const products = displayedReport.data[4];
   const nameToCat = {};
   products.forEach(p => { nameToCat[p.name] = p.category || 'أخرى'; });
 

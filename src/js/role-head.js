@@ -5,6 +5,7 @@
   function isManager(u) { u = u || user(); return u.role === 'Administrator' || u.role === 'Owner'; }
   function clear() {
     ['laguna_user', 'laguna_token', 'laguna_session_start', 'laguna_last_active'].forEach(function (k) { sessionStorage.removeItem(k); });
+    sessionStorage.removeItem('laguna_report_snapshot_v1');
     Object.keys(localStorage).forEach(function (k) { if (k.indexOf('laguna_cache_') === 0 || k === 'laguna_inv_count') localStorage.removeItem(k); });
   }
   function save(u) {
